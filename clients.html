@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clientes – Sistema Cartomante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/clients.css" />
+</head>
+<body>
+  <!-- Side menu (reuse the same markup as the dashboard) -->
+  <nav class="side-menu">
+    <div class="logo">🪄 Cartomante</div>
+    <ul class="menu-items">
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="clients.html" class="active">Clientes</a></li>
+      <li><a href="#">Agenda</a></li>
+      <li><a href="#">Chat</a></li>
+      <li><a href="#">Perguntas ao Baralho</a></li>
+      <li><a href="#">Serviços</a></li>
+      <li><a href="#">Financeiro</a></li>
+      <li><a href="#">Mural Público</a></li>
+      <li><a href="#">Organização</a></li>
+      <li><a href="#">Configurações</a></li>
+    </ul>
+  </nav>
+
+  <main class="main-content">
+    <header class="header">
+      <h1>Clientes</h1>
+      <div class="header-actions">
+        <input type="text" id="searchInput" placeholder="Buscar por nome..." />
+        <select id="filterTagSelect">
+          <option value="">Todas as tags</option>
+        </select>
+        <select id="orderSelect">
+          <option value="recent">Mais recente</option>
+          <option value="oldest">Mais antigo</option>
+          <option value="recurring">Recorrente</option>
+          <option value="pending">Pendente financeiro</option>
+        </select>
+        <button id="newClientBtn" class="primary-btn">Novo Cliente</button>
+      </div>
+    </header>
+
+    <section id="clientList" class="client-list">
+      <!-- Cards will be injected by JS -->
+    </section>
+
+    <section id="emptyState" class="empty-state hidden">
+      <p>🥰 Ainda não há clientes cadastrados. Clique em “Novo Cliente” para iniciar.</p>
+    </section>
+  </main>
+
+  <!-- Modal for New / Edit Client -->
+  <div id="clientModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close" id="closeModal">&times;</span>
+      <h2 id="modalTitle">Novo Cliente</h2>
+      <div class="tabs">
+        <button class="tab-link active" data-tab="basic">Dados Básicos</button>
+        <button class="tab-link" data-tab="observacoes">Observações</button>
+        <button class="tab-link" data-tab="tags">Tags privadas</button>
+      </div>
+      <form id="clientForm">
+        <!-- Tab 1 – Dados Básicos -->
+        <div class="tab-panel" id="tab-basic">
+          <label>Nome completo
+            <input type="text" name="nome_completo" required />
+          </label>
+          <label>Data de nascimento
+            <input type="date" name="data_nascimento" />
+          </label>
+          <label>Celular
+            <input type="tel" name="celular" />
+          </label>
+          <label>Email
+            <input type="email" name="email" />
+          </label>
+          <label>Religião
+            <select name="religiao" id="religiaoSelect">
+              <option value="">Selecione</option>
+              <option>Umbanda</option>
+              <option>Candomblé</option>
+              <option>Quimbanda</option>
+              <option>Wicca</option>
+              <option>Xamanismo</option>
+              <option>Espiritualista</option>
+              <option>Outra</option>
+            </select>
+          </label>
+          <div id="religiaoExtras" class="hidden">
+            <label>Guia espiritual
+              <input type="text" name="guia_espiritual" />
+            </label>
+            <label>Pai/Mãe de cabeça
+              <input type="text" name="pai_mae_cabeca" />
+            </label>
+            <label>Tradição espiritual
+              <input type="text" name="tradicao_espiritual" />
+            </label>
+          </div>
+          <label>Sexo
+            <select name="sexo"><option value=""></option><option>Masculino</option><option>Feminino</option><option>Outro</option></select>
+          </label>
+          <label>Pronome
+            <input type="text" name="pronome" />
+          </label>
+          <label>Estado civil
+            <input type="text" name="estado_civil" />
+          </label>
+        </div>
+        <!-- Tab 2 – Observações -->
+        <div class="tab-panel hidden" id="tab-observacoes">
+          <label>Observações gerais
+            <textarea name="observacoes_gerais"></textarea>
+          </label>
+          <label>Personalidade percebida
+            <textarea name="personalidade_percebida"></textarea>
+          </label>
+          <label>Padrões recorrentes
+            <textarea name="padroes_recorrentes"></textarea>
+          </label>
+          <label>Pontos delicados
+            <textarea name="pontos_delicados"></textarea>
+          </label>
+          <label>Resumo da história
+            <textarea name="resumo_historia"></textarea>
+          </label>
+        </div>
+        <!-- Tab 3 – Tags privadas -->
+        <div class="tab-panel hidden" id="tab-tags">
+          <div class="tag-management">
+            <h3>Adicionar tag</h3>
+            <label>Categoria
+              <select id="tagCategorySelect">
+                <option value="comportamento">Comportamento</option>
+                <option value="atendimento">Atendimento</option>
+                <option value="financeiro">Financeiro</option>
+                <option value="acessibilidade">Acessibilidade</option>
+              </select>
+            </label>
+            <label>Nome da tag
+              <input type="text" id="tagNameInput" />
+            </label>
+            <label>Cor (hex)
+              <input type="color" id="tagColorInput" value="#ffcc00" />
+            </label>
+            <button type="button" id="addTagBtn" class="secondary-btn">Adicionar</button>
+            <ul id="tagList" class="tag-list"></ul>
+          </div>
+        </div>
+        <button type="submit" class="primary-btn">Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/clients.js"></script>
+</body>
+</html>

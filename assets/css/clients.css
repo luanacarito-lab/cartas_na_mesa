@@ -1,0 +1,130 @@
+/* clients.css – design system for the Cliente management page */
+/* -------------------------------------------------- */
+/* Colors – curated palette */
+:root {
+  --color-bg: hsl(230, 15%, 12%);           /* deep navy */
+  --color-surface: hsla(230, 15%, 20%, 0.6); /* glass‑morphism surface */
+  --color-primary: hsl(260, 70%, 65%);      /* soft violet */
+  --color-accent: hsl(45, 80%, 55%);       /* warm amber */
+  --color-text: hsl(0, 0%, 92%);
+  --color-muted: hsl(0, 0%, 55%);
+}
+
+* { box-sizing: border-box; margin:0; padding:0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* Layout – side menu */
+.side-menu {
+  position: fixed;
+  inset: 0 0 0 0;
+  width: 250px;
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1rem;
+}
+.side-menu .logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+.side-menu .menu-items {
+  list-style: none;
+  flex-grow: 1;
+}
+.side-menu .menu-items li a {
+  display: block;
+  padding: .8rem 1rem;
+  border-radius: .5rem;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: background .2s, color .2s;
+}
+.side-menu .menu-items li a.active,
+.side-menu .menu-items li a:hover {
+  background: hsla(260, 70%, 65%, 0.15);
+  color: var(--color-primary);
+}
+
+/* Main content */
+.main-content {
+  margin-left: 260px;
+  padding: 2rem;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.header h1 { font-family: 'Outfit', sans-serif; font-size: 2rem; color: var(--color-primary); }
+.header-actions { display: flex; gap: .5rem; align-items: center; }
+.header-actions input,
+.header-actions select,
+.header-actions button {
+  padding: .5rem .8rem;
+  border: none;
+  border-radius: .4rem;
+  font-size: .9rem;
+}
+.header-actions input { flex: 1; }
+.header-actions .primary-btn { background: var(--color-primary); color:#fff; cursor:pointer; }
+.header-actions .primary-btn:hover { background: hsl(260, 70%, 55%); }
+
+/* Client list grid */
+.client-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.client-card {
+  background: var(--color-surface);
+  backdrop-filter: blur(8px);
+  border-radius: .8rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  transition: transform .2s, box-shadow .2s;
+}
+.client-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+.client-card img { width: 100%; height: 140px; object-fit: cover; border-radius:.5rem; }
+.client-card .name { font-weight:600; color: var(--color-primary); }
+.client-card .tags { display:flex; flex-wrap:wrap; gap:.3rem; }
+.client-card .tag { padding:.2rem .5rem; border-radius:.3rem; font-size:.75rem; background: var(--color-accent); color:#000; }
+
+/* Empty state */
+.empty-state { text-align:center; margin-top:4rem; font-size:1.2rem; color: var(--color-muted); }
+
+/* Modal */
+.modal { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; }
+.modal.hidden { display:none; }
+.modal-content { background: var(--color-surface); backdrop-filter:blur(10px); border-radius:.8rem; width:90%; max-width:800px; padding:2rem; position:relative; }
+.modal-content .close { position:absolute; top:1rem; right:1rem; font-size:1.5rem; cursor:pointer; color:var(--color-muted); }
+.tabs { display:flex; gap:.5rem; margin-bottom:1rem; }
+.tab-link { flex:1; padding:.5rem; background:var(--color-muted); border:none; border-radius:.4rem; cursor:pointer; }
+.tab-link.active { background:var(--color-primary); color:#fff; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+form label { display:block; margin-bottom:.8rem; font-size:.9rem; }
+form input, form select, form textarea { width:100%; padding:.4rem .6rem; border:none; border-radius:.3rem; }
+form textarea { min-height:80px; resize:vertical; }
+.secondary-btn { background:var(--color-muted); color:#fff; }
+.secondary-btn:hover { background:var(--color-primary); }
+
+@media (max-width:768px) {
+  .side-menu { width:200px; }
+  .main-content { margin-left:210px; }
+}

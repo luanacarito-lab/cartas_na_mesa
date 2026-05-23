@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Cartomante</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome for simple icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">Cartomante</div>
+    <nav class="menu">
+      <a href="dashboard.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="#" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="#" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="#" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="#" class="menu-item"><i class="fas fa-concierge-bell"></i> Serviços</a>
+      <a href="#" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="#" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="#" class="menu-item"><i class="fas fa-clipboard"></i> Organização</a>
+      <a href="#" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <main class="main-content">
+    <header class="page-header">
+      <h1>Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+    </header>
+
+    <section class="cards-grid">
+      <div class="card" id="card-atendimentos-hoje">
+        <h2>Atendimentos de hoje</h2>
+        <p class="value" id="atendimentos-hoje">—</p>
+      </div>
+      <div class="card" id="card-proximos-atendimentos">
+        <h2>Próximos atendimentos</h2>
+        <ul class="list" id="proximos-atendimentos"></ul>
+      </div>
+      <div class="card" id="card-perguntas-pendentes">
+        <h2>Perguntas ao Baralho pendentes</h2>
+        <p class="value" id="perguntas-pendentes">—</p>
+      </div>
+      <div class="card" id="card-pagamentos-pendentes">
+        <h2>Pagamentos pendentes</h2>
+        <p class="value" id="pagamentos-pendentes">—</p>
+      </div>
+      <div class="card" id="card-clientes-recentes">
+        <h2>Clientes recentes</h2>
+        <ul class="list" id="clientes-recentes"></ul>
+      </div>
+    </section>
+
+    <section class="extra-section">
+      <h2>Agenda do dia</h2>
+      <ul class="list" id="agenda-do-dia"></ul>
+    </section>
+
+    <section class="extra-section">
+      <h2>Alertas importantes</h2>
+      <ul class="list" id="alertas-importantes"></ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

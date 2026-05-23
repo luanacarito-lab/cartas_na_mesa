@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Cartomante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="logo">🌙 Cartomante</div>
+      <ul class="menu">
+        <li class="active"><a href="#">Dashboard</a></li>
+        <li><a href="#">Clientes</a></li>
+        <li><a href="#">Agenda</a></li>
+        <li><a href="#">Chat</a></li>
+        <li><a href="#">Perguntas ao Baralho</a></li>
+        <li><a href="#">Serviços</a></li>
+        <li><a href="#">Financeiro</a></li>
+        <li><a href="#">Mural Público</a></li>
+        <li><a href="#">Organização</a></li>
+        <li><a href="#">Configurações</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+      <h1 class="header">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+      <section class="cards">
+        <div class="card" id="card-today">
+          <h2>Atendimentos de hoje</h2>
+          <p class="value" id="today-count">—</p>
+        </div>
+        <div class="card" id="card-upcoming">
+          <h2>Próximos atendimentos</h2>
+          <ul id="upcoming-list"><li>—</li></ul>
+        </div>
+        <div class="card" id="card-questions">
+          <h2>Perguntas ao Baralho pendentes</h2>
+          <p class="value" id="questions-count">—</p>
+        </div>
+        <div class="card" id="card-payments">
+          <h2>Pagamentos pendentes</h2>
+          <p class="value" id="payments-sum">—</p>
+        </div>
+        <div class="card" id="card-recent-clients">
+          <h2>Clientes recentes</h2>
+          <ul id="recent-clients"><li>—</li></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
