@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfil do Cliente – Sistema Cartomante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Base Style (Dashboard reference) -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <style>
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 2.2fr;
+      gap: 30px;
+      margin-top: 25px;
+    }
+    
+    @media (max-width: 1000px) {
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .profile-avatar-card {
+      padding: 30px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .profile-avatar-large {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid var(--gold-color);
+      box-shadow: 0 0 20px rgba(199, 162, 122, 0.3);
+    }
+    
+    .profile-info-name {
+      font-family: var(--font-decorative);
+      font-size: 1.4rem;
+      color: var(--gold-color);
+      font-weight: 600;
+      margin: 10px 0 5px 0;
+    }
+
+    .profile-info-details {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      margin-top: 15px;
+      border-top: 1.5px solid rgba(199, 162, 122, 0.15);
+      padding-top: 15px;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .detail-item strong {
+      color: var(--text-primary);
+    }
+
+    /* Tabs Styling */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 10px;
+    }
+    
+    .tab-link {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      font-family: var(--font-modern);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-fast);
+    }
+    
+    .tab-link:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .tab-link.active {
+      border-color: var(--gold-color);
+      color: var(--gold-color);
+      background: rgba(199, 162, 122, 0.08);
+    }
+
+    .panel-section {
+      padding: 25px;
+    }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .note-panel-item {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+    }
+
+    .note-panel-title {
+      font-family: var(--font-decorative);
+      font-size: 0.9rem;
+      color: var(--gold-color);
+      margin-bottom: 8px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .note-panel-body {
+      font-family: var(--font-classic);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    form label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    form input, form select, form textarea {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item active"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <main class="main-content">
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+      <div>
+        <h1 class="decorative-title">Ficha Espiritual</h1>
+        <p class="section-desc">Histórico ritualístico, conexões do oráculo e sintonias da consulente.</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="clients.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <button id="btnEditClient" class="glass-button" style="border-color: var(--gold-color);"><i class="fas fa-edit"></i> Editar Ficha</button>
+      </div>
+    </header>
+
+    <div class="profile-grid">
+      
+      <!-- Lado Esquerdo: Resumo do Perfil -->
+      <div class="glass-panel profile-avatar-card">
+        <img id="clientAvatar" src="assets/img/default-avatar.png" alt="Consulente" class="profile-avatar-large" />
+        <h2 id="clientName" class="profile-info-name">Consulente</h2>
+        <div id="clientTags" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 5px;"></div>
+        
+        <div class="profile-info-details">
+          <div class="detail-item">Nascimento: <strong id="lblNascimento">—</strong></div>
+          <div class="detail-item">Celular: <strong id="lblCelular">—</strong></div>
+          <div class="detail-item">Email: <strong id="lblEmail">—</strong></div>
+          <div class="detail-item">Religião: <strong id="lblReligiao">—</strong></div>
+          <div class="detail-item">Sexo: <strong id="lblSexo">—</strong></div>
+          <div class="detail-item">Pronome: <strong id="lblPronome">—</strong></div>
+          <div class="detail-item">Estado Civil: <strong id="lblEstadoCivil">—</strong></div>
+        </div>
+      </div>
+      
+      <!-- Lado Direito: Tabs e Painéis de Informações Detalhadas -->
+      <div class="glass-panel panel-section">
+        <div class="tabs">
+          <button class="tab-link active" data-tab="observacoes"><i class="fas fa-feather"></i> Observações e Sintonia</button>
+          <button class="tab-link" data-tab="historico"><i class="fas fa-history"></i> Histórico de Consultas</button>
+        </div>
+        
+        <!-- Tab 1: Observações -->
+        <div class="tab-panel notes-grid" id="tab-observacoes">
+          <div class="note-panel-item">
+            <h3 class="note-panel-title"><i class="fas fa-quote-left"></i> Observações Gerais</h3>
+            <p id="lblObservacoes" class="note-panel-body">—</p>
+          </div>
+          <div class="note-panel-item">
+            <h3 class="note-panel-title"><i class="fas fa-sparkles"></i> Personalidade Percebida</h3>
+            <p id="lblPersonalidade" class="note-panel-body">—</p>
+          </div>
+          <div class="note-panel-item">
+            <h3 class="note-panel-title"><i class="fas fa-wave-square"></i> Padrões Recorrentes</h3>
+            <p id="lblPadroes" class="note-panel-body">—</p>
+          </div>
+          <div class="note-panel-item">
+            <h3 class="note-panel-title"><i class="fas fa-exclamation-triangle"></i> Pontos Delicados</h3>
+            <p id="lblPontosDelicados" class="note-panel-body">—</p>
+          </div>
+          <div class="note-panel-item">
+            <h3 class="note-panel-title"><i class="fas fa-book-open"></i> Resumo da História</h3>
+            <p id="lblHistoria" class="note-panel-body">—</p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Histórico -->
+        <div class="tab-panel hidden" id="tab-historico">
+          <ul id="historyList" class="list" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px;">
+            <li class="note-panel-item" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="color: var(--gold-color);">Consulta com Baralho Cigano</strong>
+                <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Foco em caminhos sentimentais e amorosos</div>
+              </div>
+              <span class="agenda-event-time-badge" style="padding:6px 12px; border-radius:8px; background:rgba(199, 162, 122, 0.1); color:var(--gold-color); font-weight:700; font-size:0.8rem;">30/05/2026</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/backButton.js"></script>
+  <script>
+    // Tab switching inside profile
+    document.querySelectorAll('.tab-link').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        btn.parentElement.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const mainPanel = btn.closest('.panel-section');
+        mainPanel.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        
+        const targetPanel = mainPanel.querySelector(`#tab-${btn.getAttribute('data-tab')}`);
+        if (targetPanel) {
+          targetPanel.classList.remove('hidden');
+        }
+      });
+    });
+
+    // Supabase Load Logic
+    const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
+    const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Get Client ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('cid');
+
+    async function loadProfile() {
+      if (!clientId) {
+        alert("Consulente não especificada.");
+        window.location.href = "clients.html";
+        return;
+      }
+
+      const { data: c, error } = await supabase
+        .from("clientes")
+        .select(`id, nome_completo, foto_url, data_nascimento, celular, email, religiao, guia_espiritual, pai_mae_cabeca, tradicao_espiritual, sexo, pronome, estado_civil, observacoes_gerais, personalidade_percebida, padroes_recorrentes, pontos_delicados, resumo_historia, tags_clientes(tag, cor)`)
+        .eq("id", clientId)
+        .single();
+
+      if (error || !c) {
+        console.error("Error loading client:", error);
+        alert("Erro ao carregar os dados da consulente.");
+        return;
+      }
+
+      // Populate interface
+      document.getElementById("clientAvatar").src = c.foto_url || "assets/img/default-avatar.png";
+      document.getElementById("clientName").textContent = c.nome_completo;
+      document.getElementById("lblNascimento").textContent = c.data_nascimento ? new Date(c.data_nascimento).toLocaleDateString() : "—";
+      document.getElementById("lblCelular").textContent = c.celular || "—";
+      document.getElementById("lblEmail").textContent = c.email || "—";
+      document.getElementById("lblReligiao").textContent = c.religiao || "—";
+      document.getElementById("lblSexo").textContent = c.sexo || "—";
+      document.getElementById("lblPronome").textContent = c.pronome || "—";
+      document.getElementById("lblEstadoCivil").textContent = c.estado_civil || "—";
+
+      document.getElementById("lblObservacoes").textContent = c.observacoes_gerais || "Ainda sem observações.";
+      document.getElementById("lblPersonalidade").textContent = c.personalidade_percebida || "Ainda sem registros.";
+      document.getElementById("lblPadroes").textContent = c.padroes_recorrentes || "Ainda sem registros.";
+      document.getElementById("lblPontosDelicados").textContent = c.pontos_delicados || "Ainda sem registros.";
+      document.getElementById("lblHistoria").textContent = c.resumo_historia || "Ainda sem registros.";
+
+      // Populate tags
+      const tagsContainer = document.getElementById("clientTags");
+      tagsContainer.innerHTML = "";
+      if (c.tags_clientes && c.tags_clientes.length) {
+        c.tags_clientes.forEach(t => {
+          const span = document.createElement("span");
+          span.style.background = t.cor || "#ffcc00";
+          span.style.padding = "3px 8px";
+          span.style.borderRadius = "6px";
+          span.style.fontSize = "0.72rem";
+          span.style.color = "#fff";
+          span.style.fontWeight = "500";
+          span.textContent = t.tag;
+          tagsContainer.appendChild(span);
+        });
+      } else {
+        tagsContainer.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">Sem tags</span>';
+      }
+    }
+
+    window.addEventListener("load", loadProfile);
+  </script>
+</body>
+</html>

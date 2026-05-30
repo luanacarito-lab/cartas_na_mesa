@@ -43,9 +43,14 @@
 
   <!-- Conteúdo Principal do Chat -->
   <main class="main-content">
-    <header class="page-header">
-      <h1 class="decorative-title">Diálogo de Almas</h1>
-      <p class="section-desc">Atendimento privado, tiragens ritualísticas e acompanhamento espiritual contínuo.</p>
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <div>
+        <h1 class="decorative-title">Diálogo de Almas</h1>
+        <p class="section-desc">Atendimento privado, tiragens ritualísticas e acompanhamento espiritual contínuo.</p>
+      </div>
+      <div>
+        <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+      </div>
     </header>
 
     <!-- Estrutura Geral do Chat (Split Layout) -->
@@ -323,6 +328,6 @@
   <script src="script.js"></script>
   <!-- Dynamic Chat Script (Real-time mechanics & RLS handlers) -->
   <script src="assets/js/chat.js"></script>
-
+  <script src="assets/js/backButton.js"></script>
 </body>
 </html>

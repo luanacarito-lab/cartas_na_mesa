@@ -170,9 +170,12 @@
         <h1 class="decorative-title">Oráculo do Tempo</h1>
         <p class="section-desc">Linha cronológica das conexões ritualísticas e dos fluxos espirituais agendados.</p>
       </div>
-      <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openAgendaModal()">
-        <i class="fas fa-plus"></i> Novo Agendamento
-      </button>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openAgendaModal()">
+          <i class="fas fa-plus"></i> Novo Agendamento
+        </button>
+      </div>
     </header>
 
     <div class="agenda-grid-layout">
@@ -311,5 +314,6 @@
   <script src="script.js"></script>
   <!-- Dedicated Agenda Engine -->
   <script src="assets/js/agenda.js"></script>
+  <script src="assets/js/backButton.js"></script>
 </body>
 </html>

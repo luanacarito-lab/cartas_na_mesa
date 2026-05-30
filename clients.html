@@ -6,163 +6,367 @@
   <title>Clientes – Sistema Cartomante</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/clients.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Base Style (Dashboard reference) -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <style>
+    /* Specific styles for Client listing matching Dashboard theme */
+    .client-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 25px;
+      margin-top: 25px;
+    }
+    
+    .client-card {
+      padding: 24px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--card-shadow);
+      transition: transform var(--transition-fast), border-color var(--transition-fast);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    .client-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(199, 162, 122, 0.35);
+    }
+    
+    .client-photo {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .client-name {
+      font-family: var(--font-decorative);
+      font-size: 1.1rem;
+      color: var(--gold-color);
+      font-weight: 600;
+      margin-top: 5px;
+      border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 8px;
+    }
+    
+    .client-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    
+    .client-tags .tag {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: 500;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    
+    .last-visit, .financial-status {
+      font-family: var(--font-classic);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-family: var(--font-classic);
+      font-style: italic;
+      font-size: 1.05rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-top: 30px;
+    }
+
+    /* Tabs Styling inside Mystic Modal */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 10px;
+    }
+    
+    .tab-link {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      font-family: var(--font-modern);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-fast);
+    }
+    
+    .tab-link:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .tab-link.active {
+      border-color: var(--gold-color);
+      color: var(--gold-color);
+      background: rgba(199, 162, 122, 0.08);
+    }
+
+    /* Form specific positioning matching System Inputs */
+    form label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    form input, form select, form textarea {
+      margin-top: 4px;
+    }
+
+    /* Modal override compatibility */
+    .mystic-modal.hidden {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
 </head>
-<body>
+<body class="theme-night mode-dark">
+
   <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
   <div id="stars-container" class="starry-sky"></div>
   <div class="ambient-glow" id="glow-1"></div>
   <div class="ambient-glow" id="glow-2"></div>
   <div class="ambient-glow" id="glow-3"></div>
 
-  <nav class="sidebar glass-panel">
-    <div class="logo">🪄 Cartomante</div>
-    <ul class="menu-items">
-      <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
-      <li><a href="clients.html" class="active"><i class="fas fa-user-friends"></i> Clientes</a></li>
-      <li><a href="#"><i class="fas fa-calendar-alt"></i> Agenda</a></li>
-      <li><a href="chat.html"><i class="fas fa-comments"></i> Chat</a></li>
-      <li><a href="chat.html?tab=perguntas"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a></li>
-      <li><a href="#"><i class="fas fa-concierge-bell"></i> Serviços</a></li>
-      <li><a href="finance.html"><i class="fas fa-wallet"></i> Financeiro</a></li>
-      <li><a href="public_profile.html"><i class="fas fa-bullhorn"></i> Mural Público</a></li>
-      <li><a href="organization.html"><i class="fas fa-feather"></i> Organização</a></li>
-      <li><a href="settings.html"><i class="fas fa-cog"></i> Configurações</a></li>
-    </ul>
-  </nav>
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item active"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
 
   <main class="main-content">
-    <header class="header">
-      <h1>Clientes</h1>
-      <div class="header-actions">
-        <input type="text" id="searchInput" placeholder="Buscar por nome..." />
-        <select id="filterTagSelect">
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+      <div>
+        <h1 class="decorative-title">Consulentes</h1>
+        <p class="section-desc">Fichas espirituais, tags e monitoramento de consulentes.</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <button id="newClientBtn" class="glass-button" style="border-color: var(--gold-color);"><i class="fas fa-plus"></i> Novo Cliente</button>
+      </div>
+    </header>
+
+    <!-- Filtros de Busca -->
+    <div class="glass-panel" style="padding: 20px; display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; align-items: center;">
+      <div style="flex: 1; min-width: 200px;">
+        <input type="text" id="searchInput" class="mystic-input" placeholder="Buscar por nome..." />
+      </div>
+      <div style="width: 180px;">
+        <select id="filterTagSelect" class="mystic-select">
           <option value="">Todas as tags</option>
         </select>
-        <select id="orderSelect">
+      </div>
+      <div style="width: 180px;">
+        <select id="orderSelect" class="mystic-select">
           <option value="recent">Mais recente</option>
           <option value="oldest">Mais antigo</option>
           <option value="recurring">Recorrente</option>
           <option value="pending">Pendente financeiro</option>
         </select>
-        <button id="newClientBtn" class="primary-btn">Novo Cliente</button>
       </div>
-    </header>
+    </div>
 
     <section id="clientList" class="client-list">
       <!-- Cards will be injected by JS -->
     </section>
 
     <section id="emptyState" class="empty-state hidden">
-      <p>🥰 Ainda não há clientes cadastrados. Clique em “Novo Cliente” para iniciar.</p>
+      <p>🔮 Ainda não há consulentes sintonizadas. Clique em “Novo Cliente” para iniciar.</p>
     </section>
   </main>
 
-  <!-- Modal for New / Edit Client -->
-  <div id="clientModal" class="modal hidden">
-    <div class="modal-content">
-      <span class="close" id="closeModal">&times;</span>
-      <h2 id="modalTitle">Novo Cliente</h2>
-      <div class="tabs">
-        <button class="tab-link active" data-tab="basic">Dados Básicos</button>
-        <button class="tab-link" data-tab="observacoes">Observações</button>
-        <button class="tab-link" data-tab="tags">Tags privadas</button>
+  <!-- Modal for New / Edit Client (Mystic Theme) -->
+  <div id="clientModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 600px;">
+      <div class="modal-header-mystic">
+        <h2 id="modalTitle"><i class="fas fa-user-plus"></i> Novo Cliente</h2>
+        <button class="close-mystic-btn" id="closeModal">&times;</button>
       </div>
-      <form id="clientForm">
+      <div class="tabs">
+        <button class="tab-link active" data-tab="basic"><i class="fas fa-id-card"></i> Dados Básicos</button>
+        <button class="tab-link" data-tab="observacoes"><i class="fas fa-feather"></i> Observações</button>
+        <button class="tab-link" data-tab="tags"><i class="fas fa-tags"></i> Tags privadas</button>
+      </div>
+      <form id="clientForm" class="mystic-form">
         <!-- Tab 1 – Dados Básicos -->
         <div class="tab-panel" id="tab-basic">
-          <label>Nome completo
-            <input type="text" name="nome_completo" required />
-          </label>
-          <label>Data de nascimento
-            <input type="date" name="data_nascimento" />
-          </label>
-          <label>Celular
-            <input type="tel" name="celular" />
-          </label>
-          <label>Email
-            <input type="email" name="email" />
-          </label>
-          <label>Religião
-            <select name="religiao" id="religiaoSelect">
-              <option value="">Selecione</option>
-              <option>Umbanda</option>
-              <option>Candomblé</option>
-              <option>Quimbanda</option>
-              <option>Wicca</option>
-              <option>Xamanismo</option>
-              <option>Espiritualista</option>
-              <option>Outra</option>
-            </select>
-          </label>
-          <div id="religiaoExtras" class="hidden">
-            <label>Guia espiritual
-              <input type="text" name="guia_espiritual" />
-            </label>
-            <label>Pai/Mãe de cabeça
-              <input type="text" name="pai_mae_cabeca" />
-            </label>
-            <label>Tradição espiritual
-              <input type="text" name="tradição_espiritual" />
-            </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="grid-column: span 2;">
+              <label>Nome completo
+                <input type="text" name="nome_completo" class="mystic-input" required />
+              </label>
+            </div>
+            <div>
+              <label>Data de nascimento
+                <input type="date" name="data_nascimento" class="mystic-input" />
+              </label>
+            </div>
+            <div>
+              <label>Celular
+                <input type="tel" name="celular" class="mystic-input" />
+              </label>
+            </div>
+            <div style="grid-column: span 2;">
+              <label>Email
+                <input type="email" name="email" class="mystic-input" />
+              </label>
+            </div>
+            <div>
+              <label>Religião
+                <select name="religiao" id="religiaoSelect" class="mystic-select">
+                  <option value="">Selecione</option>
+                  <option>Umbanda</option>
+                  <option>Candomblé</option>
+                  <option>Quimbanda</option>
+                  <option>Wicca</option>
+                  <option>Xamanismo</option>
+                  <option>Espiritualista</option>
+                  <option>Outra</option>
+                </select>
+              </label>
+            </div>
+            <div>
+              <label>Sexo
+                <select name="sexo" class="mystic-select">
+                  <option value=""></option>
+                  <option>Masculino</option>
+                  <option>Feminino</option>
+                  <option>Outro</option>
+                </select>
+              </label>
+            </div>
           </div>
-          <label>Sexo
-            <select name="sexo">
-              <option value=""></option>
-              <option>Masculino</option>
-              <option>Feminino</option>
-              <option>Outro</option>
-            </select>
-          </label>
-          <label>Pronome
-            <input type="text" name="pronome" />
-          </label>
-          <label>Estado civil
-            <input type="text" name="estado_civil" />
-          </label>
+          
+          <div id="religiaoExtras" class="hidden" style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(199, 162, 122, 0.03);">
+            <div style="grid-column: span 2;">
+              <label>Guia espiritual
+                <input type="text" name="guia_espiritual" class="mystic-input" />
+              </label>
+            </div>
+            <div>
+              <label>Pai/Mãe de cabeça
+                <input type="text" name="pai_mae_cabeca" class="mystic-input" />
+              </label>
+            </div>
+            <div>
+              <label>Tradição espiritual
+                <input type="text" name="tradição_espiritual" class="mystic-input" />
+              </label>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+            <div>
+              <label>Pronome
+                <input type="text" name="pronome" class="mystic-input" />
+              </label>
+            </div>
+            <div>
+              <label>Estado civil
+                <input type="text" name="estado_civil" class="mystic-input" />
+              </label>
+            </div>
+          </div>
         </div>
+
         <!-- Tab 2 – Observações -->
         <div class="tab-panel hidden" id="tab-observacoes">
           <label>Observações gerais
-            <textarea name="observacoes_gerais"></textarea>
+            <textarea name="observacoes_gerais" class="mystic-textarea" rows="3"></textarea>
           </label>
           <label>Personalidade percebida
-            <textarea name="personalidade_percebida"></textarea>
+            <textarea name="personalidade_percebida" class="mystic-textarea" rows="2"></textarea>
           </label>
           <label>Padrões recorrentes
-            <textarea name="padroes_recorrentes"></textarea>
+            <textarea name="padroes_recorrentes" class="mystic-textarea" rows="2"></textarea>
           </label>
           <label>Pontos delicados
-            <textarea name="pontos_delicados"></textarea>
+            <textarea name="pontos_delicados" class="mystic-textarea" rows="2"></textarea>
           </label>
           <label>Resumo da história
-            <textarea name="resumo_historia"></textarea>
+            <textarea name="resumo_historia" class="mystic-textarea" rows="2"></textarea>
           </label>
         </div>
+
         <!-- Tab 3 – Tags privadas -->
         <div class="tab-panel hidden" id="tab-tags">
           <div class="tag-management">
-            <h3>Adicionar tag</h3>
-            <label>Categoria
-              <select id="tagCategorySelect">
-                <option value="comportamento">Comportamento</option>
-                <option value="atendimento">Atendimento</option>
-                <option value="financeiro">Financeiro</option>
-                <option value="acessibilidade">Acessibilidade</option>
-              </select>
-            </label>
-            <label>Nome da tag
-              <input type="text" id="tagNameInput" />
-            </label>
-            <label>Cor (hex)
-              <input type="color" id="tagColorInput" value="#ffcc00" />
-            </label>
-            <button type="button" id="addTagBtn" class="secondary-btn">Adicionar</button>
-            <ul id="tagList" class="tag-list"></ul>
+            <h3 style="font-family: var(--font-decorative); font-size: 0.95rem; color: var(--gold-color); margin-bottom: 15px;">Adicionar tag</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div>
+                <label>Categoria
+                  <select id="tagCategorySelect" class="mystic-select">
+                    <option value="comportamento">Comportamento</option>
+                    <option value="atendimento">Atendimento</option>
+                    <option value="financeiro">Financeiro</option>
+                    <option value="acessibilidade">Acessibilidade</option>
+                  </select>
+                </label>
+              </div>
+              <div>
+                <label>Nome da tag
+                  <input type="text" id="tagNameInput" class="mystic-input" />
+                </label>
+              </div>
+              <div style="grid-column: span 2; display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 10px;">Cor
+                  <input type="color" id="tagColorInput" value="#ffcc00" style="padding:0; width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer;" />
+                </label>
+                <button type="button" id="addTagBtn" class="glass-button" style="flex: 1; justify-content: center; height: 40px;"><i class="fas fa-plus"></i> Adicionar</button>
+              </div>
+            </div>
+            <ul id="tagList" class="tag-list" style="margin-top: 20px; list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px;"></ul>
           </div>
         </div>
-        <button type="submit" class="primary-btn">Salvar</button>
+        
+        <button type="submit" class="glass-button" style="width: 100%; margin-top: 25px; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+          <i class="fas fa-save"></i> Salvar Consulente
+        </button>
       </form>
     </div>
   </div>
@@ -170,5 +374,41 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="assets/js/clients.js"></script>
+  <script src="assets/js/backButton.js"></script>
+  <script>
+    // Tab switching inside modal
+    document.querySelectorAll('.tab-link').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Remove active class from all tab links in this modal
+        btn.parentElement.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Hide all panels
+        const modal = btn.closest('.mystic-modal-content');
+        modal.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        
+        // Show the selected panel
+        const targetPanel = modal.querySelector(`#tab-${btn.getAttribute('data-tab')}`);
+        if (targetPanel) {
+          targetPanel.classList.remove('hidden');
+        }
+      });
+    });
+
+    // Religious details visibility toggle
+    const religiaoSelect = document.getElementById("religiaoSelect");
+    const religiaoExtras = document.getElementById("religiaoExtras");
+    if (religiaoSelect && religiaoExtras) {
+      religiaoSelect.addEventListener("change", () => {
+        const val = religiaoSelect.value;
+        if (val === "Umbanda" || val === "Candomblé" || val === "Quimbanda") {
+          religiaoExtras.classList.remove("hidden");
+        } else {
+          religiaoExtras.classList.add("hidden");
+        }
+      });
+    }
+  </script>
 </body>
 </html>
