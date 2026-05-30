@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda de Atendimentos – Sistema Cartomante</title>
+  <!-- Google Fonts for typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Main Style -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
+  <style>
+    /* Estilos específicos complementares para a agenda */
+    .agenda-grid-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1.8fr;
+      gap: 30px;
+      margin-top: 25px;
+    }
+    
+    @media (max-width: 1000px) {
+      .agenda-grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .calendar-container-panel {
+      padding: 25px;
+    }
+    
+    .agenda-list-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 10px;
+    }
+    
+    .tab-agenda-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      font-family: var(--font-modern);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-fast);
+    }
+    
+    .tab-agenda-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .tab-agenda-btn.active {
+      border-color: var(--gold-color);
+      color: var(--gold-color);
+      background: rgba(199, 162, 122, 0.08);
+    }
+    
+    .agenda-events-panel {
+      padding: 25px;
+    }
+    
+    .agenda-event-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1.5px solid var(--card-border);
+      margin-bottom: 12px;
+      transition: transform var(--transition-fast), border-color var(--transition-fast);
+    }
+    
+    .agenda-event-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(199, 162, 122, 0.3);
+    }
+    
+    .agenda-event-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .agenda-event-time-badge {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(199, 162, 122, 0.1);
+      color: var(--gold-color);
+      font-family: var(--font-modern);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    
+    .agenda-event-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .agenda-event-title {
+      font-family: var(--font-classic);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+    
+    .agenda-event-service {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    .agenda-event-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .empty-agenda-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-family: var(--font-classic);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="agenda.html" class="menu-item active"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal do Painel -->
+  <main class="main-content">
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <div>
+        <h1 class="decorative-title">Oráculo do Tempo</h1>
+        <p class="section-desc">Linha cronológica das conexões ritualísticas e dos fluxos espirituais agendados.</p>
+      </div>
+      <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openAgendaModal()">
+        <i class="fas fa-plus"></i> Novo Agendamento
+      </button>
+    </header>
+
+    <div class="agenda-grid-layout">
+      
+      <!-- Lado Esquerdo: Widget de Calendário Mensal e Filtros -->
+      <div class="glass-panel calendar-container-panel">
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-circle-nodes" style="color:var(--public-primary);"></i> Ciclo Lunar das Datas
+        </h2>
+        
+        <!-- Widget do Calendário -->
+        <div class="calendar-widget">
+          <div class="calendar-month-header">
+            <span id="activeMonthYear">Maio 2026</span>
+            <div class="calendar-arrows">
+              <button class="btn-cal-arrow" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+              <button class="btn-cal-arrow" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+
+        <div class="lunar-phase-status">
+          <i class="fas fa-moon" style="color: var(--gold-color); font-size: 1.1rem;"></i>
+          <div class="lunar-text">
+            Fase Lunar: <strong>Crescente Sintonizada</strong><br/>
+            Ideal para rituais de prosperidade, abertura de caminhos e leituras de foco profissional.
+          </div>
+        </div>
+      </div>
+      
+      <!-- Lado Direito: Timeline Diária, Futuras e Passadas -->
+      <div class="glass-panel agenda-events-panel">
+        <div class="agenda-list-tabs">
+          <button class="tab-agenda-btn active" id="tabDaily" onclick="switchAgendaTab('diaria')">
+            <i class="fas fa-calendar-day"></i> Agenda do Dia (<span id="activeDateDisplay">30/05</span>)
+          </button>
+          <button class="tab-agenda-btn" id="tabFuture" onclick="switchAgendaTab('futuras')">
+            <i class="fas fa-hourglass-half"></i> Marcadas para Depois (<span id="futureCount">0</span>)
+          </button>
+          <button class="tab-agenda-btn" id="tabPast" onclick="switchAgendaTab('passadas')">
+            <i class="fas fa-history"></i> Consultas Passadas (<span id="pastCount">0</span>)
+          </button>
+        </div>
+
+        <!-- Seções das Abas -->
+        
+        <!-- 1. Aba: Agenda do Dia -->
+        <div class="tab-agenda-content" id="contentDiaria">
+          <div class="agenda-timeline" id="dailyTimeline">
+            <!-- Injetado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- 2. Aba: Marcadas para Depois -->
+        <div class="tab-agenda-content" id="contentFuturas" style="display:none;">
+          <div id="futureEventsList">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- 3. Aba: Consultas Passadas -->
+        <div class="tab-agenda-content" id="contentPassadas" style="display:none;">
+          <div id="pastEventsList">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+     MODAL: NOVO AGENDAMENTO RITUALÍSTICO
+     ========================================================================== -->
+  <div class="mystic-modal" id="agendaModal">
+    <div class="mystic-modal-content glass-panel" style="max-width:480px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-calendar-plus"></i> Sintonizar Agendamento</h2>
+        <button class="close-mystic-btn" onclick="closeAgendaModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmAgenda" onsubmit="handleAgendaSubmit(event)">
+        
+        <div class="mystic-form-group">
+          <label for="agendaCliente">Consulente</label>
+          <select id="agendaCliente" class="mystic-select" required>
+            <option value="">Selecione a consulente...</option>
+            <!-- Injetado via JS -->
+          </select>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="agendaServico">Serviço Espiritual / Leitura</label>
+          <select id="agendaServico" class="mystic-select" required>
+            <option value="Leitura de Tarô Terapêutico">Leitura de Tarô Terapêutico</option>
+            <option value="Alinhamento de Chakras & Cristais">Alinhamento de Chakras & Cristais</option>
+            <option value="Consulta Geral com Baralho Cigano">Consulta Geral com Baralho Cigano</option>
+            <option value="Tiragem de Mandala Astrológica">Tiragem de Mandala Astrológica</option>
+            <option value="Ritual de Abertura de Caminhos">Ritual de Abertura de Caminhos</option>
+            <option value="Limpeza Energética de Aura">Limpeza Energética de Aura</option>
+          </select>
+        </div>
+
+        <div class="mystic-form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label for="agendaData">Data</label>
+            <input type="date" id="agendaData" class="mystic-input" required />
+          </div>
+          <div>
+            <label for="agendaHora">Hora</label>
+            <input type="time" id="agendaHora" class="mystic-input" required />
+          </div>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="agendaNotas">Notas de Sintonia / Conexão</label>
+          <input type="text" id="agendaNotas" class="mystic-input" placeholder="Ex: Focar em questões de carreira e caminhos materiais." />
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top:10px; padding:12px;">
+          <i class="fas fa-calendar-check"></i> Fixar Agendamento no Livro do Tempo
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Supabase CDN Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <!-- Central Config -->
+  <script src="config.js"></script>
+  <!-- Atmosphere Particle System and accessibility sync -->
+  <script src="script.js"></script>
+  <!-- Dedicated Agenda Engine -->
+  <script src="assets/js/agenda.js"></script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Templo Virtual – Sistema Cartomante</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Styling sheets -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/public.css" />
+  
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item active"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal do Perfil Público -->
+  <main class="main-content">
+    
+    <!-- 1. HEADER ARTÍSTICO (BANNER & AVATAR PÚBLICO) -->
+    <header class="profile-banner-container glass-panel" id="customBanner">
+      <img src="https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop" alt="Banner Místico" class="profile-banner-bg" id="bannerImg" />
+      
+      <div class="profile-header-details">
+        <div class="profile-avatar-wrapper">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop" alt="Foto Cartomante" class="profile-avatar" id="profileAvatar" />
+        </div>
+        <div class="profile-intro-text">
+          <h1 class="profile-name" id="lblProfileName">
+            Luana Carito
+            <span class="profile-badge-online"><i class="fas fa-bolt" style="margin-right:3px;"></i> Sintonizada</span>
+          </h1>
+          <p class="profile-bio-snippet" id="lblProfileBio">"Sacerdotisa dos caminhos, sintonizando sua frequência com a luz do oráculo para revelar segredos da alma."</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. GRID GERAL DO PERFIL -->
+    <div class="profile-content-layout">
+
+      <!-- Lateral Esquerda (Sidebar de Detalhes Públicos) -->
+      <aside class="profile-sidebar">
+        
+        <!-- Widget: Reputação e Idiomas -->
+        <div class="sidebar-widget glass-panel">
+          <h3 class="widget-title"><i class="fas fa-star"></i> Reputação</h3>
+          <div class="mock-rating-stars">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star-half-alt"></i>
+            <span class="mock-rating-text"><strong>4.9</strong> (142 Acolhimentos)</span>
+          </div>
+
+          <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
+            <div><i class="fas fa-language" style="color:var(--public-primary); margin-right:6px;"></i> Português, Espanhol</div>
+            <div><i class="fas fa-compass" style="color:var(--public-primary); margin-right:6px;"></i> Atendimento Online / Presencial</div>
+          </div>
+        </div>
+
+        <!-- Widget: Especialidades -->
+        <div class="sidebar-widget glass-panel">
+          <h3 class="widget-title"><i class="fas fa-wand-magic-sparkles"></i> Especialidades</h3>
+          <div class="specialty-tag-list" id="lblSpecialties">
+            <span class="specialty-badge">Baralho Cigano</span>
+            <span class="specialty-badge">Tarô Terapêutico</span>
+            <span class="specialty-badge">Alinhamento Energético</span>
+            <span class="specialty-badge">Astrologia Lunar</span>
+          </div>
+        </div>
+
+        <!-- Widget: Certificações -->
+        <div class="sidebar-widget glass-panel">
+          <h3 class="widget-title"><i class="fas fa-scroll"></i> Certificados</h3>
+          <ul style="font-size:0.72rem; color:var(--text-secondary); list-style:none; display:flex; flex-direction:column; gap:6px;" id="lblCertificates">
+            <li>📜 Mestre em Tarô Geral - ABRAT</li>
+            <li>📜 Oráculo e Alinhamento Lunar - Templo Cigano</li>
+          </ul>
+        </div>
+
+        <!-- Widget: Redes Sociais -->
+        <div class="sidebar-widget glass-panel">
+          <h3 class="widget-title"><i class="fas fa-share-nodes"></i> Redes Sociais</h3>
+          <div class="social-links-list" id="lblSocials">
+            <a href="#" class="social-link-item"><i class="fab fa-instagram"></i> @luanacarito.oraculo</a>
+            <a href="#" class="social-link-item"><i class="fab fa-whatsapp"></i> WhatsApp Reservas</a>
+            <a href="#" class="social-link-item"><i class="fas fa-envelope"></i> contato@luanatarot.com</a>
+          </div>
+        </div>
+
+        <!-- Botão Voltar para Busca Pública -->
+        <a href="search_cartomantes.html" class="glass-button" style="justify-content:center; padding:10px;">
+          <i class="fas fa-search"></i> Catálogo de Busca
+        </a>
+
+      </aside>
+
+      <!-- Área Central (Abas de Navegação Dinâmica) -->
+      <section class="mural-main-column">
+        
+        <!-- Navegação de Abas do Perfil Público -->
+        <div class="tabs" style="margin-bottom: 25px;">
+          <button class="tab-link active" onclick="switchProfileTab('mural')"><i class="fas fa-bullhorn"></i> Mural Espiritual</button>
+          <button class="tab-link" onclick="switchProfileTab('servicos')"><i class="fas fa-concierge-bell"></i> Serviços Ofertados</button>
+          <button class="tab-link" onclick="switchProfileTab('agenda')"><i class="fas fa-calendar-days"></i> Agenda Pública</button>
+          <button class="tab-link" onclick="switchProfileTab('avaliacoes')"><i class="fas fa-star-half-alt"></i> Avaliações</button>
+        </div>
+
+        <!-- ABA 1: MURAL ESPIRITUAL (FEED) -->
+        <div class="tab-panel-public" id="tab-profile-mural">
+          
+          <!-- Formulário de Criar Post (Somente para a Cartomante Logada) -->
+          <div class="mural-create-post-card glass-panel" style="margin-bottom:25px;" id="createPostCard">
+            <h3 class="decorative-title" style="font-size:1.05rem; margin-bottom:12px;"><i class="fas fa-feather-pointed"></i> Semear Sabedoria no Mural</h3>
+            <form class="mural-post-form" onsubmit="handlePostSubmit(event)">
+              
+              <div class="mystic-form-group">
+                <input type="text" id="postTitle" class="mystic-input" placeholder="Título da reflexão cósmica..." required />
+              </div>
+              
+              <div class="mystic-form-group">
+                <textarea id="postContent" class="mystic-textarea" rows="3" placeholder="Escreva a mensagem motivacional, oráculo do dia ou conselho de alma..." required></textarea>
+              </div>
+
+              <div class="mystic-form-group" style="display:grid; grid-template-columns: 1.5fr 1fr; gap:10px;">
+                <div>
+                  <input type="text" id="postImage" class="mystic-input" placeholder="URL de imagem mística opcional..." />
+                </div>
+                <button type="submit" class="glass-button" style="border-color:var(--public-primary); padding:10px;">
+                  <i class="fas fa-paper-plane"></i> Propagar Luz
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+          <!-- Feed de Postagens -->
+          <div class="mural-feed-section" id="muralFeedContainer">
+            <!-- Injetado por JS -->
+            <div class="chat-empty-state">
+              <i class="fas fa-circle-notch fa-spin"></i>
+              <p>Carregando oráculos do dia...</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ABA 2: SERVIÇOS OFERTADOS -->
+        <div class="tab-panel-public" id="tab-profile-servicos" style="display:none;">
+          <div class="public-services-grid" id="servicesGridContainer">
+            <!-- Injetado dinamicamente por JS -->
+          </div>
+        </div>
+
+        <!-- ABA 3: AGENDA PÚBLICA (CALENDÁRIO SEGURO) -->
+        <div class="tab-panel-public" id="tab-profile-agenda" style="display:none;">
+          <div class="public-calendar-card glass-panel">
+            <h3 class="decorative-title" style="font-size:1.1rem; margin-bottom:5px;"><i class="fas fa-calendar-check"></i> Horários Semanais</h3>
+            <p class="section-desc" style="font-size:0.75rem;">Clique em qualquer horário disponível marcado como <strong>Livre</strong> para simular o agendamento de uma consulta ritualística.</p>
+            
+            <div class="calendar-days-row" id="publicCalendarContainer">
+              <!-- Injetado dinamicamente por JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 4: AVALIAÇÕES (ESTRUTURA PREPARADA) -->
+        <div class="tab-panel-public" id="tab-profile-avaliacoes" style="display:none;">
+          <div class="mural-feed-section" id="reviewsContainer">
+            <!-- Mock estruturado e preparado de reputação -->
+            <div class="mural-post-item glass-panel">
+              <div class="post-header">
+                <span class="post-title" style="font-size:0.9rem; font-family:var(--font-modern);">Helena de Souza</span>
+                <div class="mock-rating-stars" style="margin:0;">
+                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                </div>
+              </div>
+              <p class="post-body" style="font-size:0.8rem; font-style:italic;">
+                "A consulta com a Luana salvou minha mente em um momento de extrema escuridão emocional. Ela transmite calma, sabedoria e acolhimento em cada palavra."
+              </p>
+              <div class="post-footer"><span>Enviado há 3 dias</span></div>
+            </div>
+
+            <div class="mural-post-item glass-panel">
+              <div class="post-header">
+                <span class="post-title" style="font-size:0.9rem; font-family:var(--font-modern);">Gabriel Medeiros</span>
+                <div class="mock-rating-stars" style="margin:0;">
+                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
+                </div>
+              </div>
+              <p class="post-body" style="font-size:0.8rem; font-style:italic;">
+                "Muito assertiva nas previsões do baralho sobre meu trabalho. Me ajudou a tomar decisões urgentes de carreira com mais confiança."
+              </p>
+              <div class="post-footer"><span>Enviado há 1 semana</span></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ==========================================================================
+     3. PAINEL DE CUSTOMIZAÇÃO DE AURA (VISÍVEL APENAS NA VITRINE)
+     ========================================================================== -->
+  <div class="customizer-bar" id="profileCustomizerBar">
+    <div style="font-weight: 600; color: var(--public-primary); margin-right: 8px;">
+      <i class="fas fa-palette"></i> Aura Visual
+    </div>
+    
+    <!-- Cor Primária -->
+    <div style="display:flex; align-items:center; gap:5px;">
+      <span>Ouro:</span>
+      <div class="customizer-color-picker" id="pickerPrimaryColor" style="background:var(--public-primary);">
+        <input type="color" value="#C7A27A" onchange="changeProfileColors('primary', this.value)" />
+      </div>
+    </div>
+
+    <!-- Cor Secundária -->
+    <div style="display:flex; align-items:center; gap:5px;">
+      <span>Místico:</span>
+      <div class="customizer-color-picker" id="pickerSecondaryColor" style="background:var(--public-secondary);">
+        <input type="color" value="#6E5AAB" onchange="changeProfileColors('secondary', this.value)" />
+      </div>
+    </div>
+
+    <!-- Seletor de Banner -->
+    <div style="display:flex; align-items:center; gap:5px;">
+      <span>Banner:</span>
+      <select class="filter-dropdown" style="padding: 3px 6px; font-size: 0.72rem;" onchange="changeProfileBanner(this.value)">
+        <option value="https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop">Céu Estelar</option>
+        <option value="https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=1200&auto=format&fit=crop">Entardecer Cósmico</option>
+        <option value="https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=1200&auto=format&fit=crop">Nebulosa Púrpura</option>
+      </select>
+    </div>
+
+    <!-- Alterar Bio -->
+    <button type="button" class="glass-button" style="padding: 4px 8px; font-size: 0.7rem;" onclick="changeProfileBioPrompt()">
+      <i class="fas fa-edit"></i> Alterar Bio
+    </button>
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <!-- Base animations -->
+  <script src="script.js"></script>
+  <!-- Public Javascript Engine -->
+  <script src="assets/js/public.js"></script>
+
+</body>
+</html>

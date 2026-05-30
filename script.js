@@ -110,8 +110,21 @@ function generateStars() {
    2. SISTEMA DINÂMICO DE HORÁRIOS & TEMAS
    ========================================================================== */
 function initTimeSystem() {
-    // Verifica preferência anterior ou detecta automático
-    updateAutomaticTime();
+    // Tentar recuperar as preferências de tema e acessibilidade salvas pelo usuário
+    const stored = localStorage.getItem('cartomante_app_state');
+    if (stored) {
+        try {
+            state = JSON.parse(stored);
+        } catch (e) {
+            console.warn("Erro ao decodificar preferências salvas, usando padrão inicial.", e);
+        }
+    }
+    
+    if (state.timeMode === 'auto') {
+        updateAutomaticTime();
+    } else {
+        applyStateToDOM();
+    }
 }
 
 function updateAutomaticTime() {
@@ -211,37 +224,63 @@ function applyStateToDOM() {
     body.classList.add(`theme-${state.currentPeriod}`);
     body.classList.add(`mode-${state.lightingMode}`);
     
-    // Atualizar os cards de atmosfera para realçar o ativo
-    document.getElementById('card-morning').classList.toggle('active', state.currentPeriod === 'morning');
-    document.getElementById('card-afternoon').classList.toggle('active', state.currentPeriod === 'afternoon');
-    document.getElementById('card-sunset').classList.toggle('active', state.currentPeriod === 'sunset');
-    document.getElementById('card-night').classList.toggle('active', state.currentPeriod === 'night');
+    // Sincronizar classes de acessibilidade global no body
+    body.classList.toggle('accessibility-high-contrast', state.accessibility.highContrast);
+    body.classList.toggle('accessibility-large-font', state.accessibility.largeFont);
+    body.classList.toggle('accessibility-reduce-motion', state.accessibility.reduceMotion);
+    body.classList.toggle('accessibility-anxiety-mode', state.accessibility.anxietyMode);
     
-    // Atualizar o slider caso esteja no modo manual
-    if (state.timeMode === 'manual') {
+    // Persistir preferências no armazenamento local
+    localStorage.setItem('cartomante_app_state', JSON.stringify(state));
+    
+    // Sincronizar os cards de atmosfera para realçar o ativo (se existirem na página)
+    const cardMorning = document.getElementById('card-morning');
+    if (cardMorning) cardMorning.classList.toggle('active', state.currentPeriod === 'morning');
+    const cardAfternoon = document.getElementById('card-afternoon');
+    if (cardAfternoon) cardAfternoon.classList.toggle('active', state.currentPeriod === 'afternoon');
+    const cardSunset = document.getElementById('card-sunset');
+    if (cardSunset) cardSunset.classList.toggle('active', state.currentPeriod === 'sunset');
+    const cardNight = document.getElementById('card-night');
+    if (cardNight) cardNight.classList.toggle('active', state.currentPeriod === 'night');
+    
+    // Sincronizar o slider caso esteja no modo manual
+    const slider = document.getElementById('time-range-slider');
+    if (slider && state.timeMode === 'manual') {
         let sliderVal = 4;
         if (state.currentPeriod === 'morning') sliderVal = 1;
         else if (state.currentPeriod === 'afternoon') sliderVal = 2;
         else if (state.currentPeriod === 'sunset') sliderVal = 3;
         else if (state.currentPeriod === 'night') sliderVal = 4;
-        document.getElementById('time-range-slider').value = sliderVal;
+        slider.value = sliderVal;
     }
     
-    // Atualizar texto de status de horário
-    const now = new Date();
-    const HH = String(now.getHours()).padStart(2, '0');
-    const MM = String(now.getMinutes()).padStart(2, '0');
+    // Sincronizar os seletores do painel de acessibilidade (se existirem na página)
+    const chkHighContrast = document.getElementById('chk-high-contrast');
+    if (chkHighContrast) chkHighContrast.checked = state.accessibility.highContrast;
+    const chkLargeFont = document.getElementById('chk-large-font');
+    if (chkLargeFont) chkLargeFont.checked = state.accessibility.largeFont;
+    const chkReduceMotion = document.getElementById('chk-reduce-motion');
+    if (chkReduceMotion) chkReduceMotion.checked = state.accessibility.reduceMotion;
+    const chkAnxietyMode = document.getElementById('chk-anxiety-mode');
+    if (chkAnxietyMode) chkAnxietyMode.checked = state.accessibility.anxietyMode;
+    
+    // Atualizar texto de status de horário (se existir)
     const textStatus = document.getElementById('time-status-text');
-    
-    let periodName = 'Noite';
-    if (state.currentPeriod === 'morning') periodName = 'Manhã';
-    else if (state.currentPeriod === 'afternoon') periodName = 'Tarde';
-    else if (state.currentPeriod === 'sunset') periodName = 'Entardecer';
-    
-    if (state.timeMode === 'auto') {
-        textStatus.innerHTML = `Modo Automático: Adaptado para a <strong>${periodName}</strong> baseado no relógio do sistema (<strong>${HH}:${MM}</strong>).`;
-    } else {
-        textStatus.innerHTML = `Modo Manual: Atmosfera da <strong>${periodName}</strong> fixa por escolha do usuário.`;
+    if (textStatus) {
+        const now = new Date();
+        const HH = String(now.getHours()).padStart(2, '0');
+        const MM = String(now.getMinutes()).padStart(2, '0');
+        
+        let periodName = 'Noite';
+        if (state.currentPeriod === 'morning') periodName = 'Manhã';
+        else if (state.currentPeriod === 'afternoon') periodName = 'Tarde';
+        else if (state.currentPeriod === 'sunset') periodName = 'Entardecer';
+        
+        if (state.timeMode === 'auto') {
+            textStatus.innerHTML = `Modo Automático: Adaptado para a <strong>${periodName}</strong> baseado no relógio do sistema (<strong>${HH}:${MM}</strong>).`;
+        } else {
+            textStatus.innerHTML = `Modo Manual: Atmosfera da <strong>${periodName}</strong> fixa por escolha do usuário.`;
+        }
     }
 }
 
@@ -421,27 +460,19 @@ function toggleAccessibilityMenu() {
 }
 
 function toggleAccessibilityFeature(feature) {
-    const body = document.body;
-    
     switch (feature) {
         case 'high-contrast':
             state.accessibility.highContrast = document.getElementById('chk-high-contrast').checked;
-            body.classList.toggle('accessibility-high-contrast', state.accessibility.highContrast);
             break;
-            
         case 'large-font':
             state.accessibility.largeFont = document.getElementById('chk-large-font').checked;
-            body.classList.toggle('accessibility-large-font', state.accessibility.largeFont);
             break;
-            
         case 'reduce-motion':
             state.accessibility.reduceMotion = document.getElementById('chk-reduce-motion').checked;
-            body.classList.toggle('accessibility-reduce-motion', state.accessibility.reduceMotion);
             break;
-            
         case 'anxiety-mode':
             state.accessibility.anxietyMode = document.getElementById('chk-anxiety-mode').checked;
-            body.classList.toggle('accessibility-anxiety-mode', state.accessibility.anxietyMode);
             break;
     }
+    applyStateToDOM();
 }

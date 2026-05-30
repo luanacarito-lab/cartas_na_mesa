@@ -1,0 +1,515 @@
+/* ==========================================================================
+   ESTILOS FINANCEIROS PREMIUM - SISTEMA CARTOMANTE
+   Visual Cósmico, Organizado e Altamente Legível
+   ========================================================================== */
+
+/* 1. BARREIRA DE SEGURANÇA (OVERLAY GLASSMORPHISM) */
+.security-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(11, 14, 27, 0.85);
+    backdrop-filter: blur(25px) saturate(140%);
+    -webkit-backdrop-filter: blur(25px) saturate(140%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 1;
+    pointer-events: all;
+    transition: opacity var(--transition-medium), pointer-events var(--transition-medium);
+}
+
+body.mode-light .security-overlay {
+    background: rgba(255, 245, 240, 0.85);
+}
+
+.security-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.security-box {
+    width: 100%;
+    max-width: 380px;
+    padding: 40px 30px;
+    text-align: center;
+    animation: lockPulse 2s infinite ease-in-out alternate;
+}
+
+@keyframes lockPulse {
+    0% { box-shadow: 0 0 20px rgba(199, 162, 122, 0.15); }
+    100% { box-shadow: 0 0 35px rgba(199, 162, 122, 0.35); }
+}
+
+.security-icon {
+    font-size: 3rem;
+    color: var(--gold-color);
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px rgba(199, 162, 122, 0.4);
+}
+
+.security-title {
+    font-family: var(--font-decorative);
+    font-size: 1.15rem;
+    color: var(--gold-color);
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.security-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 25px;
+}
+
+.pin-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.pin-input {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    text-align: center;
+    font-family: var(--font-modern);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+body.mode-light .pin-input {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.pin-input:focus {
+    border-color: var(--gold-color);
+    box-shadow: 0 0 8px rgba(199, 162, 122, 0.3);
+}
+
+
+/* 2. GRID PRINCIPAL FINANCEIRO */
+.finance-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* 3. CARDS FINANCEIROS DE FLUXO */
+.finance-cards-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.finance-card {
+    position: relative;
+    padding: 24px;
+    overflow: hidden;
+}
+
+.finance-card::after {
+    content: "";
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--gold-color) 0%, transparent 70%);
+    opacity: 0.05;
+}
+
+.finance-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.finance-card-header i {
+    font-size: 1rem;
+    color: var(--gold-color);
+}
+
+.finance-card-value {
+    font-family: var(--font-decorative);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.finance-card-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.finance-card-sub span {
+    font-weight: 600;
+}
+
+.finance-card-sub.positive span {
+    color: #2ec4b6;
+}
+
+.finance-card-sub.negative span {
+    color: #e63946;
+}
+
+
+/* 4. VISUALIZAÇÕES E GRÁFICOS MÍSTICOS */
+.finance-charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 1000px) {
+    .finance-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-panel {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chart-title {
+    font-family: var(--font-decorative);
+    font-size: 1rem;
+    color: var(--gold-color);
+    letter-spacing: 0.5px;
+}
+
+.chart-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.chart-filter-btn {
+    background: none;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.chart-filter-btn.active, .chart-filter-btn:hover {
+    border-color: var(--gold-color);
+    color: var(--gold-color);
+    background: rgba(199, 162, 122, 0.08);
+}
+
+/* Container do Gráfico SVG NATIVO */
+.chart-svg-container {
+    width: 100%;
+    height: 220px;
+    position: relative;
+}
+
+.chart-svg-container svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Gráfico de Serviços / Pizza SVG */
+.chart-pizza-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 220px;
+}
+
+.pizza-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+    font-size: 0.72rem;
+}
+
+.pizza-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+
+.legend-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+
+/* 5. LISTA DE MOVIMENTAÇÕES FINANCEIRAS */
+.transactions-panel {
+    padding: 25px;
+}
+
+.panel-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Filtros Avançados */
+.filter-dropdown {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-family: var(--font-modern);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+body.mode-light .filter-dropdown {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.filter-dropdown:focus {
+    border-color: var(--gold-color);
+}
+
+/* Tabela Estilizada */
+.transactions-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    text-align: left;
+}
+
+.transactions-table th {
+    padding: 12px 16px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.transactions-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(199, 162, 122, 0.08);
+    color: var(--text-secondary);
+}
+
+.transactions-table tr:hover td {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+body.mode-light .transactions-table tr:hover td {
+    background: rgba(0, 0, 0, 0.01);
+}
+
+.trans-desc-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trans-icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+}
+
+.trans-icon-circle.entrada {
+    background: rgba(46, 196, 182, 0.1);
+    color: #2ec4b6;
+    border: 1px solid rgba(46, 196, 182, 0.2);
+}
+
+.trans-icon-circle.saida {
+    background: rgba(230, 57, 70, 0.1);
+    color: #e63946;
+    border: 1px solid rgba(230, 57, 70, 0.2);
+}
+
+.trans-value-text {
+    font-weight: 600;
+}
+
+.trans-value-text.entrada {
+    color: #2ec4b6;
+}
+
+.trans-value-text.saida {
+    color: #e63946;
+}
+
+/* Status Badges */
+.status-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid currentColor;
+    text-transform: uppercase;
+    width: fit-content;
+}
+
+.status-badge.pago {
+    color: #2ec4b6;
+    background: rgba(46, 196, 182, 0.08);
+}
+
+.status-badge.pendente {
+    color: #e0924b;
+    background: rgba(224, 146, 75, 0.08);
+}
+
+.status-badge.cancelado {
+    color: var(--text-muted);
+    background: rgba(158, 133, 146, 0.08);
+}
+
+.status-badge.reembolsado {
+    color: #6e5aab;
+    background: rgba(110, 90, 171, 0.08);
+}
+
+.trans-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-trans-edit, .btn-trans-del {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px;
+    transition: color var(--transition-fast);
+}
+
+.btn-trans-edit:hover {
+    color: var(--gold-color);
+}
+
+.btn-trans-del:hover {
+    color: #e63946;
+}
+
+
+/* 6. CONFIGURAÇÃO DE SEGURANÇA FINANCEIRA */
+.security-settings-panel {
+    padding: 25px;
+    margin-top: 30px;
+}
+
+.security-settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.security-settings-info {
+    max-width: 500px;
+}
+
+.security-settings-info h3 {
+    font-family: var(--font-decorative);
+    font-size: 0.95rem;
+    color: var(--gold-color);
+    margin-bottom: 5px;
+}
+
+.security-settings-info p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.security-settings-actions {
+    display: flex;
+    gap: 12px;
+}
+
+
+/* 7. ANIMAÇÕES EM PONTOS DOS GRÁFICOS */
+.chart-dot {
+    cursor: pointer;
+    transition: r 0.2s ease, fill-opacity 0.2s ease;
+}
+
+.chart-dot:hover {
+    r: 6px;
+    fill-opacity: 1;
+}
+
+.chart-tooltip {
+    position: absolute;
+    background: rgba(11, 14, 27, 0.95);
+    border: 1px solid var(--gold-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+body.mode-light .chart-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+}

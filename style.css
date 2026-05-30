@@ -1747,7 +1747,7 @@ body.mode-light .form-select {
     gap: 20px;
 }
 
-.finance-card {
+.financial-summary-row .finance-card {
     padding: 20px;
     display: flex;
     align-items: center;
@@ -2178,6 +2178,25 @@ body.accessibility-anxiety-mode .mockup-frame {
     border-color: var(--gold-color) !important;
 }
 
+/* Ampliar espaçamento, silenciar contrastes e remover brilhos sob o Modo Ansiedade/TDAH */
+body.accessibility-anxiety-mode .glass-panel,
+body.accessibility-anxiety-mode .glass-card,
+body.accessibility-anxiety-mode .card,
+body.accessibility-anxiety-mode .sidebar,
+body.accessibility-anxiety-mode .mural-post-item,
+body.accessibility-anxiety-mode .sidebar-widget {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background: var(--card-bg) !important;
+    padding: 30px !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+body.accessibility-anxiety-mode {
+    letter-spacing: 0.02em;
+}
+
+
 /* ==========================================================================
    12. RESPONSIVIDADE (MEDIA QUERIES)
    ========================================================================== */
@@ -2286,3 +2305,341 @@ body.accessibility-anxiety-mode .mockup-frame {
         gap: 15px;
     }
 }
+
+/* ==========================================================================
+   APP SIDEBAR E MAIN LAYOUT - SISTEMA CARTOMANTE
+   Aplica-se unificadamente a todas as páginas do sistema
+   ========================================================================== */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    background: rgba(11, 14, 27, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--card-border);
+    padding: 35px 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+body.mode-light .sidebar {
+    background: rgba(255, 245, 240, 0.7);
+}
+
+.sidebar-header, .sidebar .logo {
+    font-family: var(--font-decorative);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gold-color);
+    margin-bottom: 35px;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.sidebar .menu {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar .menu a, .sidebar .menu-item {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar .menu a:hover, .sidebar .menu-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+}
+
+body.mode-light .sidebar .menu a:hover, body.mode-light .sidebar .menu-item:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.sidebar .menu .active, .sidebar .menu a.active, .sidebar .menu-item.active {
+    background: var(--card-bg) !important;
+    color: var(--gold-color) !important;
+    font-weight: 600;
+    border: 1px solid var(--card-border) !important;
+}
+
+/* Offset principal para conter a sidebar */
+.main-content, .main {
+    margin-left: 250px;
+    padding: 40px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 10;
+    transition: margin-left var(--transition-medium), padding var(--transition-medium);
+}
+
+/* Responsividade Adaptativa da Barra de Navegação */
+@media (max-width: 900px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .sidebar-header, .sidebar .logo {
+        margin-bottom: 0;
+        margin-right: 20px;
+        font-size: 1.05rem;
+    }
+    
+    .sidebar .menu {
+        flex-direction: row;
+        width: auto;
+        gap: 5px;
+    }
+    
+    .sidebar .menu a, .sidebar .menu-item {
+        white-space: nowrap;
+        padding: 8px 12px;
+    }
+    
+    .main-content, .main {
+        margin-left: 0;
+        padding: 20px;
+    }
+}
+
+/* ==========================================================================
+   13. ESTILOS DE ELEMENTOS DE FORMULÁRIO MÍSTICOS (ACESSIBILIDADE & INPUTS)
+   ========================================================================== */
+.mystic-input, .mystic-select, .mystic-textarea, .response-textarea {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-family: var(--font-modern);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+body.mode-light .mystic-input, 
+body.mode-light .mystic-select, 
+body.mode-light .mystic-textarea,
+body.mode-light .response-textarea {
+    background: rgba(255, 255, 255, 0.4);
+    color: var(--text-primary);
+}
+
+.mystic-input:focus, .mystic-select:focus, .mystic-textarea:focus, .response-textarea:focus {
+    border-color: var(--gold-color);
+    box-shadow: 0 0 8px rgba(199, 162, 122, 0.3);
+}
+
+/* Customização de caixas de seleção nativas */
+input[type="checkbox"] {
+    accent-color: var(--gold-color) !important;
+    cursor: pointer;
+}
+
+/* Formulários Místicos Gerais */
+.mystic-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.mystic-form-group label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Customização de listas dentro de cards e painéis do Dashboard */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    margin-top: 25px;
+}
+
+.card.glass-panel {
+    padding: 24px;
+    border-radius: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card.glass-panel:hover {
+    transform: translateY(-3px);
+    border-color: rgba(199, 162, 122, 0.35);
+}
+
+.card h2 {
+    font-family: var(--font-decorative);
+    font-size: 0.98rem;
+    color: var(--gold-color);
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+    padding-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.card .value {
+    font-family: var(--font-classic);
+    font-size: 2.2rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-top: 8px;
+    text-shadow: 0 0 12px rgba(199, 162, 122, 0.2);
+}
+
+.card ul, .extra-section ul {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 8px 0 0 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.card li, .extra-section li {
+    font-family: var(--font-classic) !important;
+    font-size: 0.88rem !important;
+    color: var(--text-primary) !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all var(--transition-fast);
+    width: 100%;
+}
+
+.card li:hover, .extra-section li:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(199, 162, 122, 0.2);
+}
+
+/* Modais Místicos (Visual Glassmorphism Premium) */
+.mystic-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(11, 14, 27, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.mystic-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.mystic-modal-content {
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 20px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    position: relative;
+    animation: modalSlideUp 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body.mode-light .mystic-modal-content {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header-mystic {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header-mystic h2 {
+    font-family: var(--font-decorative);
+    font-size: 1.2rem;
+    color: var(--gold-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-mystic-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color var(--transition-fast);
+}
+
+.close-mystic-btn:hover {
+    color: var(--text-primary);
+}
+
+.mystic-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+

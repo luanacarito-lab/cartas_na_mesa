@@ -3,60 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – Cartomante</title>
+  <title>Painel Principal – Sistema Cartomante</title>
+  <!-- Google Fonts for typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Base Style (mockup themes, stars sky background, colors) -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 </head>
-<body>
-  <div class="app">
-    <!-- Sidebar -->
-    <nav class="sidebar">
-      <div class="logo">🌙 Cartomante</div>
-      <ul class="menu">
-        <li class="active"><a href="#">Dashboard</a></li>
-        <li><a href="#">Clientes</a></li>
-        <li><a href="#">Agenda</a></li>
-        <li><a href="#">Chat</a></li>
-        <li><a href="#">Perguntas ao Baralho</a></li>
-        <li><a href="#">Serviços</a></li>
-        <li><a href="#">Financeiro</a></li>
-        <li><a href="#">Mural Público</a></li>
-        <li><a href="#">Organização</a></li>
-        <li><a href="#">Configurações</a></li>
-      </ul>
-    </nav>
+<body class="theme-night mode-dark">
 
-    <!-- Main content -->
-    <main class="main">
-      <h1 class="header">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
-      <section class="cards">
-        <div class="card" id="card-today">
-          <h2>Atendimentos de hoje</h2>
-          <p class="value" id="today-count">—</p>
-        </div>
-        <div class="card" id="card-upcoming">
-          <h2>Próximos atendimentos</h2>
-          <ul id="upcoming-list"><li>—</li></ul>
-        </div>
-        <div class="card" id="card-questions">
-          <h2>Perguntas ao Baralho pendentes</h2>
-          <p class="value" id="questions-count">—</p>
-        </div>
-        <div class="card" id="card-payments">
-          <h2>Pagamentos pendentes</h2>
-          <p class="value" id="payments-sum">—</p>
-        </div>
-        <div class="card" id="card-recent-clients">
-          <h2>Clientes recentes</h2>
-          <ul id="recent-clients"><li>—</li></ul>
-        </div>
-      </section>
-    </main>
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu Unificado) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+  <!-- Conteúdo Principal do Painel -->
+  <main class="main-content">
+    <header class="page-header">
+      <h1 class="decorative-title">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+      <p class="section-desc">Portal de sintonização espiritual, monitoramento de rituais e acompanhamento de consulentes.</p>
+    </header>
+
+    <!-- Grids Resumo de Atividade (Cards) -->
+    <section class="cards-grid">
+      <div class="card glass-panel" id="card-atendimentos-hoje">
+        <h2><i class="fas fa-user-check" style="color:var(--gold-color); margin-right:8px;"></i> Atendimentos de hoje</h2>
+        <p class="value" id="atendimentos-hoje">—</p>
+      </div>
+      
+      <div class="card glass-panel" id="card-proximos-atendimentos">
+        <h2><i class="fas fa-calendar-days" style="color:var(--gold-color); margin-right:8px;"></i> Próximos atendimentos</h2>
+        <ul class="list" id="proximos-atendimentos" style="list-style:none; padding:0; margin:10px 0 0 0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </div>
+      
+      <div class="card glass-panel" id="card-perguntas-pendentes">
+        <h2><i class="fas fa-hand-sparkles" style="color:var(--gold-color); margin-right:8px;"></i> Perguntas pendentes</h2>
+        <p class="value" id="perguntas-pendentes">—</p>
+      </div>
+      
+      <div class="card glass-panel" id="card-pagamentos-pendentes">
+        <h2><i class="fas fa-wallet" style="color:var(--gold-color); margin-right:8px;"></i> Pagamentos pendentes</h2>
+        <p class="value" id="pagamentos-pendentes">—</p>
+      </div>
+      
+      <div class="card glass-panel" id="card-clientes-recentes">
+        <h2><i class="fas fa-history" style="color:var(--gold-color); margin-right:8px;"></i> Clientes recentes</h2>
+        <ul class="list" id="clientes-recentes" style="list-style:none; padding:0; margin:10px 0 0 0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </div>
+    </section>
+
+    <!-- Seções de Agenda Detalhada e Alertas -->
+    <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 25px; margin-top: 30px;" class="extra-sections-row">
+      
+      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-calendar-alt" style="color:var(--public-primary);"></i> Agenda do Dia
+        </h2>
+        <ul class="list" id="agenda-do-dia" style="list-style:none; padding:0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </section>
+
+      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-bell" style="color:var(--public-primary);"></i> Alertas Importantes
+        </h2>
+        <ul class="list" id="alertas-importantes" style="list-style:none; padding:0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </section>
+      
+    </div>
+  </main>
+
+  <!-- Supabase CDN Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <!-- Central Config -->
+  <script src="config.js"></script>
+  <!-- Global atmosphere parameter and accessibility syncing -->
+  <script src="script.js"></script>
+  <!-- Dynamic dashboard populating script -->
+  <script src="dashboard.js"></script>
 </body>
 </html>

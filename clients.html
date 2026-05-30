@@ -10,20 +10,25 @@
   <link rel="stylesheet" href="assets/css/clients.css" />
 </head>
 <body>
-  <!-- Side menu (reuse the same markup as the dashboard) -->
-  <nav class="side-menu">
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <nav class="sidebar glass-panel">
     <div class="logo">🪄 Cartomante</div>
     <ul class="menu-items">
-      <li><a href="index.html">Dashboard</a></li>
-      <li><a href="clients.html" class="active">Clientes</a></li>
-      <li><a href="#">Agenda</a></li>
-      <li><a href="#">Chat</a></li>
-      <li><a href="#">Perguntas ao Baralho</a></li>
-      <li><a href="#">Serviços</a></li>
-      <li><a href="#">Financeiro</a></li>
-      <li><a href="#">Mural Público</a></li>
-      <li><a href="#">Organização</a></li>
-      <li><a href="#">Configurações</a></li>
+      <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+      <li><a href="clients.html" class="active"><i class="fas fa-user-friends"></i> Clientes</a></li>
+      <li><a href="#"><i class="fas fa-calendar-alt"></i> Agenda</a></li>
+      <li><a href="chat.html"><i class="fas fa-comments"></i> Chat</a></li>
+      <li><a href="chat.html?tab=perguntas"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a></li>
+      <li><a href="#"><i class="fas fa-concierge-bell"></i> Serviços</a></li>
+      <li><a href="finance.html"><i class="fas fa-wallet"></i> Financeiro</a></li>
+      <li><a href="public_profile.html"><i class="fas fa-bullhorn"></i> Mural Público</a></li>
+      <li><a href="organization.html"><i class="fas fa-feather"></i> Organização</a></li>
+      <li><a href="settings.html"><i class="fas fa-cog"></i> Configurações</a></li>
     </ul>
   </nav>
 
@@ -99,11 +104,16 @@
               <input type="text" name="pai_mae_cabeca" />
             </label>
             <label>Tradição espiritual
-              <input type="text" name="tradicao_espiritual" />
+              <input type="text" name="tradição_espiritual" />
             </label>
           </div>
           <label>Sexo
-            <select name="sexo"><option value=""></option><option>Masculino</option><option>Feminino</option><option>Outro</option></select>
+            <select name="sexo">
+              <option value=""></option>
+              <option>Masculino</option>
+              <option>Feminino</option>
+              <option>Outro</option>
+            </select>
           </label>
           <label>Pronome
             <input type="text" name="pronome" />
@@ -158,6 +168,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="assets/js/clients.js"></script>
 </body>
 </html>

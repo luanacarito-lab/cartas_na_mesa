@@ -1,0 +1,494 @@
+/* ==========================================================================
+   ESTILOS PÚBLICOS E MURAL ESPIRITUAL - SISTEMA CARTOMANTE
+   Visual Artístico, Calmo e Acolhedor
+   ========================================================================== */
+
+:root {
+    --public-primary: #C7A27A;
+    --public-secondary: #6E5AAB;
+    --public-wine: #9B5D73;
+    --public-calm-bg: rgba(11, 14, 27, 0.4);
+}
+
+/* 1. ESTRUTURA DO PERFIL PÚBLICO (HEADER BANNER & AVATAR) */
+.profile-banner-container {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #0b0e1b 0%, #1d1022 50%, #110b14 100%);
+    border: 1px solid var(--card-border);
+    border-bottom: none;
+    overflow: visible; /* Permitir que o avatar flutue sobre a borda sem cortar */
+    display: flex;
+    align-items: flex-end;
+}
+
+.profile-banner-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.35;
+    mix-blend-mode: color-dodge;
+    border-radius: 20px 20px 0 0; /* Evitar que as bordas da imagem vazem */
+}
+
+.profile-header-details {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 0 40px 30px 40px;
+    width: 100%;
+    transform: translateY(40px);
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--public-primary);
+    box-shadow: 0 0 20px rgba(199, 162, 122, 0.4);
+    background: #110b14;
+}
+
+.profile-intro-text {
+    margin-top: 15px; /* Reduzido de 50px para evitar empurrar o texto para fora do limite */
+    flex: 1;
+}
+
+.profile-name {
+    font-family: var(--font-decorative);
+    font-size: 1.6rem;
+    color: var(--public-primary);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-badge-online {
+    font-size: 0.65rem;
+    font-family: var(--font-modern);
+    background: rgba(46, 196, 182, 0.15);
+    color: #2ec4b6;
+    border: 1px solid rgba(46, 196, 182, 0.3);
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.profile-bio-snippet {
+    font-family: var(--font-classic);
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* Painel de Customização Flutuante (Somente Cartomante Logada) */
+.customizer-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(11, 14, 27, 0.95);
+    border: 1px solid var(--public-primary);
+    border-radius: 30px;
+    padding: 10px 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 999;
+    font-size: 0.8rem;
+}
+
+.customizer-color-picker {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--card-border);
+    border-radius: 50%;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.customizer-color-picker input {
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+
+/* 2. LAYOUT EM GRID DAS SEÇÕES DO PERFIL */
+.profile-content-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    margin-top: 60px;
+}
+
+@media (max-width: 900px) {
+    .profile-content-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Coluna Esquerda: Detalhes, Redes Sociais, Certificados */
+.profile-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.sidebar-widget {
+    padding: 20px;
+}
+
+.widget-title {
+    font-family: var(--font-decorative);
+    font-size: 0.85rem;
+    color: var(--public-primary);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.specialty-tag-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.specialty-badge {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.social-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.social-link-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.social-link-item:hover {
+    color: var(--public-primary);
+}
+
+
+/* 3. MURAL PÚBLICO (FEED DE POSTAGENS) */
+.mural-feed-section {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Criar Nova Postagem (Cartomante Dashboard) */
+.mural-create-post-card {
+    padding: 20px;
+}
+
+.mural-post-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Cards de Postagem do Feed */
+.mural-post-item {
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.post-title {
+    font-family: var(--font-decorative);
+    font-size: 1.1rem;
+    color: var(--public-primary);
+    font-weight: 700;
+}
+
+.post-date {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.post-body {
+    font-family: var(--font-classic);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.post-image-attachment {
+    width: 100%;
+    max-height: 350px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    margin-bottom: 15px;
+}
+
+.post-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 10px;
+    display: flex;
+    gap: 15px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.post-footer span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.post-footer span:hover {
+    color: var(--public-primary);
+}
+
+
+/* 4. SERVIÇOS PÚBLICOS */
+.public-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.service-public-card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.service-title {
+    font-family: var(--font-decorative);
+    font-size: 0.95rem;
+    color: var(--public-primary);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.service-price {
+    font-family: var(--font-decorative);
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.service-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 15px;
+    flex: 1;
+}
+
+.service-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+    padding-top: 10px;
+    margin-bottom: 15px;
+}
+
+.service-meta-row span i {
+    color: var(--public-primary);
+    margin-right: 4px;
+}
+
+
+/* 5. AGENDA PÚBLICA (CALENDÁRIO SEGURO) */
+.public-calendar-card {
+    padding: 25px;
+}
+
+.calendar-days-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+    .calendar-days-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.calendar-day-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calendar-day-header {
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    border-bottom: 1.5px solid var(--public-primary);
+    padding-bottom: 6px;
+    margin-bottom: 5px;
+}
+
+.calendar-slot-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 8px 4px;
+    font-family: var(--font-modern);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+/* Horário Reservado (Ocultando nome e ID interno) */
+.calendar-slot-btn.reserved {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+/* Horário Livre para Reserva */
+.calendar-slot-btn.available {
+    background: rgba(110, 90, 171, 0.06);
+    border-color: rgba(110, 90, 171, 0.25);
+    color: var(--public-secondary);
+}
+
+.calendar-slot-btn.available:hover {
+    border-color: var(--public-primary);
+    background: rgba(199, 162, 122, 0.1);
+    color: var(--public-primary);
+}
+
+
+/* 6. BUSCA PÚBLICA DE CARTOMANTES (SEARCH DIRECTORY) */
+.search-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    width: 90%;
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+@media (max-width: 900px) {
+    .search-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.search-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.cartomante-showcase-card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.showcase-header {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.showcase-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--public-primary);
+}
+
+.showcase-title h3 {
+    font-family: var(--font-decorative);
+    font-size: 0.95rem;
+    color: var(--public-primary);
+}
+
+.showcase-title p {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.showcase-bio {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    flex: 1;
+}
+
+/* Mockup de Avaliação Futurista */
+.mock-rating-stars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: #ffcc00;
+    margin-bottom: 15px;
+}
+
+.mock-rating-text {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+}

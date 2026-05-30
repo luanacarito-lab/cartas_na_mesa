@@ -1,0 +1,35 @@
+/* Button component */
+.btn {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  padding: .6rem 1.2rem;
+  font-family: var(--font-secondary);
+  font-weight: 600;
+  transition: transform .2s, box-shadow .2s, background .2s;
+}
+.btn-primary {
+  background: var(--color-primary-dark);
+  color: #fff;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+.btn-secondary {
+  background: var(--color-gold-dark);
+  color: #fff;
+}
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary-dark);
+  border: 2px solid var(--color-primary-dark);
+}
+.btn-ghost:hover {
+  background: var(--color-primary-dark);
+  color: #fff;
+}

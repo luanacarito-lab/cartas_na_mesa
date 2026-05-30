@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Privado & Baralho – Sistema Cartomante</title>
+  <!-- Google Fonts for typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Base Style (mockup themes, stars sky background, colors) -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chat Styling (premium details, visual silence, highlighted cards) -->
+  <link rel="stylesheet" href="assets/css/chat.css" />
+  
+  <!-- Font Awesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item active" id="menu-chat"><i class="fas fa-comments"></i> Chat</a>
+      <a href="#" class="menu-item" id="menu-perguntas" onclick="selectTabFromMenu()"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal do Chat -->
+  <main class="main-content">
+    <header class="page-header">
+      <h1 class="decorative-title">Diálogo de Almas</h1>
+      <p class="section-desc">Atendimento privado, tiragens ritualísticas e acompanhamento espiritual contínuo.</p>
+    </header>
+
+    <!-- Estrutura Geral do Chat (Split Layout) -->
+    <div class="chat-container glass-panel">
+      
+      <!-- Lateral Esquerda: Clientes, Busca, Configurações de Energia -->
+      <aside class="chat-sidebar">
+        
+        <!-- Campo de Busca -->
+        <div class="chat-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="chatSearchInput" class="chat-search-input" placeholder="Buscar consulente..." />
+        </div>
+        
+        <!-- Lista de Clientes com conversas -->
+        <div class="conversations-list" id="conversationsList">
+          <!-- Injetado dinamicamente por JS -->
+          <div class="chat-empty-state">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <p>Conectando ao plano espiritual...</p>
+          </div>
+        </div>
+
+        <!-- Painel de Limites Energéticos -->
+        <div class="sidebar-limits-panel">
+          <h4 class="limits-title"><i class="fas fa-adjust"></i> Limites de Energia</h4>
+          
+          <div class="limit-row">
+            <span>Limite diário:</span>
+            <span id="lblLimiteDiario">50 msgs (0 envios)</span>
+          </div>
+          
+          <div class="limit-row">
+            <span>Limite/Consulente:</span>
+            <span id="lblLimiteCliente">10 msgs</span>
+          </div>
+
+          <div class="limit-row">
+            <span>Horário Comercial:</span>
+            <span id="lblComercialHour">09:00 - 21:00</span>
+          </div>
+
+          <button type="button" class="glass-button limit-action-btn" onclick="openLimitsModal()">
+            <i class="fas fa-sliders-h"></i> Configurar Limites
+          </button>
+        </div>
+
+        <!-- Widget do Simulador (Para fins de testes interativos sem outro usuário logado) -->
+        <div class="simulator-widget">
+          <h4>🔮 Portal de Simulação</h4>
+          <div class="simulator-actions">
+            <button type="button" class="glass-button" onclick="simulateClientMessage()">
+              <i class="fas fa-user-tag"></i> Simular Msg do Cliente
+            </button>
+            <button type="button" class="glass-button" onclick="simulateClientQuestion()">
+              <i class="fas fa-clone"></i> Simular Pergunta ao Baralho
+            </button>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- Área Central: Janela do Chat Principal -->
+      <section class="chat-main" id="chatMainArea">
+        
+        <!-- Estado Inicial Sem Seleção de Chat -->
+        <div class="chat-empty-state" id="chatEmptyState">
+          <i class="fas fa-wand-magic-sparkles"></i>
+          <h3>Selecione um Consulente</h3>
+          <p>Escolha um atendimento na barra lateral para iniciar a leitura de oráculo, sincronizar energias e dialogar em tempo real.</p>
+        </div>
+
+        <!-- Conteúdo do Chat Ativo (Escondido inicialmente) -->
+        <div id="chatActiveContent" style="display: none; flex-direction: column; height: 100%; width: 100%;">
+          
+          <!-- Cabeçalho do Chat -->
+          <div class="chat-header">
+            <div class="chat-user-info">
+              <img id="activeChatAvatar" src="assets/img/default-avatar.png" alt="Foto Consulente" class="chat-user-avatar" />
+              <div class="chat-user-text">
+                <h3 id="activeChatName">Nome do Consulente</h3>
+                <div class="chat-user-status" id="activeChatStatus">
+                  <div class="status-dot"></div>
+                  <span>Sintonizada</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="chat-actions">
+              <button class="glass-button" id="btnPerguntaBaralho" onclick="openPerguntaBaralhoModal()">
+                <i class="fas fa-hand-sparkles"></i> Pergunta ao Baralho
+              </button>
+            </div>
+          </div>
+
+          <!-- Banner de Ritmo Reduzido (Modo Esgotamento) -->
+          <div class="esgotamento-banner" id="chatEsgotamentoBanner" style="display: none; background: rgba(224, 146, 75, 0.15); border-bottom: 1px solid rgba(224, 146, 75, 0.3); padding: 10px 25px; font-size: 0.72rem; color: var(--gold-light); align-items: center; gap: 8px;">
+            <i class="fas fa-shield-heart" style="color: var(--gold-color); font-size: 0.85rem;"></i>
+            <span id="chatEsgotamentoBannerText">Modo Esgotamento Ativo: Os atendimentos funcionam em ritmo reduzido para autocuidado mental.</span>
+          </div>
+
+          <!-- Histórico de Mensagens -->
+          <div class="chat-messages-history" id="chatMessagesHistory">
+            <!-- As mensagens serão carregadas aqui dinamicamente -->
+          </div>
+
+          <!-- Barra de Upload de Anexo (Previsão antes de enviar) -->
+          <div class="attachment-preview-bar" id="attachmentPreviewBar" style="display: none;">
+            <div class="attachment-preview-item" id="attachmentPreviewItem">
+              <i class="fas fa-file"></i>
+              <span id="attachmentFileName">nome-do-arquivo.pdf</span>
+              <button type="button" onclick="clearAttachment()"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+
+          <!-- Barra de Entrada de Mensagens -->
+          <div class="chat-input-bar" style="position: relative;">
+            
+            <!-- Popup Flutuante de Respostas Rápidas -->
+            <div class="quick-responses-popup glass-panel" id="quickResponsesPopup" style="display: none; position: absolute; bottom: 70px; left: 15px; width: 320px; padding: 15px; border: 1px solid var(--card-border); z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; border-radius: 12px;">
+              <h4 style="font-size: 0.75rem; color: var(--gold-color); font-family: var(--font-decorative); margin-bottom: 8px; border-bottom: 1.5px solid var(--public-primary); padding-bottom: 5px; display: flex; align-items: center; justify-content: space-between;">
+                <span><i class="fas fa-bolt"></i> Respostas Rápidas</span>
+                <button type="button" onclick="toggleQuickResponsesMenu()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem; line-height: 1;">&times;</button>
+              </h4>
+              <div id="quickResponsesList" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- Injetado dinamicamente por JS -->
+              </div>
+            </div>
+
+            <div class="input-container-row">
+              
+              <!-- Botão de Anexo Genérico -->
+              <button type="button" class="btn-icon" title="Anexar arquivos/PDF" onclick="triggerFileInput()">
+                <i class="fas fa-paperclip"></i>
+              </button>
+              <input type="file" id="chatFileInput" style="display: none;" onchange="handleFileSelected(event)" />
+
+              <!-- Botão de Respostas Rápidas -->
+              <button type="button" class="btn-icon" id="btnQuickResponses" title="Respostas Rápidas" onclick="toggleQuickResponsesMenu()">
+                <i class="fas fa-bolt"></i>
+              </button>
+
+              <!-- Campo de Mensagem Principal -->
+              <input type="text" id="chatInputField" class="chat-input-field" placeholder="Digite uma mensagem com acolhida e intenção..." onkeydown="handleInputKeyDown(event)" />
+
+              <!-- Botão de Enviar -->
+              <button type="button" class="btn-send" id="btnSendMsg" onclick="attemptSendMessage()" title="Enviar mensagem">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+     MODAIS INTERATIVOS (GLASSMORPHISM)
+     ========================================================================== -->
+
+  <!-- 1. MODAL: NOVA PERGUNTA AO BARALHO -->
+  <div class="mystic-modal" id="perguntaBaralhoModal">
+    <div class="mystic-modal-content glass-panel">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-star-of-david"></i> Pergunta ao Baralho</h2>
+        <button class="close-mystic-btn" onclick="closePerguntaBaralhoModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmPerguntaBaralho" onsubmit="handlePerguntaBaralhoSubmit(event)">
+        
+        <div class="mystic-form-group">
+          <label for="modalPergunta">Pergunta Principal</label>
+          <input type="text" id="modalPergunta" class="mystic-input" placeholder="Ex: O amor de infância retornará aos meus caminhos?" required />
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="modalContexto">Contexto / Detalhes de Vida</label>
+          <textarea id="modalContexto" class="mystic-textarea" rows="3" placeholder="Insira o histórico emocional, nomes e dados relevantes..."></textarea>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="modalArea">Área da Vida</label>
+          <select id="modalArea" class="mystic-select" required>
+            <option value="amor">Amor & Relações</option>
+            <option value="espiritual">Espiritualidade & Evolução</option>
+            <option value="financeiro">Finanças & Abundância</option>
+            <option value="trabalho">Carreira & Trabalho</option>
+            <option value="familia">Família & Laços</option>
+            <option value="saude_emocional">Saúde Emocional & Mente</option>
+            <option value="outro">Outra área</option>
+          </select>
+        </div>
+
+        <div class="mystic-form-group">
+          <label>Nível de Urgência Espiritual</label>
+          <div class="urgency-radio-group">
+            <label class="urgency-radio-label active" id="lblUrgenciaBaixa">
+              <input type="radio" name="modalUrgencia" value="baixa" checked onclick="setUrgencyRadio('baixa')" /> Baixa
+            </label>
+            <label class="urgency-radio-label" id="lblUrgenciaMedia">
+              <input type="radio" name="modalUrgencia" value="media" onclick="setUrgencyRadio('media')" /> Média
+            </label>
+            <label class="urgency-radio-label" id="lblUrgenciaAlta">
+              <input type="radio" name="modalUrgencia" value="alta" onclick="setUrgencyRadio('alta')" /> Alta
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top: 10px; padding: 12px;">
+          <i class="fas fa-magic"></i> Enviar ao Oráculo
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: CONFIGURAÇÃO DE LIMITES E HORÁRIOS ENERGÉTICOS -->
+  <div class="mystic-modal" id="limitsModal">
+    <div class="mystic-modal-content glass-panel">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-adjust"></i> Regular Limites Energéticos</h2>
+        <button class="close-mystic-btn" onclick="closeLimitsModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmLimitsConfig" onsubmit="handleLimitsSubmit(event)">
+        
+        <div class="mystic-form-group">
+          <label for="cfgLimiteDiario">Limite de mensagens diário</label>
+          <input type="number" id="cfgLimiteDiario" class="mystic-input" min="5" max="200" required />
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="cfgLimiteCliente">Limite de mensagens por cliente (Dia)</label>
+          <input type="number" id="cfgLimiteCliente" class="mystic-input" min="1" max="50" required />
+        </div>
+
+        <div class="mystic-form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="cfgHoraInicio">Permitido a partir de</label>
+            <input type="time" id="cfgHoraInicio" class="mystic-input" required />
+          </div>
+          <div>
+            <label for="cfgHoraFim">Até o horário de</label>
+            <input type="time" id="cfgHoraFim" class="mystic-input" required />
+          </div>
+        </div>
+
+        <div class="mystic-form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="cfgPausaAutomatica" style="width: 16px; height: 16px;" />
+            Pausa Energética Manual (Silenciar chat temporariamente)
+          </label>
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top: 10px; padding: 12px;">
+          <i class="fas fa-save"></i> Gravar Alterações
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. BOX DINÂMICO DE AVISO: MODO REFLEXÃO -->
+  <div class="reflection-alert-box" id="reflectionAlertBox">
+    <div class="reflection-alert-content">
+      ✨ <em>"Silencie a mente e respire fundo por um segundo... Que este conselho carregue luz, verdade e acolhimento para curar o coração de quem lê."</em>
+    </div>
+  </div>
+
+  <!-- Supabase CDN Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <!-- Main Script file (Atmosphere parameters) -->
+  <script src="script.js"></script>
+  <!-- Dynamic Chat Script (Real-time mechanics & RLS handlers) -->
+  <script src="assets/js/chat.js"></script>
+
+</body>
+</html>

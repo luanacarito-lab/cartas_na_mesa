@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organizador Pessoal – Sistema Cartomante</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Style links -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/public.css" />
+  
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item active"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal do Organizador -->
+  <main class="main-content">
+    <header class="page-header">
+      <h1 class="decorative-title">Santuário da Mente</h1>
+      <p class="section-desc">Área de organização espiritual e anotações rituais para canalizar a paz interna e catalogar ideias.</p>
+    </header>
+
+    <!-- Barra Superior de Controle e Filtros -->
+    <div class="glass-panel" style="padding: 15px 25px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border: 1px solid var(--card-border);">
+      
+      <!-- Seletor de Categoria e Favoritos -->
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div>
+          <label for="filterCategory" style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; margin-right: 6px;">Categoria:</label>
+          <select id="filterCategory" class="filter-dropdown" style="padding: 4px 8px; font-size: 0.75rem;" onchange="loadNotes()">
+            <option value="">Todas</option>
+            <option value="video">Vídeo</option>
+            <option value="postagem">Postagem</option>
+            <option value="ritual">Ritual</option>
+            <option value="estudo">Estudo</option>
+            <option value="atendimento">Atendimento</option>
+            <option value="pessoal">Pessoal</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.78rem; color: var(--text-secondary);">
+          <input type="checkbox" id="chkOnlyFavorites" style="width:14px; height:14px;" onchange="loadNotes()" />
+          <i class="fas fa-star" style="color: #ffcc00; font-size: 0.75rem;"></i> Apenas Favoritos
+        </label>
+      </div>
+
+      <!-- Botão Nova Anotação -->
+      <button class="glass-button" style="border-color: var(--public-primary); padding: 8px 15px; font-size: 0.78rem;" onclick="openNoteModal()">
+        <i class="fas fa-plus"></i> Semear Anotação
+      </button>
+
+    </div>
+
+    <!-- Navegação de Abas do Organizador -->
+    <div class="tabs" style="margin-bottom: 25px;">
+      <button class="tab-link active" onclick="switchOrgTab('rotina')"><i class="fas fa-redo"></i> Rotina Diária</button>
+      <button class="tab-link" onclick="switchOrgTab('ideias')"><i class="fas fa-lightbulb"></i> Ideias Criativas</button>
+      <button class="tab-link" onclick="switchOrgTab('videos')"><i class="fas fa-video"></i> Roteiros de Vídeo</button>
+      <button class="tab-link" onclick="switchOrgTab('pesquisas')"><i class="fas fa-book-open"></i> Estudos & Pesquisas</button>
+      <button class="tab-link" onclick="switchOrgTab('inspiracoes')"><i class="fas fa-quote-left"></i> Inspirações</button>
+      <button class="tab-link" onclick="switchOrgTab('anotacoes')"><i class="fas fa-feather-pointed"></i> Geral / Outros</button>
+    </div>
+
+    <!-- Grid de Anotações -->
+    <div class="public-services-grid" id="notesGridContainer" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+      <!-- Injetado dinamicamente por JS -->
+      <div class="chat-empty-state" style="grid-column: 1/-1;">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <p>Silenciando pensamentos e carregando registros...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: CRIAR / EDITAR ANOTAÇÃO -->
+  <div class="mystic-modal" id="noteModal" style="display: none;">
+    <div class="mystic-modal-content glass-panel" style="max-width: 480px;">
+      <div class="modal-header-mystic">
+        <h2 id="modalNoteTitle"><i class="fas fa-leaf"></i> Cultivar Registro</h2>
+        <button class="close-mystic-btn" onclick="closeNoteModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmNote" onsubmit="handleNoteSubmit(event)">
+        <input type="hidden" id="editNoteId" value="" />
+        
+        <div class="mystic-form-group">
+          <label for="txtNoteTitle">Título da Reflexão</label>
+          <input type="text" id="txtNoteTitle" class="mystic-input" placeholder="Ex: Roteiro do Tarô de Junho" required />
+        </div>
+        
+        <div class="mystic-form-group">
+          <label for="txtNoteContent">Conteúdo / Anotações</label>
+          <textarea id="txtNoteContent" class="mystic-textarea" rows="5" placeholder="Digite suas ideias, roteiros, ensinamentos..." required></textarea>
+        </div>
+
+        <div class="mystic-form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="selNoteCategory">Categoria</label>
+            <select id="selNoteCategory" class="mystic-select" required>
+              <option value="video">Vídeo</option>
+              <option value="postagem">Postagem</option>
+              <option value="ritual">Ritual</option>
+              <option value="estudo">Estudo</option>
+              <option value="atendimento">Atendimento</option>
+              <option value="pessoal">Pessoal</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label for="selNoteTab">Seção / Aba</label>
+            <select id="selNoteTab" class="mystic-select" required>
+              <option value="rotina">Rotina</option>
+              <option value="ideias">Ideias</option>
+              <option value="videos">Vídeos</option>
+              <option value="pesquisas">Pesquisas</option>
+              <option value="inspiracoes">Inspirações</option>
+              <option value="anotacoes">Geral</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mystic-form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkNoteFavorite" style="width: 16px; height: 16px;" />
+            Adicionar esta anotação aos Favoritos
+          </label>
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top: 10px; padding: 12px; border-color: var(--public-primary);">
+          <i class="fas fa-magic"></i> Selar Registro
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <!-- Base script (sintonizador) -->
+  <script src="script.js"></script>
+  <!-- JS da Organização -->
+  <script src="assets/js/organization.js"></script>
+
+</body>
+</html>

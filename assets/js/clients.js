@@ -1,18 +1,34 @@
 // clients.js – core logic for the Clientes UI
 // ---------------------------------------------------
 // NOTE: Replace the placeholder values with your Supabase project credentials.
-const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
+const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Initialize Supabase client (using the CDN version)
 const supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // DOM elements
-const clientListEl = document.getElementById("client-list");
-const searchInput = document.getElementById("search-input");
-const tagFilterSelect = document.getElementById("tag-filter");
-const orderSelect = document.getElementById("order-select");
-const noClientsMsg = document.getElementById("no-clients-msg");
+// Modal open/close handling
+const newClientBtn = document.getElementById("newClientBtn");
+if (newClientBtn) {
+  newClientBtn.addEventListener("click", () => {
+    const modal = document.getElementById("clientModal");
+    if (modal) modal.classList.remove("hidden");
+  });
+}
+const closeModal = document.getElementById("closeModal");
+if (closeModal) {
+  closeModal.addEventListener("click", () => {
+    const modal = document.getElementById("clientModal");
+    if (modal) modal.classList.add("hidden");
+  });
+}
+
+const clientListEl = document.getElementById("clientList");
+const searchInput = document.getElementById("searchInput");
+const tagFilterSelect = document.getElementById("filterTagSelect");
+const orderSelect = document.getElementById("orderSelect");
+const noClientsMsg = document.getElementById("emptyState");
 
 // Utility: format date
 function fmtDate(dateStr) {
@@ -139,9 +155,10 @@ async function handleNewClient(event) {
   // link client to cartomante
   const cartomanteId = await getCurrentCartomanteId();
   await supabase.from("cartomante_clientes").insert({ cartomante_id: cartomanteId, cliente_id: cliente.id, status: "ativo" });
-  // close modal, refresh list
-  form.reset();
-  loadAndRender();
+  // show success toast
+  alert("Cliente criado com sucesso!");
+  // redirect to client profile page
+  window.location.href = `profile_cliente.html?cid=${cliente.id}`;
 }
 
 // File upload – gallery (client‑specific bucket folder)
@@ -156,8 +173,8 @@ async function uploadFile(clientId, file) {
 window.addEventListener("load", async () => {
   await loadAndRender();
   await subscribeRealtime();
-  const newClientForm = document.getElementById("new-client-form");
-  if (newClientForm) newClientForm.addEventListener("submit", handleNewClient);
+  const clientForm = document.getElementById("clientForm");
+  if (clientForm) clientForm.addEventListener("submit", handleNewClient);
 });
 
 // Helper to create Supabase client via CDN (makes the file self‑contained)

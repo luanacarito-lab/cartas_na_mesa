@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluxo Financeiro – Sistema Cartomante</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!-- Styling links -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/finance.css" />
+  
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- ==========================================================================
+     1. BARREIRA DE SEGURANÇA (LOCK SCREEN OVERLAY)
+     ========================================================================== -->
+  <div class="security-overlay" id="securityOverlay">
+    <div class="security-box glass-panel">
+      <div class="security-icon">
+        <i class="fas fa-lock"></i>
+      </div>
+      <h2 class="security-title">Santuário do Fluxo Lunar</h2>
+      <p class="security-desc">Este portal contém dados confidenciais de faturamento. Insira seu PIN místico para liberar o acesso.</p>
+      
+      <!-- Entrada do PIN de 4 dígitos -->
+      <div class="pin-inputs">
+        <input type="password" maxlength="1" class="pin-input" id="pin1" onkeyup="handlePinKeyUp(this, 'pin2')" />
+        <input type="password" maxlength="1" class="pin-input" id="pin2" onkeyup="handlePinKeyUp(this, 'pin3')" onkeydown="handlePinKeyDown(event, 'pin1')" />
+        <input type="password" maxlength="1" class="pin-input" id="pin3" onkeyup="handlePinKeyUp(this, 'pin4')" onkeydown="handlePinKeyDown(event, 'pin2')" />
+        <input type="password" maxlength="1" class="pin-input" id="pin4" onkeyup="handlePinFinal(this)" onkeydown="handlePinKeyDown(event, 'pin3')" />
+      </div>
+
+      <button type="button" class="glass-button" onclick="verifyFinancialPin()" style="width:100%; padding:12px;">
+        <i class="fas fa-key"></i> Confirmar Acesso
+      </button>
+      
+      <p style="margin-top:15px; font-size:0.68rem; color:var(--text-muted);">
+        (PIN demonstrativo inicial padrão: <strong>1234</strong>)
+      </p>
+    </div>
+  </div>
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <!-- Barra de Navegação do App (Sidebar Menu) -->
+  <div class="sidebar glass-panel">
+    <div class="sidebar-header">🌙 Cartomante</div>
+    <nav class="menu">
+      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
+      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
+      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
+      <a href="finance.html" class="menu-item active"><i class="fas fa-wallet"></i> Financeiro</a>
+      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
+      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
+      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+    </nav>
+  </div>
+
+  <!-- Conteúdo Principal do Módulo Financeiro -->
+  <main class="main-content">
+    <header class="page-header">
+      <h1 class="decorative-title">Fluxo Financeiro Lunar</h1>
+      <p class="section-desc">Colheita material decorrente da sabedoria espiritual e das tiragens ritualísticas.</p>
+    </header>
+
+    <div class="finance-grid">
+
+      <!-- 2. CARDS RESUMO (DASHBOARD) -->
+      <section class="finance-cards-summary">
+        
+        <!-- Receita Mensal -->
+        <div class="finance-card glass-card">
+          <div class="finance-card-header">
+            <span>Receita do Mês</span>
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="finance-card-value" id="statsReceitaMes">R$ 0,00</div>
+          <div class="finance-card-sub positive" id="statsSubMes">
+            <span>+15%</span> em relação ao mês anterior
+          </div>
+        </div>
+
+        <!-- Receita Semanal -->
+        <div class="finance-card glass-card">
+          <div class="finance-card-header">
+            <span>Faturamento Semanal</span>
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="finance-card-value" id="statsReceitaSemana">R$ 0,00</div>
+          <div class="finance-card-sub" id="statsSubSemana">Média de <strong>R$ 240,00/dia</strong></div>
+        </div>
+
+        <!-- Receita Diária -->
+        <div class="finance-card glass-card">
+          <div class="finance-card-header">
+            <span>Receita Diária</span>
+            <i class="fas fa-sun"></i>
+          </div>
+          <div class="finance-card-value" id="statsReceitaDia">R$ 0,00</div>
+          <div class="finance-card-sub" id="statsSubDia">Hoje</div>
+        </div>
+
+        <!-- Despesas -->
+        <div class="finance-card glass-card" style="border-color: rgba(230, 57, 70, 0.15);">
+          <div class="finance-card-header">
+            <span>Despesas Totais</span>
+            <i class="fas fa-arrow-down" style="color:#e63946;"></i>
+          </div>
+          <div class="finance-card-value" id="statsDespesas" style="color:#e63946;">R$ 0,00</div>
+          <div class="finance-card-sub" id="statsSubDespesas">Taxas e custos operacionais</div>
+        </div>
+
+        <!-- Lucro Líquido -->
+        <div class="finance-card glass-card" style="border-color: rgba(46, 196, 182, 0.15);">
+          <div class="finance-card-header">
+            <span>Lucro Líquido</span>
+            <i class="fas fa-hand-holding-usd" style="color:#2ec4b6;"></i>
+          </div>
+          <div class="finance-card-value" id="statsLucroLiquido" style="color:#2ec4b6;">R$ 0,00</div>
+          <div class="finance-card-sub" id="statsSubLucro">Retorno líquido real</div>
+        </div>
+
+        <!-- Pagamentos Pendentes -->
+        <div class="finance-card glass-card" style="border-color: rgba(224, 146, 75, 0.15);">
+          <div class="finance-card-header">
+            <span>Valores Pendentes</span>
+            <i class="fas fa-hourglass-half" style="color:#e0924b;"></i>
+          </div>
+          <div class="finance-card-value" id="statsPendentes" style="color:#e0924b;">R$ 0,00</div>
+          <div class="finance-card-sub" id="statsSubPendentes">Aguardando compensação</div>
+        </div>
+
+      </section>
+
+      <!-- 3. GRÁFICOS MÍSTICOS VETORIAIS (SVG NATIVO) -->
+      <section class="finance-charts-grid">
+        
+        <!-- Crescimento Mensal (Gráfico de Linha) -->
+        <div class="chart-panel glass-panel">
+          <div class="chart-panel-header">
+            <h3 class="chart-title"><i class="fas fa-moon"></i> Crescimento do Fluxo Lunar</h3>
+            <div class="chart-filters">
+              <button class="chart-filter-btn active" onclick="changeChartPeriod('mensal')">Semestre</button>
+              <button class="chart-filter-btn" onclick="changeChartPeriod('semanal')">Mensal</button>
+            </div>
+          </div>
+          
+          <!-- Gráfico SVG com Drop Shadow e gradiente dourado/violeta -->
+          <div class="chart-svg-container" id="revenueLineChartContainer">
+            <!-- Injetado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Serviços Mais Vendidos (Gráfico Circular) -->
+        <div class="chart-panel glass-panel">
+          <div class="chart-panel-header">
+            <h3 class="chart-title"><i class="fas fa-circle-nodes"></i> Distribuição</h3>
+          </div>
+          
+          <div class="chart-pizza-container" id="distributionChartContainer">
+            <!-- Injetado dinamicamente via JS -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 4. TABELA DE MOVIMENTAÇÕES (LISTAGEM) -->
+      <section class="transactions-panel glass-panel">
+        
+        <!-- Cabeçalho do Painel com Filtros e Lançamento -->
+        <div class="panel-header-row">
+          <h2 class="decorative-title" style="font-size:1.2rem; margin:0;"><i class="fas fa-seedling"></i> Livro de Colheitas</h2>
+          
+          <!-- Filtros Rápidos -->
+          <div class="panel-actions">
+            
+            <!-- Busca por Consulente -->
+            <select class="filter-dropdown" id="fltCliente" onchange="applyFilters()">
+              <option value="">Todos os Consulentes</option>
+              <!-- Injetado via JS -->
+            </select>
+
+            <!-- Filtro de Categoria -->
+            <select class="filter-dropdown" id="fltCategoria" onchange="applyFilters()">
+              <option value="">Todas as Categorias</option>
+              <option value="atendimento">Atendimentos</option>
+              <option value="pergunta_baralho">Perguntas ao Baralho</option>
+              <option value="servico">Serviços Especiais</option>
+              <option value="gasto_pessoal">Gastos Pessoais</option>
+              <option value="plataforma">Taxas da Plataforma</option>
+              <option value="outros">Outros</option>
+            </select>
+
+            <!-- Filtro de Status -->
+            <select class="filter-dropdown" id="fltStatus" onchange="applyFilters()">
+              <option value="">Todos os Status</option>
+              <option value="pago">Pago</option>
+              <option value="pendente">Pendente</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="reembolsado">Reembolsado</option>
+            </select>
+
+            <!-- Filtro de Período -->
+            <select class="filter-dropdown" id="fltPeriodo" onchange="applyFilters()">
+              <option value="todos">Todo o Histórico</option>
+              <option value="diario">Fluxo Diário</option>
+              <option value="semanal">Fluxo Semanal</option>
+              <option value="mensal" selected>Fluxo Mensal (30 dias)</option>
+            </select>
+
+            <!-- Botão Lançar Manual -->
+            <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openTransactionModal()">
+              <i class="fas fa-plus"></i> Lançar Manual
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="transactions-table-wrapper">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Movimentação / Categoria</th>
+                <th>Consulente</th>
+                <th>Data</th>
+                <th>Status</th>
+                <th>Valor</th>
+                <th style="text-align:center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <!-- Injetado dinamicamente por JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- 5. CONFIGURAÇÃO DE SEGURANÇA E SENHA -->
+      <section class="security-settings-panel glass-panel">
+        <div class="security-settings-row">
+          
+          <div class="security-settings-info">
+            <h3><i class="fas fa-shield-halved"></i> Proteção Energética de Dados</h3>
+            <p>Ative a senha financeira secundária. Se habilitado, um PIN místico de 4 dígitos será solicitado toda vez que o painel financeiro for acessado, evitando que curiosos vejam seus lucros.</p>
+          </div>
+
+          <div class="security-settings-actions">
+            <span style="font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center;" id="lblLockStatus">
+              Proteção: <strong>Desativada</strong>
+            </span>
+            <button type="button" class="glass-button" onclick="openPinConfigModal()">
+              <i class="fas fa-lock"></i> Configurar PIN Secundário
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+     MODAIS DE CADASTRO, EDIÇÃO E CONFIGURAÇÃO
+     ========================================================================== -->
+
+  <!-- 1. MODAL: LANÇAR MOVIMENTAÇÃO MANUAL (ADICIONAR / EDITAR) -->
+  <div class="mystic-modal" id="transactionModal">
+    <div class="mystic-modal-content glass-panel" style="max-width:480px;">
+      <div class="modal-header-mystic">
+        <h2 id="modalTxTitle"><i class="fas fa-plus"></i> Nova Movimentação</h2>
+        <button class="close-mystic-btn" onclick="closeTransactionModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmTransaction" onsubmit="handleTransactionSubmit(event)">
+        <input type="hidden" id="txId" />
+
+        <div class="mystic-form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label for="txTipo">Tipo de Fluxo</label>
+            <select id="txTipo" class="mystic-select" required onchange="onTxTipoChanged()">
+              <option value="entrada">Entrada (Receita)</option>
+              <option value="saida">Saída (Despesa)</option>
+            </select>
+          </div>
+          <div>
+            <label for="txCategoria">Categoria</label>
+            <select id="txCategoria" class="mystic-select" required>
+              <option value="atendimento">Atendimento</option>
+              <option value="pergunta_baralho">Pergunta ao Baralho</option>
+              <option value="servico">Serviço Especial</option>
+              <option value="gasto_pessoal">Gasto Pessoal</option>
+              <option value="plataforma">Taxas Plataforma</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mystic-form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label for="txValor">Valor (R$)</label>
+            <input type="number" step="0.01" min="0.01" id="txValor" class="mystic-input" placeholder="0,00" required />
+          </div>
+          <div>
+            <label for="txData">Data</label>
+            <input type="date" id="txData" class="mystic-input" required />
+          </div>
+        </div>
+
+        <div class="mystic-form-group" id="txClienteGroup">
+          <label for="txCliente">Consulente Associada</label>
+          <select id="txCliente" class="mystic-select">
+            <option value="">Nenhuma</option>
+            <!-- Injetado via JS -->
+          </select>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="txStatus">Status de Compensação</label>
+          <select id="txStatus" class="mystic-select" required>
+            <option value="pago">Pago / Recebido</option>
+            <option value="pendente">Pendente / Lançado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="reembolsado">Reembolsado</option>
+          </select>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="txDescricao">Descrição / Notas do Oráculo</label>
+          <input type="text" id="txDescricao" class="mystic-input" placeholder="Ex: Leitura anual de tarô de aniversário" />
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top:10px; padding:12px;">
+          <i class="fas fa-save"></i> Gravar Lançamento
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: CONFIGURAÇÃO DO PIN FINANCEIRO -->
+  <div class="mystic-modal" id="pinConfigModal">
+    <div class="mystic-modal-content glass-panel" style="max-width:400px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-key"></i> Senha Financeira</h2>
+        <button class="close-mystic-btn" onclick="closePinConfigModal()">&times;</button>
+      </div>
+      <form class="mystic-form" id="frmPinConfig" onsubmit="handlePinConfigSubmit(event)">
+        
+        <div class="mystic-form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom:10px;">
+            <input type="checkbox" id="cfgPinAtivo" style="width: 18px; height: 18px;" onchange="onPinActiveToggle()" />
+            Ativar barreira de segurança por senha
+          </label>
+        </div>
+
+        <div id="cfgPinFields" style="display:none; flex-direction:column; gap:12px;">
+          <div class="mystic-form-group">
+            <label for="cfgNovoPin">Definir Novo PIN de 4 dígitos</label>
+            <input type="password" id="cfgNovoPin" class="mystic-input" maxlength="4" placeholder="Digite 4 números..." pattern="[0-9]{4}" />
+          </div>
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; margin-top: 10px; padding: 12px;">
+          <i class="fas fa-save"></i> Salvar Configuração
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Tooltip flutuante de gráficos -->
+  <div class="chart-tooltip" id="chartTooltip"></div>
+
+  <!-- Supabase CDN Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <!-- Main layout animations and theme -->
+  <script src="script.js"></script>
+  <!-- Finance javascript engine -->
+  <script src="assets/js/finance.js"></script>
+
+</body>
+</html>

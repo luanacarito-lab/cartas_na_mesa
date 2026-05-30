@@ -1,0 +1,13 @@
+/* Card component */
+.card {
+  background: var(--color-surface-dark);
+  border-radius: var(--radius);
+  padding: var(--gap);
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  backdrop-filter: blur(6px);
+  transition: transform .2s, box-shadow .2s;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,.15);
+}
