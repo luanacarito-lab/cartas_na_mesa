@@ -100,7 +100,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Inicializar modo emocional e respostas rápidas (Prompt 11)
   if (typeof initializeEmotionalAndQuickResponses === "function") {
-    initializeEmotionalAndQuickResponses();
+    await initializeEmotionalAndQuickResponses();
+  }
+  
+  // Mostrar simulador se solicitado na URL (?sim=true ou ?simulate=true)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("simulate") === "true" || urlParams.get("sim") === "true") {
+    const simulatorWidget = document.getElementById("simulatorWidget");
+    if (simulatorWidget) {
+      simulatorWidget.style.display = "block";
+    }
   }
   
   // Tratar tab ativa via parâmetro da URL (?tab=perguntas)
@@ -944,6 +953,10 @@ async function updatePerguntaQty(perguntaId, qty) {
       .eq("id", perguntaId);
 
     if (error) console.error("Erro ao atualizar quantidade no Supabase:", error);
+    
+    // Registrar log de auditoria
+    await logSecurityAction("Alteração de Valor / Pergunta", `Definiu quantidade: ${targetQty} perguntas, no valor de R$ ${newValue.toFixed(2).replace('.', ',')}`, activeConversa.cliente.id);
+    
     await loadMessagesForActiveConversation();
   } else {
     // Modo Mock
@@ -964,6 +977,7 @@ async function updatePerguntaQty(perguntaId, qty) {
         }
       }
 
+      await logSecurityAction("Alteração de Valor / Pergunta (Local)", `Definiu quantidade: ${targetQty} perguntas, no valor de R$ ${newValue.toFixed(2).replace('.', ',')}`, activeConversa.cliente.id);
       await loadMessagesForActiveConversation();
     }
   }
@@ -980,6 +994,10 @@ async function markPerguntaAsPaid(perguntaId) {
       .eq("id", perguntaId);
 
     if (error) console.error("Erro ao pagar pergunta no Supabase:", error);
+    
+    // Registrar log
+    await logSecurityAction("Confirmação de Pagamento", `Aprovou o pagamento/troca mística para a Pergunta ao Baralho ID: ${perguntaId}`, activeConversa.cliente.id);
+    
     await loadMessagesForActiveConversation();
   } else {
     if (localPerguntasDb[perguntaId]) {
@@ -996,6 +1014,7 @@ async function markPerguntaAsPaid(perguntaId) {
         }
       }
 
+      await logSecurityAction("Confirmação de Pagamento (Local)", `Aprovou o pagamento para a Pergunta ID: ${perguntaId}`, activeConversa.cliente.id);
       await loadMessagesForActiveConversation();
     }
   }
@@ -1012,6 +1031,10 @@ async function cancelPergunta(perguntaId) {
       .eq("id", perguntaId);
 
     if (error) console.error("Erro ao cancelar pergunta no Supabase:", error);
+    
+    // Registrar log
+    await logSecurityAction("Cancelamento de Pergunta", `Cancelou o atendimento da Pergunta ao Baralho ID: ${perguntaId}`, activeConversa.cliente.id);
+    
     await loadMessagesForActiveConversation();
   } else {
     if (localPerguntasDb[perguntaId]) {
@@ -1028,6 +1051,7 @@ async function cancelPergunta(perguntaId) {
         }
       }
 
+      await logSecurityAction("Cancelamento de Pergunta (Local)", `Cancelou a Pergunta ID: ${perguntaId}`, activeConversa.cliente.id);
       await loadMessagesForActiveConversation();
     }
   }
@@ -1106,6 +1130,10 @@ async function submitPerguntaResponse(perguntaId) {
       console.error("Erro ao salvar resposta no Supabase:", error);
       return;
     }
+    
+    // Registrar log
+    await logSecurityAction("Resposta ao Baralho", `Respondeu a Pergunta ao Baralho ID: ${perguntaId}`, activeConversa.cliente.id);
+    
     await loadMessagesForActiveConversation();
   } else {
     // Modo Mock
@@ -1439,15 +1467,60 @@ let chatQuickResponses = {
 };
 
 // Carrega as diretrizes do LocalStorage e inicializa os banners e limites do chat
-function initializeEmotionalAndQuickResponses() {
-  const storedConfig = localStorage.getItem("cartomante_emotional_config");
-  if (storedConfig) {
-    chatEmotionalConfig = JSON.parse(storedConfig);
-  }
+// Carrega as diretrizes do LocalStorage/Supabase e inicializa os banners e limites do chat
+async function initializeEmotionalAndQuickResponses() {
+  const isRealSupabase = await testSupabaseConnection();
 
-  const storedResponses = localStorage.getItem("cartomante_quick_responses");
-  if (storedResponses) {
-    chatQuickResponses = JSON.parse(storedResponses);
+  if (isRealSupabase) {
+    try {
+      const cartomanteId = await getCartomanteId();
+      if (cartomanteId) {
+        // 1. Carregar Configuração do Chat
+        const { data: config } = await supabase
+          .from("configuracoes_chat")
+          .select("*")
+          .eq("cartomante_id", cartomanteId)
+          .maybeSingle();
+
+        if (config) {
+          chatEmotionalConfig = {
+            modo_esgotamento: config.modo_esgotamento,
+            mensagem_esgotamento: config.mensagem_esgotamento,
+            max_atendimentos: config.max_atendimentos_diarios,
+            max_perguntas: config.max_perguntas_diarias,
+            min_interval: config.tempo_minimo_entre_clientes
+          };
+        }
+
+        // 2. Carregar Respostas Rápidas
+        const { data: responses } = await supabase
+          .from("respostas_rapidas")
+          .select("*")
+          .eq("cartomante_id", cartomanteId);
+
+        if (responses && responses.length > 0) {
+          chatQuickResponses = {};
+          responses.forEach(r => {
+            chatQuickResponses[r.chave] = {
+              titulo: r.titulo,
+              conteudo: r.conteudo
+            };
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar dados dinâmicos do chat:", e);
+    }
+  } else {
+    const storedConfig = localStorage.getItem("cartomante_emotional_config");
+    if (storedConfig) {
+      chatEmotionalConfig = JSON.parse(storedConfig);
+    }
+
+    const storedResponses = localStorage.getItem("cartomante_quick_responses");
+    if (storedResponses) {
+      chatQuickResponses = JSON.parse(storedResponses);
+    }
   }
 
   // 1. Banner de Modo Esgotamento
@@ -1517,5 +1590,34 @@ function selectQuickResponse(text) {
     inputField.focus();
   }
   toggleQuickResponsesMenu();
+}
+
+// Auxiliar para registrar logs de auditoria
+async function logSecurityAction(action, details, clienteId = null) {
+  const isRealSupabase = await testSupabaseConnection();
+  if (isRealSupabase) {
+    try {
+      const cartomanteId = await getCartomanteId();
+      if (cartomanteId) {
+        await supabase.from("historico_acoes").insert([{
+          cartomante_id: cartomanteId,
+          cliente_id: clienteId,
+          acao: action,
+          detalhes: details
+        }]);
+      }
+    } catch (e) {
+      console.warn("Erro ao registrar log de segurança:", e);
+    }
+  } else {
+    let localLogs = JSON.parse(localStorage.getItem("cartomante_local_logs") || "[]");
+    localLogs.unshift({
+      created_at: new Date().toISOString(),
+      acao: action,
+      detalhes: details,
+      cliente_id: clienteId
+    });
+    localStorage.setItem("cartomante_local_logs", JSON.stringify(localLogs));
+  }
 }
 

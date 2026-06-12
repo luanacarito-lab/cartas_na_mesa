@@ -2665,3 +2665,158 @@ body.mode-light .mystic-modal-content {
     gap: 15px;
 }
 
+/* ==========================================================================
+   ESTADOS VAZIOS, LOADINGS E RESPONSIVIDADE MOBILE (POLIMENTO)
+   ========================================================================== */
+
+/* Estados Vazios Premium */
+.empty-state-card {
+    text-align: center;
+    padding: 40px 25px;
+    color: var(--text-secondary);
+    font-family: var(--font-classic);
+    font-style: italic;
+    font-size: 0.95rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    box-shadow: var(--card-shadow);
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
+}
+
+.empty-state-card i {
+    font-size: 2.5rem;
+    color: var(--gold-color);
+    text-shadow: 0 0 10px rgba(199, 162, 122, 0.25);
+}
+
+.empty-state-card p {
+    margin: 0;
+    max-width: 450px;
+    line-height: 1.5;
+}
+
+/* Mystic Spinner Loading */
+.mystic-spinner {
+    display: inline-block;
+    width: 35px;
+    height: 35px;
+    border: 3px solid rgba(199, 162, 122, 0.15);
+    border-radius: 50%;
+    border-top-color: var(--gold-color);
+    animation: mysticSpin 1s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+    margin: 20px auto;
+}
+
+@keyframes mysticSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsividade Mobile - Sidebar Recolhível e Layouts */
+.mobile-toggle-btn {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -260px;
+        width: 250px;
+        height: 100vh;
+        z-index: 10000;
+        transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+        display: flex !important;
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+    
+    .client-sidebar {
+        position: fixed;
+        top: 0;
+        left: -260px;
+        width: 250px;
+        height: 100vh;
+        z-index: 10000;
+        transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+        display: flex !important;
+    }
+    
+    .client-sidebar.active {
+        left: 0;
+    }
+    
+    .main-content, .client-main-content {
+        margin-left: 0 !important;
+        padding: 15px !important;
+        padding-top: 75px !important;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Botão flutuante do menu hambúrguer */
+    .mobile-toggle-btn {
+        display: flex !important;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 10001;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        color: var(--gold-color);
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        transition: transform 0.2s ease;
+    }
+    
+    .mobile-toggle-btn:active {
+        transform: scale(0.92);
+    }
+    
+    /* Overlay para fechar ao tocar fora no mobile */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.4);
+        z-index: 9999;
+        display: none;
+        backdrop-filter: blur(3px);
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+    
+    /* Grids e cards adaptativos */
+    .cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    .extra-sections-row {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+}
+
+

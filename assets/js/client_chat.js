@@ -106,6 +106,14 @@ async function initChat() {
   // Initial render of messages
   await loadMessages();
   subscribeRealtime();
+
+  // Abrir modal de Pergunta ao Baralho reativamente
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("action") === "ask_baralho") {
+    if (askBaralhoModal) {
+      askBaralhoModal.classList.remove("hidden");
+    }
+  }
 }
 
 // Load messages from database

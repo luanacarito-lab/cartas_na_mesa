@@ -4,17 +4,302 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Templo Virtual – Sistema Cartomante</title>
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   
-  <!-- Styling sheets -->
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="assets/css/public.css" />
-  
-  <!-- Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
+  <style>
+    /* Styling sheets details overrides */
+    .profile-banner-container {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      overflow: hidden;
+      border-radius: 20px;
+      margin-bottom: 30px;
+      border: 1px solid var(--card-border);
+    }
+    
+    .profile-banner-bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.6);
+    }
+    
+    .profile-header-details {
+      position: absolute;
+      bottom: 25px;
+      left: 30px;
+      right: 30px;
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      z-index: 5;
+    }
+    
+    .profile-avatar-wrapper {
+      position: relative;
+    }
+    
+    .profile-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--gold-color);
+      box-shadow: 0 0 15px rgba(199, 162, 122, 0.4);
+    }
+    
+    .profile-intro-text {
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    }
+    
+    .profile-name {
+      font-family: var(--font-decorative);
+      color: #fff;
+      font-size: 2rem;
+      margin: 0 0 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .profile-badge-online {
+      font-family: var(--font-modern);
+      font-size: 0.72rem;
+      background: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    .profile-bio-snippet {
+      font-family: var(--font-classic);
+      color: rgba(255, 255, 255, 0.85);
+      font-style: italic;
+      font-size: 0.95rem;
+      margin: 0;
+      max-width: 600px;
+    }
+    
+    .profile-content-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 900px) {
+      .profile-content-layout {
+        grid-template-columns: 1fr;
+      }
+      .profile-header-details {
+        flex-direction: column;
+        text-align: center;
+        bottom: 15px;
+      }
+      .profile-banner-container {
+        height: auto;
+        padding-top: 150px;
+      }
+      .profile-avatar {
+        width: 90px;
+        height: 90px;
+      }
+    }
+    
+    .profile-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .sidebar-widget {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .widget-title {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 8px;
+    }
+    
+    .specialty-tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .specialty-badge {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(199, 162, 122, 0.08);
+      color: var(--gold-color);
+      border: 1px solid rgba(199, 162, 122, 0.2);
+      font-weight: 500;
+    }
+
+    .category-badge {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(110, 90, 171, 0.12);
+      color: #a29bfe;
+      border: 1px solid rgba(110, 90, 171, 0.3);
+      font-weight: 500;
+    }
+    
+    .social-links-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .social-link-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: color var(--transition-fast);
+    }
+    
+    .social-link-item:hover {
+      color: var(--gold-color);
+    }
+    
+    .mural-main-column {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    /* Mural items */
+    .mural-feed-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .mural-post-item {
+      padding: 24px;
+    }
+
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .post-title {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.15rem;
+      margin: 0;
+    }
+
+    .post-body {
+      font-family: var(--font-classic);
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      line-height: 1.6;
+      margin: 0 0 15px 0;
+    }
+
+    .post-footer {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .public-services-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .service-item-card {
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .service-meta h4 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.2rem;
+      margin: 0 0 8px 0;
+    }
+
+    .service-duration {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: 15px;
+    }
+
+    .service-desc {
+      font-family: var(--font-classic);
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 8px 0 0 0;
+    }
+
+    .service-price-tag {
+      text-align: right;
+    }
+
+    .service-price {
+      font-size: 1.4rem;
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-weight: bold;
+    }
+
+    .customizer-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-radius: 30px;
+      font-size: 0.78rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body class="theme-night mode-dark">
 
@@ -24,13 +309,13 @@
   <div class="ambient-glow" id="glow-2"></div>
   <div class="ambient-glow" id="glow-3"></div>
 
-  <!-- Barra de Navegação do App (Sidebar Menu) -->
-  <div class="sidebar glass-panel">
+  <!-- Barra de Navegação do App (Exibida somente para a dona do perfil em modo administrativo) -->
+  <div class="sidebar glass-panel" id="adminSidebar" style="display:none;">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
       <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
-      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
       <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
       <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
@@ -41,7 +326,7 @@
   </div>
 
   <!-- Conteúdo Principal do Perfil Público -->
-  <main class="main-content">
+  <main class="main-content" id="profileMainContent">
     
     <!-- 1. HEADER ARTÍSTICO (BANNER & AVATAR PÚBLICO) -->
     <header class="profile-banner-container glass-panel" id="customBanner">
@@ -53,10 +338,10 @@
         </div>
         <div class="profile-intro-text">
           <h1 class="profile-name" id="lblProfileName">
-            Luana Carito
+            Carregando...
             <span class="profile-badge-online"><i class="fas fa-bolt" style="margin-right:3px;"></i> Sintonizada</span>
           </h1>
-          <p class="profile-bio-snippet" id="lblProfileBio">"Sacerdotisa dos caminhos, sintonizando sua frequência com a luz do oráculo para revelar segredos da alma."</p>
+          <p class="profile-bio-snippet" id="lblProfileBio">"Sintonizando sua frequência com o plano sutil..."</p>
         </div>
       </div>
     </header>
@@ -67,21 +352,22 @@
       <!-- Lateral Esquerda (Sidebar de Detalhes Públicos) -->
       <aside class="profile-sidebar">
         
-        <!-- Widget: Reputação e Idiomas -->
-        <div class="sidebar-widget glass-panel">
-          <h3 class="widget-title"><i class="fas fa-star"></i> Reputação</h3>
-          <div class="mock-rating-stars">
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star"></i>
-            <i class="fas fa-star-half-alt"></i>
-            <span class="mock-rating-text"><strong>4.9</strong> (142 Acolhimentos)</span>
+        <!-- Widget: Ações de Sintonia (Novidade: Visível para Visitantes / Clientes) -->
+        <div class="sidebar-widget glass-panel" id="clientActionsWidget">
+          <h3 class="widget-title"><i class="fas fa-hand-holding-heart"></i> Sintonia Mística</h3>
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">
+            <button id="btnConversarPublic" class="glass-button" style="border-color: var(--gold-color); justify-content: center; font-weight: 600;"><i class="fas fa-comments"></i> Iniciar Consulta</button>
+            <button id="btnPerguntaPublic" class="glass-button" style="border-color: #a29bfe; justify-content: center;"><i class="fas fa-crown"></i> Pergunta ao Baralho</button>
+            <button id="btnSolicitarAtendimento" class="glass-button" style="border-color: rgba(255,255,255,0.1); justify-content: center;"><i class="fas fa-calendar-check"></i> Agendar Leitura</button>
+            <a href="login.html" id="btnEntrarContaPublic" class="glass-button" style="justify-content: center; background: rgba(255,255,255,0.01); font-size: 0.8rem; border-color: rgba(255,255,255,0.05);"><i class="fas fa-sign-in-alt"></i> Entrar ou Criar Conta</a>
           </div>
-
-          <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
-            <div><i class="fas fa-language" style="color:var(--public-primary); margin-right:6px;"></i> Português, Espanhol</div>
-            <div><i class="fas fa-compass" style="color:var(--public-primary); margin-right:6px;"></i> Atendimento Online / Presencial</div>
+        </div>
+        
+        <!-- Widget: Categorias de Atendimento (Novidade) -->
+        <div class="sidebar-widget glass-panel" id="widgetCategorias">
+          <h3 class="widget-title"><i class="fas fa-tags"></i> Categorias</h3>
+          <div class="specialty-tag-list" id="lblCategorias">
+            <!-- Chips injetados por JS -->
           </div>
         </div>
 
@@ -89,137 +375,95 @@
         <div class="sidebar-widget glass-panel">
           <h3 class="widget-title"><i class="fas fa-wand-magic-sparkles"></i> Especialidades</h3>
           <div class="specialty-tag-list" id="lblSpecialties">
-            <span class="specialty-badge">Baralho Cigano</span>
-            <span class="specialty-badge">Tarô Terapêutico</span>
-            <span class="specialty-badge">Alinhamento Energético</span>
-            <span class="specialty-badge">Astrologia Lunar</span>
+            <!-- Chips injetados por JS -->
           </div>
-        </div>
-
-        <!-- Widget: Certificações -->
-        <div class="sidebar-widget glass-panel">
-          <h3 class="widget-title"><i class="fas fa-scroll"></i> Certificados</h3>
-          <ul style="font-size:0.72rem; color:var(--text-secondary); list-style:none; display:flex; flex-direction:column; gap:6px;" id="lblCertificates">
-            <li>📜 Mestre em Tarô Geral - ABRAT</li>
-            <li>📜 Oráculo e Alinhamento Lunar - Templo Cigano</li>
-          </ul>
         </div>
 
         <!-- Widget: Redes Sociais -->
         <div class="sidebar-widget glass-panel">
           <h3 class="widget-title"><i class="fas fa-share-nodes"></i> Redes Sociais</h3>
           <div class="social-links-list" id="lblSocials">
-            <a href="#" class="social-link-item"><i class="fab fa-instagram"></i> @luanacarito.oraculo</a>
-            <a href="#" class="social-link-item"><i class="fab fa-whatsapp"></i> WhatsApp Reservas</a>
-            <a href="#" class="social-link-item"><i class="fas fa-envelope"></i> contato@luanatarot.com</a>
+            <!-- Injetadas por JS -->
           </div>
         </div>
 
-        <!-- Botão Voltar para Busca Pública -->
-        <a href="search_cartomantes.html" class="glass-button" style="justify-content:center; padding:10px;">
-          <i class="fas fa-search"></i> Catálogo de Busca
-        </a>
-
       </aside>
 
-      <!-- Área Central (Abas de Navegação Dinâmica) -->
+      <!-- Área Central (Mural e Serviços) -->
       <section class="mural-main-column">
         
         <!-- Navegação de Abas do Perfil Público -->
         <div class="tabs" style="margin-bottom: 25px;">
-          <button class="tab-link active" onclick="switchProfileTab('mural')"><i class="fas fa-bullhorn"></i> Mural Espiritual</button>
-          <button class="tab-link" onclick="switchProfileTab('servicos')"><i class="fas fa-concierge-bell"></i> Serviços Ofertados</button>
-          <button class="tab-link" onclick="switchProfileTab('agenda')"><i class="fas fa-calendar-days"></i> Agenda Pública</button>
-          <button class="tab-link" onclick="switchProfileTab('avaliacoes')"><i class="fas fa-star-half-alt"></i> Avaliações</button>
+          <button class="tab-link active" id="tab-mural-btn" onclick="switchProfileTab('mural')"><i class="fas fa-bullhorn"></i> Mural Espiritual</button>
+          <button class="tab-link" id="tab-servicos-btn" onclick="switchProfileTab('servicos')"><i class="fas fa-concierge-bell"></i> Serviços Ofertados</button>
         </div>
 
         <!-- ABA 1: MURAL ESPIRITUAL (FEED) -->
         <div class="tab-panel-public" id="tab-profile-mural">
           
           <!-- Formulário de Criar Post (Somente para a Cartomante Logada) -->
-          <div class="mural-create-post-card glass-panel" style="margin-bottom:25px;" id="createPostCard">
+          <div class="mural-create-post-card glass-panel hidden" style="margin-bottom:25px;" id="createPostCard">
             <h3 class="decorative-title" style="font-size:1.05rem; margin-bottom:12px;"><i class="fas fa-feather-pointed"></i> Semear Sabedoria no Mural</h3>
-            <form class="mural-post-form" onsubmit="handlePostSubmit(event)">
-              
-              <div class="mystic-form-group">
+            <form class="mural-post-form" id="frmCreatePost">
+              <div class="mystic-form-group" style="margin-bottom: 12px;">
                 <input type="text" id="postTitle" class="mystic-input" placeholder="Título da reflexão cósmica..." required />
               </div>
-              
-              <div class="mystic-form-group">
-                <textarea id="postContent" class="mystic-textarea" rows="3" placeholder="Escreva a mensagem motivacional, oráculo do dia ou conselho de alma..." required></textarea>
+              <div class="mystic-form-group" style="margin-bottom: 12px;">
+                <textarea id="postContent" class="mystic-textarea" rows="3" placeholder="Escreva a mensagem motivacional, oráculo do dia ou conselho..." required></textarea>
               </div>
-
               <div class="mystic-form-group" style="display:grid; grid-template-columns: 1.5fr 1fr; gap:10px;">
                 <div>
                   <input type="text" id="postImage" class="mystic-input" placeholder="URL de imagem mística opcional..." />
                 </div>
-                <button type="submit" class="glass-button" style="border-color:var(--public-primary); padding:10px;">
-                  <i class="fas fa-paper-plane"></i> Propagar Luz
+                <button type="submit" class="glass-button" style="border-color:var(--gold-color); padding:10px; justify-content:center;">
+                  <i class="fas fa-paper-plane"></i> Semear Luz
                 </button>
               </div>
-
             </form>
           </div>
 
           <!-- Feed de Postagens -->
           <div class="mural-feed-section" id="muralFeedContainer">
-            <!-- Injetado por JS -->
             <div class="chat-empty-state">
               <i class="fas fa-circle-notch fa-spin"></i>
-              <p>Carregando oráculos do dia...</p>
+              <p>Sintonizando com os astros...</p>
             </div>
           </div>
 
         </div>
 
         <!-- ABA 2: SERVIÇOS OFERTADOS -->
-        <div class="tab-panel-public" id="tab-profile-servicos" style="display:none;">
+        <div class="tab-panel-public hidden" id="tab-profile-servicos">
+          
+          <!-- Formulário de Adicionar Serviço (Somente para a Cartomante Logada) -->
+          <div class="mural-create-post-card glass-panel hidden" style="margin-bottom:25px;" id="createServiceCard">
+            <h3 class="decorative-title" style="font-size:1.05rem; margin-bottom:12px;"><i class="fas fa-plus"></i> Ofertar Novo Serviço</h3>
+            <form id="frmCreateService" class="mystic-form">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div>
+                  <input type="text" id="serviceTitle" class="mystic-input" placeholder="Nome do Serviço" required />
+                </div>
+                <div>
+                  <input type="number" id="servicePrice" class="mystic-input" placeholder="Preço (R$)" required />
+                </div>
+                <div>
+                  <input type="number" id="serviceDuration" class="mystic-input" placeholder="Duração (minutos)" required />
+                </div>
+                <div>
+                  <input type="number" id="serviceDeadline" class="mystic-input" placeholder="Prazo de Entrega (dias)" required />
+                </div>
+              </div>
+              <div class="mystic-form-group" style="margin-bottom:12px;">
+                <textarea id="serviceDesc" class="mystic-textarea" rows="2" placeholder="Descreva brevemente o serviço espiritual..." required></textarea>
+              </div>
+              <button type="submit" class="glass-button" style="width:100%; border-color:var(--gold-color); justify-content:center;">
+                <i class="fas fa-check-circle"></i> Disponibilizar Serviço
+              </button>
+            </form>
+          </div>
+
           <div class="public-services-grid" id="servicesGridContainer">
             <!-- Injetado dinamicamente por JS -->
-          </div>
-        </div>
-
-        <!-- ABA 3: AGENDA PÚBLICA (CALENDÁRIO SEGURO) -->
-        <div class="tab-panel-public" id="tab-profile-agenda" style="display:none;">
-          <div class="public-calendar-card glass-panel">
-            <h3 class="decorative-title" style="font-size:1.1rem; margin-bottom:5px;"><i class="fas fa-calendar-check"></i> Horários Semanais</h3>
-            <p class="section-desc" style="font-size:0.75rem;">Clique em qualquer horário disponível marcado como <strong>Livre</strong> para simular o agendamento de uma consulta ritualística.</p>
-            
-            <div class="calendar-days-row" id="publicCalendarContainer">
-              <!-- Injetado dinamicamente por JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- ABA 4: AVALIAÇÕES (ESTRUTURA PREPARADA) -->
-        <div class="tab-panel-public" id="tab-profile-avaliacoes" style="display:none;">
-          <div class="mural-feed-section" id="reviewsContainer">
-            <!-- Mock estruturado e preparado de reputação -->
-            <div class="mural-post-item glass-panel">
-              <div class="post-header">
-                <span class="post-title" style="font-size:0.9rem; font-family:var(--font-modern);">Helena de Souza</span>
-                <div class="mock-rating-stars" style="margin:0;">
-                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                </div>
-              </div>
-              <p class="post-body" style="font-size:0.8rem; font-style:italic;">
-                "A consulta com a Luana salvou minha mente em um momento de extrema escuridão emocional. Ela transmite calma, sabedoria e acolhimento em cada palavra."
-              </p>
-              <div class="post-footer"><span>Enviado há 3 dias</span></div>
-            </div>
-
-            <div class="mural-post-item glass-panel">
-              <div class="post-header">
-                <span class="post-title" style="font-size:0.9rem; font-family:var(--font-modern);">Gabriel Medeiros</span>
-                <div class="mock-rating-stars" style="margin:0;">
-                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
-                </div>
-              </div>
-              <p class="post-body" style="font-size:0.8rem; font-style:italic;">
-                "Muito assertiva nas previsões do baralho sobre meu trabalho. Me ajudou a tomar decisões urgentes de carreira com mais confiança."
-              </p>
-              <div class="post-footer"><span>Enviado há 1 semana</span></div>
-            </div>
           </div>
         </div>
 
@@ -230,52 +474,71 @@
   </main>
 
   <!-- ==========================================================================
-     3. PAINEL DE CUSTOMIZAÇÃO DE AURA (VISÍVEL APENAS NA VITRINE)
+     3. PAINEL DE CUSTOMIZAÇÃO DE AURA (VISÍVEL APENAS NA VITRINE PARA A DONA)
      ========================================================================== -->
-  <div class="customizer-bar" id="profileCustomizerBar">
-    <div style="font-weight: 600; color: var(--public-primary); margin-right: 8px;">
-      <i class="fas fa-palette"></i> Aura Visual
+  <div class="customizer-bar glass-panel hidden" id="profileCustomizerBar">
+    <div style="font-weight: 600; color: var(--gold-color); margin-right: 8px;">
+      <i class="fas fa-palette"></i> Painel da Dona
     </div>
     
     <!-- Cor Primária -->
     <div style="display:flex; align-items:center; gap:5px;">
-      <span>Ouro:</span>
-      <div class="customizer-color-picker" id="pickerPrimaryColor" style="background:var(--public-primary);">
-        <input type="color" value="#C7A27A" onchange="changeProfileColors('primary', this.value)" />
+      <span>Primária:</span>
+      <div class="customizer-color-picker" id="pickerPrimaryColor" style="background:var(--gold-color); width:20px; height:20px; border-radius:50%; overflow:hidden;">
+        <input type="color" id="primaryColorInput" value="#C7A27A" style="opacity:0; cursor:pointer;" />
       </div>
     </div>
 
     <!-- Cor Secundária -->
     <div style="display:flex; align-items:center; gap:5px;">
-      <span>Místico:</span>
-      <div class="customizer-color-picker" id="pickerSecondaryColor" style="background:var(--public-secondary);">
-        <input type="color" value="#6E5AAB" onchange="changeProfileColors('secondary', this.value)" />
+      <span>Apoio:</span>
+      <div class="customizer-color-picker" id="pickerSecondaryColor" style="background:#6E5AAB; width:20px; height:20px; border-radius:50%; overflow:hidden;">
+        <input type="color" id="secondaryColorInput" value="#6E5AAB" style="opacity:0; cursor:pointer;" />
       </div>
     </div>
 
-    <!-- Seletor de Banner -->
-    <div style="display:flex; align-items:center; gap:5px;">
-      <span>Banner:</span>
-      <select class="filter-dropdown" style="padding: 3px 6px; font-size: 0.72rem;" onchange="changeProfileBanner(this.value)">
-        <option value="https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop">Céu Estelar</option>
-        <option value="https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=1200&auto=format&fit=crop">Entardecer Cósmico</option>
-        <option value="https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=1200&auto=format&fit=crop">Nebulosa Púrpura</option>
-      </select>
-    </div>
-
-    <!-- Alterar Bio -->
-    <button type="button" class="glass-button" style="padding: 4px 8px; font-size: 0.7rem;" onclick="changeProfileBioPrompt()">
-      <i class="fas fa-edit"></i> Alterar Bio
+    <!-- Alterar Bio/Foto/Banner -->
+    <button type="button" class="glass-button" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openEditProfileModal()">
+      <i class="fas fa-edit"></i> Editar Perfil
     </button>
   </div>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
-  <!-- Base animations -->
-  <script src="script.js"></script>
-  <!-- Public Javascript Engine -->
-  <script src="assets/js/public.js"></script>
+  <!-- Modal Administrativo de Edição do Perfil -->
+  <div id="editProfileModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 550px; padding: 30px;">
+      <div class="modal-header-mystic" style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.3rem; margin: 0;"><i class="fas fa-edit"></i> Editar Templo Virtual</h2>
+        <button class="close-mystic-btn" onclick="closeEditProfileModal()">&times;</button>
+      </div>
+      
+      <form id="editProfileForm">
+        <div class="form-group">
+          <label for="editBio">Sua Apresentação (Bio)</label>
+          <textarea id="editBio" class="mystic-textarea" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="editFoto">Link da Foto de Perfil</label>
+          <input type="url" id="editFoto" class="mystic-input" required />
+        </div>
+        <div class="form-group">
+          <label for="editBanner">Link da Foto do Banner</label>
+          <input type="url" id="editBanner" class="mystic-input" required />
+        </div>
+        <div class="form-group">
+          <label for="editSpecs">Especialidades (Separe por vírgulas)</label>
+          <input type="text" id="editSpecs" class="mystic-input" required />
+        </div>
+        
+        <button type="submit" id="saveEditBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600; margin-top: 15px;">
+          <i class="fas fa-save"></i> Propagar Alterações no Templo
+        </button>
+      </form>
+    </div>
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script src="assets/js/public.js"></script>
 </body>
 </html>

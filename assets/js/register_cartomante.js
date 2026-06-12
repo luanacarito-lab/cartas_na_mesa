@@ -32,13 +32,21 @@ if (form) {
     }
 
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
+    const nomeProfissional = document.getElementById("nome_profissional").value.trim();
     const email = document.getElementById("email").value.trim();
     const telefone = document.getElementById("telefone").value.trim();
     const senha = document.getElementById("senha").value;
     const confirmaSenha = document.getElementById("confirma_senha").value;
     const funcao = document.getElementById("funcao").value;
     const fotoUrl = document.getElementById("foto_url").value.trim() || "assets/img/default-avatar.png";
+    const bannerUrl = document.getElementById("banner_url").value.trim() || "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop";
     const bio = document.getElementById("bio").value.trim() || "Nova oraculista sintonizada.";
+
+    // Coleta de especialidades e categorias
+    const specsInput = document.getElementById("especialidades").value.trim();
+    const especialidades = specsInput.split(",").map(s => s.trim()).filter(s => s.length > 0);
+    
+    const categorias = Array.from(document.querySelectorAll('input[name="categorias"]:checked')).map(cb => cb.value);
 
     if (senha !== confirmaSenha) {
       alert("As chaves secretas (senhas) não são idênticas.");
@@ -47,6 +55,11 @@ if (form) {
 
     if (senha.length < 6) {
       alert("A senha precisa ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (categorias.length === 0) {
+      alert("Por favor, selecione ao menos uma categoria de atendimento.");
       return;
     }
 
@@ -63,6 +76,7 @@ if (form) {
         options: {
           data: {
             nome_completo: nomeCompleto,
+            nome_profissional: nomeProfissional,
             telefone: telefone,
             role: "cartomante"
           }
@@ -87,12 +101,13 @@ if (form) {
         .from("cartomantes")
         .insert({
           user_id: user.id,
-          nome: nomeCompleto,
+          nome: nomeProfissional, // Usamos o nome artístico/profissional como nome de exibição principal
           email: email,
           telefone: telefone,
           funcao: funcao,
           bio: bio,
-          foto_url: fotoUrl
+          foto_url: fotoUrl,
+          banner_url: bannerUrl
         });
 
       if (cartomanteError) {
@@ -101,22 +116,27 @@ if (form) {
 
       // Gerar slug simples para o perfil
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      const slug = nomeCompleto
+      const slug = nomeProfissional
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "") + "-" + randomSuffix;
 
       // 3. Criar Perfil Público
+      // Guardamos categorias no JSONB redes_sociais para flexibilidade sem alterar o schema do BD
       const { error: perfilError } = await supabase
         .from("perfis_publicos")
         .insert({
           cartomante_id: user.id,
           slug: slug,
           foto_url: fotoUrl,
+          banner_url: bannerUrl,
           bio: bio,
-          especialidades: [funcao],
+          especialidades: especialidades,
           certificados: [],
-          redes_sociais: {},
+          redes_sociais: {
+            instagram: "",
+            categorias: categorias
+          },
           idiomas: ["Português"],
           modalidade: "online",
           cor_primaria: "#C7A27A",

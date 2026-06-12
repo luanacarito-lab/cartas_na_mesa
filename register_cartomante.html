@@ -24,7 +24,7 @@
     
     .register-wrapper {
       width: 100%;
-      max-width: 600px;
+      max-width: 650px;
       z-index: 10;
     }
     
@@ -59,7 +59,7 @@
       gap: 15px;
     }
     
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       .form-row {
         grid-template-columns: 1fr;
       }
@@ -73,7 +73,7 @@
       grid-column: span 2;
     }
     
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       .form-group.full-width {
         grid-column: span 1;
       }
@@ -110,6 +110,32 @@
     .register-footer a:hover {
       color: var(--gold-color);
     }
+
+    /* Category selection checkboxes grid */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(199, 162, 122, 0.15);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .category-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--gold-color);
+    }
   </style>
 </head>
 <body class="theme-night mode-dark">
@@ -131,9 +157,14 @@
       
       <form id="registerCartomanteForm">
         <div class="form-row">
-          <div class="form-group full-width">
-            <label for="nome_completo">Nome completo ou Nome Artístico</label>
-            <input type="text" id="nome_completo" class="mystic-input" placeholder="Ex: Morgana das Runas" required />
+          <div class="form-group">
+            <label for="nome_completo">Nome Completo</label>
+            <input type="text" id="nome_completo" class="mystic-input" placeholder="Seu nome real de batismo" required />
+          </div>
+
+          <div class="form-group">
+            <label for="nome_profissional">Nome Profissional / Artístico</label>
+            <input type="text" id="nome_profissional" class="mystic-input" placeholder="Ex: Morgana das Runas" required />
           </div>
           
           <div class="form-group">
@@ -173,10 +204,37 @@
             <label for="foto_url">Link da Imagem de Perfil (Opcional)</label>
             <input type="url" id="foto_url" class="mystic-input" placeholder="https://exemplo.com/sua-foto.jpg" />
           </div>
+
+          <div class="form-group full-width">
+            <label for="banner_url">Link da Imagem do Banner (Opcional)</label>
+            <input type="url" id="banner_url" class="mystic-input" placeholder="https://exemplo.com/seu-banner.jpg" />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Categorias de Atendimento</label>
+            <div class="categories-grid" id="categoriesContainer">
+              <label class="category-item"><input type="checkbox" name="categorias" value="Tarot" /> Tarot</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Baralho Cigano" /> Baralho Cigano</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Mesa Radiônica" /> Mesa Radiônica</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Astrologia" /> Astrologia</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Numerologia" /> Numerologia</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Espiritualidade" /> Espiritualidade</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Umbanda" /> Umbanda</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Candomblé" /> Candomblé</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Oráculos" /> Oráculos</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Terapias Holísticas" /> Terapias Holísticas</label>
+              <label class="category-item"><input type="checkbox" name="categorias" value="Outros" /> Outros</label>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="especialidades">Especialidades (Separe por vírgulas)</label>
+            <input type="text" id="especialidades" class="mystic-input" placeholder="Ex: Amor e relacionamentos, Limpeza energética, Vida profissional" required />
+          </div>
           
           <div class="form-group full-width">
             <label for="bio">Sua Jornada & Apresentação (Bio)</label>
-            <textarea id="bio" class="mystic-textarea" rows="3" placeholder="Fale brevemente sobre sua experiência com os oráculos, sua missão e tradições espirituais que segue..."></textarea>
+            <textarea id="bio" class="mystic-textarea" rows="3" placeholder="Fale brevemente sobre sua experiência com os oráculos, sua missão e tradições espirituais que segue..." required></textarea>
           </div>
         </div>
         

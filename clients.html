@@ -186,6 +186,24 @@
         <p class="section-desc">Fichas espirituais, tags e monitoramento de consulentes.</p>
       </div>
       <div style="display: flex; gap: 10px; align-items: center;">
+        <!-- Sino de Notificações Popover -->
+        <div style="position: relative;" id="notificationContainer">
+          <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px 15px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; position: relative;" title="Notificações">
+            <i class="fas fa-bell"></i>
+            <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
+          </button>
+          <!-- Popover Menu de Notificações -->
+          <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 55px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px;">
+              <strong style="font-size: 0.85rem; color: var(--gold-color);">Avisos Celestiais</strong>
+              <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
+            </div>
+            <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
+              <!-- Injetado via JS -->
+            </div>
+          </div>
+        </div>
+
         <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
         <button id="newClientBtn" class="glass-button" style="border-color: var(--gold-color);"><i class="fas fa-plus"></i> Novo Cliente</button>
       </div>
@@ -215,8 +233,9 @@
       <!-- Cards will be injected by JS -->
     </section>
 
-    <section id="emptyState" class="empty-state hidden">
-      <p>🔮 Ainda não há consulentes sintonizadas. Clique em “Novo Cliente” para iniciar.</p>
+    <section id="emptyState" class="empty-state-card hidden">
+      <i class="fas fa-hand-sparkles"></i>
+      <p>Ainda não há consulentes sintonizadas no plano físico do seu templo. Clique em “Novo Cliente” para sintonizar a primeira alma.</p>
     </section>
   </main>
 

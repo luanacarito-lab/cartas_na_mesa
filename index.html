@@ -4,15 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel Principal – Sistema Cartomante</title>
-  <!-- Google Fonts for typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   
-  <!-- Base Style (mockup themes, stars sky background, colors) -->
   <link rel="stylesheet" href="style.css" />
-  
-  <!-- Font Awesome Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body class="theme-night mode-dark">
@@ -29,7 +25,7 @@
     <nav class="menu">
       <a href="index.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
-      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
       <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
       <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
@@ -41,10 +37,45 @@
 
   <!-- Conteúdo Principal do Painel -->
   <main class="main-content">
-    <header class="page-header">
-      <h1 class="decorative-title">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
-      <p class="section-desc">Portal de sintonização espiritual, monitoramento de rituais e acompanhamento de consulentes.</p>
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+      <div>
+        <h1 class="decorative-title">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+        <p class="section-desc">Portal de sintonização espiritual, monitoramento de rituais e acompanhamento de consulentes.</p>
+      </div>
+      
+      <!-- Sino de Notificações Popover -->
+      <div style="position: relative;" id="notificationContainer">
+        <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px 15px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; position: relative;" title="Notificações">
+          <i class="fas fa-bell"></i>
+          <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
+        </button>
+        <!-- Popover Menu de Notificações -->
+        <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 55px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(199,162,122,0.15); padding-bottom: 8px;">
+            <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.9rem; margin: 0;"><i class="fas fa-bell"></i> Central de Avisos</h4>
+            <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
+          </div>
+          <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
+            <!-- Injetado por JS -->
+          </div>
+        </div>
+      </div>
     </header>
+
+    <!-- Banner de Onboarding (Iniciação de Templo) -->
+    <div id="onboardingBanner" class="glass-panel hidden" style="padding: 25px; margin-bottom: 30px; border-left: 4px solid var(--gold-color); display: flex; flex-direction: column; gap: 15px; position: relative;">
+      <button onclick="dismissOnboarding()" style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <i class="fas fa-wand-magic-sparkles" style="font-size: 2.2rem; color: var(--gold-color);"></i>
+        <div>
+          <h3 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.15rem; margin: 0 0 4px 0;">Portal de Iniciação do seu Templo</h3>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Siga estes passos recomendados para receber seus primeiros consulentes na vitrine pública.</p>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 5px;" id="onboardingStepsList">
+        <!-- Injetado por JS dinamicamente -->
+      </div>
+    </div>
 
     <!-- Grids Resumo de Atividade (Cards) -->
     <section class="cards-grid">
@@ -82,8 +113,8 @@
     <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 25px; margin-top: 30px;" class="extra-sections-row">
       
       <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
-        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-calendar-alt" style="color:var(--public-primary);"></i> Agenda do Dia
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-calendar-alt" style="color:var(--gold-color);"></i> Agenda do Dia
         </h2>
         <ul class="list" id="agenda-do-dia" style="list-style:none; padding:0;">
           <!-- Injetado via JS -->
@@ -91,8 +122,8 @@
       </section>
 
       <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
-        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-bell" style="color:var(--public-primary);"></i> Alertas Importantes
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-bell" style="color:var(--gold-color);"></i> Alertas Importantes
         </h2>
         <ul class="list" id="alertas-importantes" style="list-style:none; padding:0;">
           <!-- Injetado via JS -->
@@ -102,13 +133,9 @@
     </div>
   </main>
 
-  <!-- Supabase CDN Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
-  <!-- Central Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <!-- Global atmosphere parameter and accessibility syncing -->
   <script src="script.js"></script>
-  <!-- Dynamic dashboard populating script -->
   <script src="dashboard.js"></script>
 </body>
 </html>

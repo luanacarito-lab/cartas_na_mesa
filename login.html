@@ -24,7 +24,7 @@
     
     .login-wrapper {
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       z-index: 10;
     }
     
@@ -51,6 +51,7 @@
     
     .login-card {
       padding: 35px 30px;
+      transition: all var(--transition-normal);
     }
     
     .form-group {
@@ -92,6 +93,41 @@
     .register-links a:hover {
       color: var(--gold-color);
     }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Details Accordion for Optional Fields */
+    .optional-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(199, 162, 122, 0.15);
+      color: var(--text-secondary);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-family: var(--font-modern);
+      cursor: pointer;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      transition: all var(--transition-fast);
+    }
+
+    .optional-trigger:hover {
+      background: rgba(199, 162, 122, 0.05);
+      color: var(--gold-color);
+    }
+
+    .optional-content {
+      border-left: 2px solid var(--gold-color);
+      padding-left: 15px;
+      background: rgba(199, 162, 122, 0.01);
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body class="theme-night mode-dark">
@@ -111,25 +147,137 @@
     <div class="login-card glass-panel">
       <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin-top: 0; margin-bottom: 25px; text-align: center;">Portal de Sintonia</h2>
       
-      <form id="loginForm">
+      <!-- ETAPA 1: VERIFICAÇÃO DE E-MAIL -->
+      <form id="emailForm">
         <div class="form-group">
-          <label for="email">E-mail sagrado</label>
-          <input type="email" id="email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
+          <label for="check_email">E-mail sagrado</label>
+          <input type="email" id="check_email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
         </div>
-        
-        <div class="form-group" style="margin-bottom: 25px;">
-          <label for="password">Chave secreta (Senha)</label>
+        <button type="submit" id="btnNextStep" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+          Avançar <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+        </button>
+      </form>
+
+      <!-- ETAPA 2A: LOGIN COM SENHA -->
+      <form id="loginPasswordForm" class="hidden">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="login_email_display" class="mystic-input" style="opacity: 0.7;" readonly />
+        </div>
+        <div class="form-group">
+          <label for="password">Sua Chave Secreta (Senha)</label>
           <input type="password" id="password" class="mystic-input" placeholder="••••••••" required />
         </div>
-        
-        <button type="submit" id="loginBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
-          <i class="fas fa-sign-in-alt"></i> Entrar no Portal
+        <div style="display: flex; gap: 10px; margin-top: 25px;">
+          <button type="button" class="glass-button" style="padding: 12px;" onclick="resetToEmailStep()"><i class="fas fa-chevron-left"></i></button>
+          <button type="submit" id="loginBtn" class="glass-button" style="flex: 1; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+            <i class="fas fa-sign-in-alt"></i> Entrar no Portal
+          </button>
+        </div>
+      </form>
+
+      <!-- ETAPA 2B: CADASTRO DE NOVO CLIENTE -->
+      <form id="registerClienteForm" class="hidden">
+        <div class="form-group">
+          <label>E-mail Sagrado</label>
+          <input type="email" id="register_email_display" class="mystic-input" style="opacity: 0.7;" readonly />
+        </div>
+
+        <div class="form-group">
+          <label for="register_nome">Nome Completo</label>
+          <input type="text" id="register_nome" class="mystic-input" placeholder="Seu nome completo" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div class="form-group">
+            <label for="register_senha">Criar Senha</label>
+            <input type="password" id="register_senha" class="mystic-input" placeholder="Min. 6 carac." required />
+          </div>
+          <div class="form-group">
+            <label for="register_confirma">Confirmar Senha</label>
+            <input type="password" id="register_confirma" class="mystic-input" placeholder="••••••••" required />
+          </div>
+        </div>
+
+        <!-- Sanfona para campos opcionais de cliente -->
+        <button type="button" class="optional-trigger" id="optionalTriggerBtn" onclick="toggleOptionalSection()">
+          <span>Completar Ficha Espiritual (Opcional)</span>
+          <i class="fas fa-chevron-down" id="optionalArrow"></i>
         </button>
+
+        <div id="optionalSection" class="optional-content hidden">
+          <div class="form-group">
+            <label for="register_celular">Celular / WhatsApp</label>
+            <input type="tel" id="register_celular" class="mystic-input" placeholder="(00) 99999-9999" />
+          </div>
+          <div class="form-group">
+            <label for="register_nascimento">Data de Nascimento</label>
+            <input type="date" id="register_nascimento" class="mystic-input" />
+          </div>
+          <div class="form-group">
+            <label for="register_religiao">Sua Religião / Fé</label>
+            <select id="register_religiao" class="mystic-select">
+              <option value="">Selecione</option>
+              <option value="Umbanda">Umbanda</option>
+              <option value="Candomblé">Candomblé</option>
+              <option value="Quimbanda">Quimbanda</option>
+              <option value="Wicca">Wicca</option>
+              <option value="Xamanismo">Xamanismo</option>
+              <option value="Espiritualista">Espiritualista</option>
+              <option value="Católica">Católica</option>
+              <option value="Evangélica">Evangélica</option>
+              <option value="Espírita">Espírita Kardecista</option>
+              <option value="Nenhuma">Nenhuma / Outra</option>
+            </select>
+          </div>
+          
+          <!-- Campos Opcionais Condicionais de Religião -->
+          <div id="optionalReligiaoExtras" class="hidden" style="display: grid; grid-template-columns: 1fr; gap: 15px; border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(199, 162, 122, 0.02); padding-top: 10px; padding-bottom: 10px; margin-bottom: 15px;">
+            <div class="form-group">
+              <label for="register_guia">Guia Espiritual principal</label>
+              <input type="text" id="register_guia" class="mystic-input" placeholder="Ex: Caboclo" />
+            </div>
+            <div class="form-group">
+              <label for="register_pai_mae">Pai/Mãe de Cabeça (Orixás)</label>
+              <input type="text" id="register_pai_mae" class="mystic-input" placeholder="Ex: Oxum e Ogum" />
+            </div>
+            <div class="form-group">
+              <label for="register_tradicao">Tradição Espiritual</label>
+              <input type="text" id="register_tradicao" class="mystic-input" placeholder="Ex: Wicca" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group">
+              <label for="register_sexo">Sexo</label>
+              <select id="register_sexo" class="mystic-select">
+                <option value=""></option>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="register_pronome">Pronome</label>
+              <input type="text" id="register_pronome" class="mystic-input" placeholder="Ex: ela/dela" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="register_estado_civil">Estado Civil</label>
+            <input type="text" id="register_estado_civil" class="mystic-input" placeholder="Ex: Solteiro(a)" />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 25px;">
+          <button type="button" class="glass-button" style="padding: 12px;" onclick="resetToEmailStep()"><i class="fas fa-chevron-left"></i></button>
+          <button type="submit" id="registerBtn" class="glass-button" style="flex: 1; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+            <i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar
+          </button>
+        </div>
       </form>
       
       <div class="register-links">
-        <a href="register_cliente.html"><i class="fas fa-user-sparkles"></i> Quero me cadastrar como Consulente (Cliente)</a>
-        <a href="register_cartomante.html"><i class="fas fa-magic"></i> Sou Cartomante / Oraculista</a>
+        <a href="register_cartomante.html" id="cartomanteRegLink"><i class="fas fa-magic"></i> Sou Cartomante / Oraculista</a>
       </div>
     </div>
   </div>
@@ -138,5 +286,36 @@
   <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="assets/js/login.js"></script>
+  <script>
+    // Toggle optional fields section
+    function toggleOptionalSection() {
+      const section = document.getElementById("optionalSection");
+      const arrow = document.getElementById("optionalArrow");
+      const triggerBtn = document.getElementById("optionalTriggerBtn");
+      
+      if (section.classList.contains("hidden")) {
+        section.classList.remove("hidden");
+        arrow.className = "fas fa-chevron-up";
+      } else {
+        section.classList.add("hidden");
+        arrow.className = "fas fa-chevron-down";
+      }
+    }
+
+    // Toggle religious options reactively in real-time
+    const religiaoSelect = document.getElementById("register_religiao");
+    const extrasDiv = document.getElementById("optionalReligiaoExtras");
+    if (religiaoSelect && extrasDiv) {
+      religiaoSelect.addEventListener("change", () => {
+        const val = religiaoSelect.value;
+        const show = ["Umbanda", "Candomblé", "Quimbanda", "Wicca", "Xamanismo", "Espiritualista"].includes(val);
+        if (show) {
+          extrasDiv.classList.remove("hidden");
+        } else {
+          extrasDiv.classList.add("hidden");
+        }
+      });
+    }
+  </script>
 </body>
 </html>

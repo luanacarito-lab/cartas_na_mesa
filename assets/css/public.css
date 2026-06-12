@@ -492,3 +492,40 @@
     color: var(--text-muted);
     font-size: 0.68rem;
 }
+
+/* 7. ESTILOS DE ABAS E BOTÕES DO PERFIL PÚBLICO */
+.tabs {
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+}
+
+.tab-link {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--card-border) !important;
+    color: var(--text-secondary) !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-family: var(--font-modern) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    transition: all var(--transition-fast) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.tab-link:hover {
+    color: var(--text-primary) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(199, 162, 122, 0.2) !important;
+}
+
+.tab-link.active {
+    color: var(--gold-color) !important;
+    background: rgba(199, 162, 122, 0.08) !important;
+    border-color: rgba(199, 162, 122, 0.4) !important;
+    box-shadow: 0 0 10px rgba(199, 162, 122, 0.1) !important;
+}

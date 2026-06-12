@@ -63,7 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Executar cálculo de preços do tarô inicial
     calculateTarotPrice();
     
-    // 5. Iniciar timer para atualizar o horário em tempo real (se automático estiver ativo)
+    // 5. Inicializar o menu mobile responsivo
+    initResponsiveMobileMenu();
+    
+    // 6. Inicializar notificações globais
+    initGlobalNotifications();
+    
+    // 7. Iniciar timer para atualizar o horário em tempo real (se automático estiver ativo)
     setInterval(() => {
         if (state.timeMode === 'auto') {
             updateAutomaticTime();
@@ -499,3 +505,238 @@ function changeThemeChoice(choice) {
     state.themeChoice = choice;
     applyTheme();
 }
+
+/* ==========================================================================
+   7. MENU RESPONSIVO MOBILE
+   ========================================================================== */
+function initResponsiveMobileMenu() {
+    // Procura sidebar da cartomante ou do cliente
+    const sidebar = document.querySelector('.sidebar') || document.querySelector('.client-sidebar');
+    if (!sidebar) return;
+
+    // Criar overlay se não existir
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    // Criar botão hambúrguer se não existir
+    let toggleBtn = document.querySelector('.mobile-toggle-btn');
+    if (!toggleBtn) {
+        toggleBtn = document.createElement('button');
+        toggleBtn.className = 'mobile-toggle-btn';
+        toggleBtn.setAttribute('aria-label', 'Abrir menu lateral');
+        toggleBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        `;
+        document.body.appendChild(toggleBtn);
+    }
+
+    // Eventos de clique
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+    });
+
+    // Fechar ao clicar nos links do menu (em telas menores)
+    const links = sidebar.querySelectorAll('a, li');
+    links.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 900) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        });
+    });
+}
+
+/* ==========================================================================
+   8. CENTRAL DE NOTIFICAÇÕES GLOBAL
+   ========================================================================== */
+let globalLoggedUser = null;
+let globalSupabase = null;
+
+function getGlobalSupabase() {
+    if (globalSupabase) return globalSupabase;
+    const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
+    const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
+    try {
+        if (typeof supabaseCreateClient === "function") {
+            globalSupabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== "undefined") {
+            globalSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+    } catch (e) {
+        console.warn("Supabase não disponível no script global.");
+    }
+    return globalSupabase;
+}
+
+async function testGlobalSupabaseConnection() {
+    const s = getGlobalSupabase();
+    if (!s || s.supabaseUrl.includes("YOUR_PROJECT_REF")) return false;
+    try {
+        const { data, error } = await s.from("conversas").select("id").limit(1);
+        return error ? false : true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function initGlobalNotifications() {
+    const s = getGlobalSupabase();
+    if (!s) {
+        loadGlobalDemoNotifications();
+        return;
+    }
+    const isConnected = await testGlobalSupabaseConnection();
+    if (!isConnected) {
+        loadGlobalDemoNotifications();
+        return;
+    }
+
+    try {
+        const { data: { user } } = await s.auth.getUser();
+        if (user) {
+            globalLoggedUser = user;
+            await loadGlobalNotifications(user);
+            subscribeGlobalNotifications(user);
+        } else {
+            loadGlobalDemoNotifications();
+        }
+    } catch (e) {
+        loadGlobalDemoNotifications();
+    }
+}
+
+async function loadGlobalNotifications(user) {
+    const s = getGlobalSupabase();
+    if (!s) return;
+
+    const { data: list, error } = await s
+        .from("notificacoes")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+    if (error) {
+        console.error("Erro ao carregar notificações globais:", error);
+        return;
+    }
+
+    renderGlobalNotifications(list || []);
+}
+
+function renderGlobalNotifications(list) {
+    const container = document.getElementById("notifListContainer");
+    const badge = document.getElementById("notifBadge");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const unreadCount = list.filter(n => !n.lida).length;
+
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.classList.remove("hidden");
+        } else {
+            badge.classList.add("hidden");
+        }
+    }
+
+    if (list.length === 0) {
+        container.innerHTML = `<p style="font-size:0.78rem; font-style:italic; color:var(--text-muted); text-align:center; padding:15px 0; margin:0;">Nenhum aviso no momento.</p>`;
+        return;
+    }
+
+    list.forEach(n => {
+        const item = document.createElement("div");
+        item.style.padding = "10px";
+        item.style.borderRadius = "8px";
+        item.style.background = n.lida ? "rgba(255, 255, 255, 0.01)" : "rgba(199, 162, 122, 0.08)";
+        item.style.border = "1px solid rgba(255, 255, 255, 0.03)";
+        item.style.fontSize = "0.78rem";
+        item.style.display = "flex";
+        item.style.flexDirection = "column";
+        item.style.gap = "4px";
+
+        let icon = "fa-bell";
+        if (n.tipo === "mensagem") icon = "fa-comments";
+        else if (n.tipo === "pergunta") icon = "fa-crown";
+        else if (n.tipo === "pagamento") icon = "fa-wallet";
+        else if (n.tipo === "atendimento") icon = "fa-calendar-check";
+
+        item.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; color:var(--gold-color);">
+                <span><i class="fas ${icon}" style="margin-right:5px;"></i> ${n.titulo}</span>
+                ${!n.lida ? `<button onclick="markGlobalAsRead('${n.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.65rem;" title="Marcar como lida"><i class="fas fa-check"></i></button>` : ''}
+            </div>
+            <div style="color:var(--text-secondary); line-height:1.3;">${n.mensagem}</div>
+            <div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">${new Date(n.created_at).toLocaleDateString()} ${new Date(n.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+window.toggleNotificationsMenu = function() {
+    const menu = document.getElementById("notificationsMenu");
+    if (menu) menu.classList.toggle("hidden");
+};
+
+window.markGlobalAsRead = async function(id) {
+    const s = getGlobalSupabase();
+    if (!s || !globalLoggedUser) return;
+    await s.from("notificacoes").update({ lida: true }).eq("id", id);
+    await loadGlobalNotifications(globalLoggedUser);
+};
+
+window.markAsRead = window.markGlobalAsRead; // Alias para compatibilidade
+
+window.markAllNotificationsAsRead = async function() {
+    const s = getGlobalSupabase();
+    if (!s || !globalLoggedUser) return;
+    await s.from("notificacoes").update({ lida: true }).eq("user_id", globalLoggedUser.id);
+    await loadGlobalNotifications(globalLoggedUser);
+};
+
+function subscribeGlobalNotifications(user) {
+    const s = getGlobalSupabase();
+    if (!s) return;
+    s.channel(`public:global_notificacoes_${user.id}`)
+        .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "notificacoes", filter: `user_id=eq.${user.id}` },
+            async () => {
+                await loadGlobalNotifications(user);
+            }
+        )
+        .subscribe();
+}
+
+function loadGlobalDemoNotifications() {
+    renderGlobalNotifications([
+        { id: "demo-1", titulo: "Aviso do Templo", mensagem: "Bem-vindo ao seu santuário místico. Conecte-se para receber notificações em tempo real.", tipo: "sistema", lida: false, created_at: new Date().toISOString() }
+    ]);
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener("click", (e) => {
+    const container = document.getElementById("notificationContainer");
+    const menu = document.getElementById("notificationsMenu");
+    if (container && !container.contains(e.target) && menu) {
+        menu.classList.add("hidden");
+    }
+});

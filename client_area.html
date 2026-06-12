@@ -12,9 +12,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   
   <style>
-    /* Custom spacing and overrides for client area */
+    /* Styling overrides for customer portal spacing */
     .client-sidebar {
-      width: 260px;
+      width: 250px;
       position: fixed;
       top: 0;
       left: 0;
@@ -32,7 +32,7 @@
     
     .client-sidebar-header {
       font-family: var(--font-decorative);
-      font-size: 1.3rem;
+      font-size: 1.25rem;
       color: var(--gold-color);
       text-shadow: 0 0 8px rgba(199, 162, 122, 0.25);
       text-align: center;
@@ -43,20 +43,20 @@
     .client-menu {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     
     .client-menu-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       color: var(--text-secondary);
       text-decoration: none;
       font-family: var(--font-modern);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 500;
-      border-radius: 10px;
+      border-radius: 8px;
       transition: all var(--transition-fast);
       border: 1px solid transparent;
       cursor: pointer;
@@ -73,11 +73,11 @@
     .client-menu-item.active {
       color: var(--gold-color);
       background: rgba(199, 162, 122, 0.08);
-      border-color: rgba(199, 162, 122, 0.2);
+      border-color: rgba(199, 162, 122, 0.15);
     }
     
     .client-main-content {
-      margin-left: 260px;
+      margin-left: 250px;
       padding: 40px;
       min-height: 100vh;
       box-sizing: border-box;
@@ -98,88 +98,6 @@
       }
     }
     
-    .cartomante-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 25px;
-      margin-top: 25px;
-    }
-    
-    .cartomante-card {
-      padding: 24px;
-      border-radius: 16px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      box-shadow: var(--card-shadow);
-      transition: transform var(--transition-fast), border-color var(--transition-fast);
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    
-    .cartomante-card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(199, 162, 122, 0.3);
-    }
-    
-    .cartomante-photo {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--gold-color);
-      box-shadow: 0 0 10px rgba(199, 162, 122, 0.2);
-    }
-    
-    .cartomante-info {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    
-    .cartomante-meta h3 {
-      font-family: var(--font-decorative);
-      color: var(--gold-color);
-      font-size: 1.15rem;
-      margin: 0 0 4px 0;
-    }
-    
-    .cartomante-meta span {
-      font-family: var(--font-modern);
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      background: rgba(255, 255, 255, 0.05);
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-    
-    .cartomante-bio {
-      font-family: var(--font-classic);
-      font-size: 0.88rem;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin: 0;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      height: 60px;
-    }
-    
-    .cartomante-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: auto;
-    }
-    
-    .cartomante-actions button, .cartomante-actions a {
-      flex: 1;
-      font-size: 0.8rem;
-      padding: 10px;
-      justify-content: center;
-    }
-    
     .tab-section {
       display: none;
     }
@@ -187,13 +105,122 @@
     .tab-section.active {
       display: block;
     }
-    
-    .profile-form-container {
-      max-width: 700px;
-    }
-    
+
     .hidden {
       display: none !important;
+    }
+
+    /* Grid of Cartomantes */
+    .cartomante-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .cartomante-card {
+      padding: 20px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .cartomante-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(199, 162, 122, 0.3);
+    }
+
+    .cartomante-photo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--gold-color);
+    }
+
+    /* Chat list layout */
+    .chat-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .chat-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      text-decoration: none;
+      color: inherit;
+      transition: background var(--transition-fast);
+    }
+
+    .chat-list-item:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* File gallery item */
+    .file-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .file-gallery-card {
+      padding: 15px;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .file-gallery-icon {
+      font-size: 2.2rem;
+      color: var(--gold-color);
+      margin-bottom: 5px;
+    }
+
+    /* Inicio Overview Widgets */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 900px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .overview-widget-card {
+      padding: 24px;
+      margin-bottom: 25px;
+    }
+
+    .overview-widget-title {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.05rem;
+      margin: 0 0 15px 0;
+      border-bottom: 1px solid rgba(199, 162, 122, 0.12);
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   </style>
 </head>
@@ -207,13 +234,48 @@
 
   <!-- Sidebar do Cliente -->
   <div class="client-sidebar">
-    <div class="client-sidebar-header">🌙 Templo Consulente</div>
+    <div class="client-sidebar-header" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+      <span>🌙 Templo Consulente</span>
+      <!-- Sino de Notificações Popover -->
+      <div style="position: relative;" id="notificationContainer">
+        <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px; border-radius: 50%; width: 38px; height: 38px; justify-content: center; position: relative;" title="Notificações">
+          <i class="fas fa-bell"></i>
+          <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
+        </button>
+        <!-- Popover Menu de Notificações -->
+        <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 45px; left: 0; width: 240px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px;">
+            <strong style="font-size: 0.85rem; color: var(--gold-color);">Avisos Celestiais</strong>
+            <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
+          </div>
+          <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="client-menu">
-      <button class="client-menu-item active" onclick="switchClientTab('catalogo')">
-        <i class="fas fa-magic"></i> Buscar Oraculista
+      <button class="client-menu-item active" id="menu-inicio" onclick="switchClientTab('inicio')">
+        <i class="fas fa-home"></i> Início
       </button>
-      <button class="client-menu-item" onclick="switchClientTab('dados')">
-        <i class="fas fa-user-cog"></i> Meus Dados
+      <button class="client-menu-item" id="menu-cartomantes" onclick="switchClientTab('cartomantes')">
+        <i class="fas fa-magic"></i> Cartomantes
+      </button>
+      <button class="client-menu-item" id="menu-chat" onclick="switchClientTab('chat')">
+        <i class="fas fa-comments"></i> Chat / Conversas
+      </button>
+      <button class="client-menu-item" id="menu-perguntas" onclick="switchClientTab('perguntas')">
+        <i class="fas fa-crown"></i> Perguntas ao Baralho
+      </button>
+      <button class="client-menu-item" id="menu-atendimentos" onclick="switchClientTab('atendimentos')">
+        <i class="fas fa-calendar-check"></i> Atendimentos
+      </button>
+      <button class="client-menu-item" id="menu-arquivos" onclick="switchClientTab('arquivos')">
+        <i class="fas fa-photo-film"></i> Arquivos Recebidos
+      </button>
+      <button class="client-menu-item" id="menu-perfil" onclick="switchClientTab('perfil')">
+        <i class="fas fa-user-cog"></i> Meu Perfil
       </button>
     </div>
     
@@ -230,124 +292,220 @@
   <!-- Conteúdo Principal -->
   <main class="client-main-content">
     
-    <!-- ABA 1: CATÁLOGO DE CARTOMANTES -->
-    <section id="tab-catalogo" class="tab-section active">
+    <!-- ==========================================
+         TAB 1: INÍCIO (TELA DE BOAS VINDAS E RESUMOS)
+         ========================================== -->
+    <section id="tab-inicio" class="tab-section active">
       <header class="page-header" style="margin-bottom: 25px;">
-        <h1 class="decorative-title">Oraculistas Disponíveis</h1>
-        <p class="section-desc">Escolha uma cartomante para iniciar sua consulta particular ou Pergunta ao Baralho.</p>
+        <h1 class="decorative-title">Bem-vinda de volta</h1>
+        <p class="section-desc">Monitore suas revelações espirituais e agendamentos.</p>
       </header>
-      
-      <!-- Barra de Pesquisa -->
-      <div class="glass-panel" style="padding: 20px; display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; align-items: center;">
-        <div style="flex: 1; min-width: 250px;">
-          <input type="text" id="searchCartomante" class="mystic-input" placeholder="Buscar por nome ou oráculo (ex: Tarot, Runas)..." />
+
+      <div class="overview-grid">
+        <!-- Coluna Esquerda: Conversas Recentes & Perguntas Pendentes -->
+        <div>
+          <!-- Widget: Conversas Recentes -->
+          <div class="overview-widget-card glass-panel">
+            <h3 class="overview-widget-title"><i class="fas fa-comments"></i> Conversas Recentes</h3>
+            <div id="overviewChats" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Injetado por JS -->
+            </div>
+          </div>
+
+          <!-- Widget: Perguntas ao Baralho Pendentes -->
+          <div class="overview-widget-card glass-panel">
+            <h3 class="overview-widget-title"><i class="fas fa-crown"></i> Perguntas Pendentes</h3>
+            <div id="overviewQuestions" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Injetado por JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna Direita: Próximos Atendimentos & Recomendações -->
+        <div>
+          <!-- Widget: Próximos Atendimentos -->
+          <div class="overview-widget-card glass-panel">
+            <h3 class="overview-widget-title"><i class="fas fa-calendar-alt"></i> Próxima Consulta</h3>
+            <div id="overviewAgendamento">
+              <!-- Injetado por JS -->
+            </div>
+          </div>
+
+          <!-- Widget: Recomendações -->
+          <div class="overview-widget-card glass-panel" style="text-align: center; padding: 25px;">
+            <i class="fas fa-wand-magic-sparkles" style="font-size: 2.2rem; color: var(--gold-color); margin-bottom: 15px; display: block;"></i>
+            <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1rem; margin-bottom: 10px;">Precisa de aconselhamento?</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">Nossas oraculistas estão sintonizadas com o plano astral prontas para te acolher.</p>
+            <button onclick="switchClientTab('cartomantes')" class="glass-button" style="border-color: var(--gold-color); justify-content: center; width: 100%; font-weight: 600;">
+              Encontrar Cartomante
+            </button>
+          </div>
         </div>
       </div>
-      
-      <!-- Lista/Grid de Cartomantes -->
+    </section>
+
+    <!-- ==========================================
+         TAB 2: CARTOMANTES (CATÁLOGO DE BUSCA)
+         ========================================== -->
+    <section id="tab-cartomantes" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Oraculistas Sintonizadas</h1>
+        <p class="section-desc">Consulte as cartomantes do templo de acordo com seu oráculo ou categoria.</p>
+      </header>
+
+      <!-- Barra de Filtro de Busca -->
+      <div class="glass-panel" style="padding: 18px 25px; display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; align-items: center;">
+        <div style="flex: 1; min-width: 200px;">
+          <input type="text" id="searchCartomante" class="mystic-input" placeholder="Buscar por nome profissional ou categorias (Tarot, Wicca, Umbanda)..." />
+        </div>
+      </div>
+
       <div id="cartomanteList" class="cartomante-grid">
         <!-- Injetado por JS -->
       </div>
-      
-      <div id="emptyCartomanteMsg" class="glass-panel hidden" style="padding: 40px; text-align: center; color: var(--text-secondary); font-family: var(--font-classic); font-style: italic;">
-        🔮 Nenhuma oraculista sintonizada no momento. Tente outro termo de busca.
+    </section>
+
+    <!-- ==========================================
+         TAB 3: CHAT / HISTÓRICO DE CONVERSAS
+         ========================================== -->
+    <section id="tab-chat" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Canais de Conversa</h1>
+        <p class="section-desc">Retorne aos seus diálogos com as oraculistas.</p>
+      </header>
+
+      <div id="chatHistoryList" class="chat-list-container">
+        <!-- Injetado por JS -->
       </div>
     </section>
-    
-    <!-- ABA 2: MEUS DADOS -->
-    <section id="tab-dados" class="tab-section">
+
+    <!-- ==========================================
+         TAB 4: PERGUNTAS AO BARALHO (CENTRAL DE RITUAIS)
+         ========================================== -->
+    <section id="tab-perguntas" class="tab-section">
       <header class="page-header" style="margin-bottom: 25px;">
-        <h1 class="decorative-title">Dados Cadastrais</h1>
-        <p class="section-desc">Mantenha sua assinatura espiritual atualizada para leituras mais precisas.</p>
+        <h1 class="decorative-title">Histórico de Perguntas ao Baralho</h1>
+        <p class="section-desc">Acompanhe as respostas e o status das suas tiragens rápidas.</p>
       </header>
-      
-      <div class="profile-form-container glass-panel" style="padding: 35px 30px;">
+
+      <div id="perguntasList" class="chat-list-container">
+        <!-- Injetado por JS (Usa cards semelhantes às conversas com link para chat) -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 5: ATENDIMENTOS (AGENDAMENTOS)
+         ========================================== -->
+    <section id="tab-atendimentos" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Seus Agendamentos</h1>
+        <p class="section-desc">Horários e consultas marcadas com as conselheiras.</p>
+      </header>
+
+      <div id="atendimentosList" class="chat-list-container">
+        <!-- Injetado por JS -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 6: ARQUIVOS RECEBIDOS (GALERIA)
+         ========================================== -->
+    <section id="tab-arquivos" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Arquivos e Áudios</h1>
+        <p class="section-desc">Revelações e orientações enviadas por arquivo nos seus atendimentos.</p>
+      </header>
+
+      <div id="arquivosGallery" class="file-gallery">
+        <!-- Injetado por JS -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 7: MEU PERFIL (EDIÇÃO DE FICHA CADASTRAL)
+         ========================================== -->
+    <section id="tab-perfil" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Minha Sintonia Pessoal</h1>
+        <p class="section-desc">Mantenha sua ficha cadastral atualizada para leituras mais precisas.</p>
+      </header>
+
+      <div class="glass-panel" style="max-width: 700px; padding: 35px 30px;">
         <form id="clientProfileForm">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div style="grid-column: span 2;">
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Nome completo
-                <input type="text" id="profile_nome" class="mystic-input" required />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Nome completo</label>
+              <input type="text" id="profile_nome" class="mystic-input" required />
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Celular
-                <input type="tel" id="profile_celular" class="mystic-input" placeholder="(00) 99999-9999" required />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Celular</label>
+              <input type="tel" id="profile_celular" class="mystic-input" placeholder="(00) 99999-9999" required />
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Data de Nascimento
-                <input type="date" id="profile_nascimento" class="mystic-input" required />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Data de Nascimento</label>
+              <input type="date" id="profile_nascimento" class="mystic-input" required />
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Sua Religião
-                <select id="profile_religiao" class="mystic-select" required>
-                  <option value=""></option>
-                  <option value="Umbanda">Umbanda</option>
-                  <option value="Candomblé">Candomblé</option>
-                  <option value="Quimbanda">Quimbanda</option>
-                  <option value="Wicca">Wicca</option>
-                  <option value="Xamanismo">Xamanismo</option>
-                  <option value="Espiritualista">Espiritualista</option>
-                  <option value="Católica">Católica</option>
-                  <option value="Evangélica">Evangélica</option>
-                  <option value="Espírita">Espírita Kardecista</option>
-                  <option value="Nenhuma">Nenhuma / Outra</option>
-                </select>
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Sua Religião</label>
+              <select id="profile_religiao" class="mystic-select" required>
+                <option value=""></option>
+                <option value="Umbanda">Umbanda</option>
+                <option value="Candomblé">Candomblé</option>
+                <option value="Quimbanda">Quimbanda</option>
+                <option value="Wicca">Wicca</option>
+                <option value="Xamanismo">Xamanismo</option>
+                <option value="Espiritualista">Espiritualista</option>
+                <option value="Católica">Católica</option>
+                <option value="Evangélica">Evangélica</option>
+                <option value="Espírita">Espírita Kardecista</option>
+                <option value="Nenhuma">Nenhuma / Outra</option>
+              </select>
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Sexo
-                <select id="profile_sexo" class="mystic-select" required>
-                  <option value=""></option>
-                  <option value="Masculino">Masculino</option>
-                  <option value="Feminino">Feminino</option>
-                  <option value="Outro">Outro</option>
-                </select>
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Sexo</label>
+              <select id="profile_sexo" class="mystic-select" required>
+                <option value=""></option>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Outro">Outro</option>
+              </select>
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Pronome
-                <input type="text" id="profile_pronome" class="mystic-input" placeholder="Ex: ela/dela" required />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Pronome</label>
+              <input type="text" id="profile_pronome" class="mystic-input" placeholder="Ex: ela/dela" required />
             </div>
             
             <div>
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Estado Civil
-                <input type="text" id="profile_estado_civil" class="mystic-input" placeholder="Ex: Solteiro(a)" required />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Estado Civil</label>
+              <input type="text" id="profile_estado_civil" class="mystic-input" placeholder="Ex: Solteiro(a)" required />
             </div>
             
             <!-- Campos Espirituais Condicionais -->
             <div id="profileReligiaoExtras" class="full-width hidden" style="grid-column: span 2; display: grid; grid-template-columns: 1fr; gap: 15px; border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(199, 162, 122, 0.03); padding-top: 15px; padding-bottom: 10px;">
               <div>
-                <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Guia Espiritual Principal
-                  <input type="text" id="profile_guia" class="mystic-input" placeholder="Ex: Caboclo" />
-                </label>
+                <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Guia Espiritual Principal</label>
+                <input type="text" id="profile_guia" class="mystic-input" placeholder="Ex: Caboclo" />
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div>
-                  <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Pai/Mãe de Cabeça
-                    <input type="text" id="profile_pai_mae" class="mystic-input" placeholder="Ex: Iemanjá e Oxalá" />
-                  </label>
+                  <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Pai/Mãe de Cabeça</label>
+                  <input type="text" id="profile_pai_mae" class="mystic-input" placeholder="Ex: Iemanjá e Oxalá" />
                 </div>
                 <div>
-                  <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Tradição Espiritual
-                    <input type="text" id="profile_tradicao" class="mystic-input" placeholder="Ex: Umbanda de Nação" />
-                  </label>
+                  <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Tradição Espiritual</label>
+                  <input type="text" id="profile_tradicao" class="mystic-input" placeholder="Ex: Umbanda de Nação" />
                 </div>
               </div>
             </div>
             
             <div style="grid-column: span 2;">
-              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Link da foto de perfil (Opcional)
-                <input type="url" id="profile_foto_url" class="mystic-input" placeholder="https://exemplo.com/foto.jpg" />
-              </label>
+              <label style="display:block; margin-bottom:8px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Link da foto de perfil (Opcional)</label>
+              <input type="url" id="profile_foto_url" class="mystic-input" placeholder="https://exemplo.com/foto.jpg" />
             </div>
           </div>
           
@@ -357,32 +515,8 @@
         </form>
       </div>
     </section>
-  </main>
 
-  <!-- Modal para Visualização de Perfil de Cartomante -->
-  <div id="cartomanteModal" class="mystic-modal hidden">
-    <div class="mystic-modal-content glass-panel" style="max-width: 500px; padding: 30px;">
-      <div class="modal-header-mystic" style="margin-bottom: 20px;">
-        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin: 0;"><i class="fas fa-eye"></i> Perfil Oracular</h2>
-        <button class="close-mystic-btn" onclick="closeCartomanteModal()">&times;</button>
-      </div>
-      
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center;">
-        <img id="modalCartomanteFoto" src="" alt="Foto" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--gold-color); box-shadow: 0 0 15px rgba(199, 162, 122, 0.3);" />
-        <h3 id="modalCartomanteNome" style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.5rem; margin: 0;"></h3>
-        <span id="modalCartomanteFuncao" style="font-family: var(--font-modern); font-size: 0.85rem; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); padding: 4px 12px; border-radius: 8px;"></span>
-        
-        <div style="border-top: 1px solid rgba(199, 162, 122, 0.15); width: 100%; padding-top: 15px; margin-top: 10px; text-align: left;">
-          <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1rem; margin: 0 0 8px 0;">Sua Missão & Experiência</h4>
-          <p id="modalCartomanteBio" style="font-family: var(--font-classic); font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin: 0; white-space: pre-wrap;"></p>
-        </div>
-      </div>
-      
-      <button id="modalConversarBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600; margin-top: 25px;">
-        <i class="fas fa-comments"></i> Iniciar Consulta
-      </button>
-    </div>
-  </div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>

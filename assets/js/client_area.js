@@ -1,5 +1,5 @@
-// client_area.js - Lógica principal do Templo do Consulente (Área do Cliente)
-// -------------------------------------------------------------------------
+// client_area.js - Controle principal da Área do Consulente (Cliente) com Abas Expandidas
+// ----------------------------------------------------------------------------------
 const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
@@ -19,30 +19,57 @@ function supabaseCreateClient(url, key) {
   return null;
 }
 
-// Global state for client area
+// Global state
 let loggedClient = null;
 let cartomantesList = [];
+let conversasList = [];
 
-// Tab switching
-window.switchClientTab = function(tabId) {
+// Tab switching controller
+window.switchClientTab = async function(tabId) {
   document.querySelectorAll('.client-menu-item').forEach(btn => {
     btn.classList.remove('active');
   });
   document.querySelectorAll('.tab-section').forEach(sec => {
     sec.classList.remove('active');
+    sec.classList.add('hidden');
   });
 
-  // Activate matching menu button
-  const matchingBtn = Array.from(document.querySelectorAll('.client-menu-item')).find(btn => 
-    btn.getAttribute('onclick').includes(tabId)
-  );
+  // Activate menu button
+  const matchingBtn = document.getElementById(`menu-${tabId}`);
   if (matchingBtn) matchingBtn.classList.add('active');
 
   const matchingSec = document.getElementById(`tab-${tabId}`);
-  if (matchingSec) matchingSec.classList.add('active');
+  if (matchingSec) {
+    matchingSec.classList.remove('hidden');
+    matchingSec.classList.add('active');
+  }
+
+  // Load tab-specific data dynamically
+  if (loggedClient) {
+    switch (tabId) {
+      case "inicio":
+        await loadInicioTab();
+        break;
+      case "cartomantes":
+        await fetchCartomantes();
+        break;
+      case "chat":
+        await loadChatTab();
+        break;
+      case "perguntas":
+        await loadPerguntasTab();
+        break;
+      case "atendimentos":
+        await loadAtendimentosTab();
+        break;
+      case "arquivos":
+        await loadArquivosTab();
+        break;
+    }
+  }
 };
 
-// Check authentication and load profile
+// Check authentication on load
 async function checkAuthAndLoadProfile() {
   if (!supabase) return;
 
@@ -52,7 +79,7 @@ async function checkAuthAndLoadProfile() {
     return;
   }
 
-  // Load client from DB using user_id
+  // Load client
   const { data: client, error } = await supabase
     .from("clientes")
     .select("*")
@@ -64,22 +91,25 @@ async function checkAuthAndLoadProfile() {
   }
 
   if (!client) {
-    // Se não for cliente, talvez seja cartomante. Redirecionar para dashboard principal.
-    window.location.href = "index.html";
+    // Se não for cliente cadastrado, envia para login/painel
+    window.location.href = "login.html";
     return;
   }
 
   loggedClient = client;
 
-  // Update DOM badges
+  // Name badge
   const nameBadge = document.getElementById("clientNameBadge");
   if (nameBadge) nameBadge.textContent = client.nome_completo;
 
-  // Populate form fields
+  // Populate profile form
   populateProfileForm(client);
+
+  // Load initial tab
+  await loadInicioTab();
 }
 
-// Fill profile fields
+// Populate profile fields
 function populateProfileForm(client) {
   setValue("profile_nome", client.nome_completo);
   setValue("profile_celular", client.celular);
@@ -93,7 +123,6 @@ function populateProfileForm(client) {
   setValue("profile_tradicao", client.tradicao_espiritual);
   setValue("profile_foto_url", client.foto_url);
 
-  // Toggle religious fields visibility
   toggleReligiousExtras(client.religiao);
 }
 
@@ -113,7 +142,7 @@ function toggleReligiousExtras(religiao) {
   }
 }
 
-// Update profiles conditonal view on select change
+// Reactively show extra spiritual fields
 const profileReligiao = document.getElementById("profile_religiao");
 if (profileReligiao) {
   profileReligiao.addEventListener("change", () => {
@@ -121,7 +150,7 @@ if (profileReligiao) {
   });
 }
 
-// Save profile changes
+// Save profile update
 const profileForm = document.getElementById("clientProfileForm");
 if (profileForm) {
   profileForm.addEventListener("submit", async (e) => {
@@ -158,13 +187,47 @@ if (profileForm) {
       .eq("id", loggedClient.id);
 
     if (error) {
-      alert("Erro ao atualizar ficha cadastral: " + error.message);
+      alert("Erro ao atualizar dados: " + error.message);
     } else {
-      alert("Sua ficha espiritual foi atualizada com sucesso!");
-      // Atualizar local
+      alert("Ficha espiritual atualizada com sucesso!");
       loggedClient = { ...loggedClient, ...updatedData };
       const nameBadge = document.getElementById("clientNameBadge");
       if (nameBadge) nameBadge.textContent = loggedClient.nome_completo;
+
+      try {
+        // Obter cartomantes vinculadas para salvar histórico e notificações
+        const { data: vinculos } = await supabase
+          .from("cartomante_clientes")
+          .select("cartomante_id, cartomantes(id, user_id)")
+          .eq("cliente_id", loggedClient.id);
+
+        if (vinculos && vinculos.length > 0) {
+          for (const v of vinculos) {
+            const cId = v.cartomantes?.id || v.cartomante_id;
+            const uId = v.cartomantes?.user_id;
+
+            // Registrar no Histórico de Ações
+            await supabase.from("historico_acoes").insert([{
+              cartomante_id: cId,
+              cliente_id: loggedClient.id,
+              acao: "Alteração de Ficha Cadastral",
+              detalhes: `O consulente ${updatedData.nome_completo} atualizou sua ficha cadastral/espiritual.`
+            }]);
+
+            // Enviar Notificação para o user_id da Cartomante
+            if (uId) {
+              await supabase.from("notificacoes").insert([{
+                user_id: uId,
+                titulo: "Ficha Cadastral Atualizada",
+                mensagem: `O consulente ${updatedData.nome_completo} atualizou os dados da sua ficha cadastral/espiritual.`,
+                tipo: "sistema"
+              }]);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao gerar logs/notificações de cadastro:", err);
+      }
     }
 
     if (saveBtn) {
@@ -174,7 +237,125 @@ if (profileForm) {
   });
 }
 
-// Load cartomantes catalog
+// --------------------------------------------------
+// TAB 1: INÍCIO (DASHBOARD ACOLHEDOR DO CLIENTE)
+// --------------------------------------------------
+async function loadInicioTab() {
+  if (!supabase || !loggedClient) return;
+
+  // 1. Carregar Conversas Recentes (limit 3)
+  const { data: convs, error: convErr } = await supabase
+    .from("conversas")
+    .select("id, cartomante_id, created_at")
+    .eq("cliente_id", loggedClient.id)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  const chatsDiv = document.getElementById("overviewChats");
+  if (chatsDiv) {
+    chatsDiv.innerHTML = "";
+    if (convs && convs.length > 0) {
+      for (const c of convs) {
+        // Buscar nome da cartomante
+        const { data: cart } = await supabase
+          .from("cartomantes")
+          .select("nome, foto_url")
+          .eq("user_id", c.cartomante_id)
+          .maybeSingle();
+
+        const card = document.createElement("a");
+        card.href = `client_chat.html?cid=${c.id}`;
+        card.className = "chat-list-item";
+        card.innerHTML = `
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="${cart?.foto_url || "assets/img/default-avatar.png"}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-color);"/>
+            <div>
+              <div style="font-weight:600; font-size:0.9rem; color:var(--gold-color);">${cart?.nome || "Oraculista"}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Clique para continuar a consulta</div>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+        `;
+        chatsDiv.appendChild(card);
+      }
+    } else {
+      chatsDiv.innerHTML = `<p style="font-size:0.8rem; color:var(--text-secondary); font-style:italic; margin:0;">Nenhum diálogo místico ativo. Encontre uma cartomante no catálogo!</p>`;
+    }
+  }
+
+  // 2. Carregar Perguntas ao Baralho Pendentes
+  const { data: questions } = await supabase
+    .from("perguntas_baralho")
+    .select("id, pergunta_principal, status, conversa_id")
+    .eq("cliente_id", loggedClient.id)
+    .in("status", ["enviada", "aguardando_pagamento", "paga"])
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  const qDiv = document.getElementById("overviewQuestions");
+  if (qDiv) {
+    qDiv.innerHTML = "";
+    if (questions && questions.length > 0) {
+      questions.forEach(q => {
+        const item = document.createElement("a");
+        item.href = `client_chat.html?cid=${q.conversa_id}`;
+        item.className = "chat-list-item";
+        
+        let statusText = q.status === "enviada" ? "Enviada" : (q.status === "paga" ? "Sintonizando" : "Aguardando Troca");
+        let badgeStyle = q.status === "paga" ? "color:#2ecc71;" : "color:#f1c40f;";
+
+        item.innerHTML = `
+          <div>
+            <div style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${q.pergunta_principal}</div>
+            <div style="font-size:0.72rem; ${badgeStyle} font-weight:500;"><i class="fas fa-circle" style="font-size:0.5rem; margin-right:5px;"></i> ${statusText}</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+        `;
+        qDiv.appendChild(item);
+      });
+    } else {
+      qDiv.innerHTML = `<p style="font-size:0.8rem; color:var(--text-secondary); font-style:italic; margin:0;">Nenhuma pergunta pendente de resposta.</p>`;
+    }
+  }
+
+  // 3. Carregar Agendamento Próximo
+  const { data: agenda } = await supabase
+    .from("agenda_eventos")
+    .select("inicio, cartomante_id")
+    .eq("cliente_id", loggedClient.id)
+    .gt("inicio", new Date().toISOString())
+    .order("inicio", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const agendDiv = document.getElementById("overviewAgendamento");
+  if (agendDiv) {
+    agendDiv.innerHTML = "";
+    if (agenda) {
+      const { data: cart } = await supabase
+        .from("cartomantes")
+        .select("nome")
+        .eq("user_id", agenda.cartomante_id)
+        .maybeSingle();
+
+      const dataStr = new Date(agenda.inicio).toLocaleDateString('pt-BR');
+      const horaStr = new Date(agenda.inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      agendDiv.innerHTML = `
+        <div class="chat-list-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+          <div style="font-size:0.85rem; font-weight:600; color:var(--gold-color);"><i class="far fa-calendar-check" style="margin-right:8px;"></i> ${dataStr} às ${horaStr}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Consulta agendada com <strong>${cart?.nome || "Oraculista"}</strong></div>
+        </div>
+      `;
+    } else {
+      agendDiv.innerHTML = `<p style="font-size:0.8rem; color:var(--text-secondary); font-style:italic; margin:0;">Nenhuma leitura agendada para os próximos dias.</p>`;
+    }
+  }
+}
+
+// --------------------------------------------------
+// TAB 2: CARTOMANTES (BUSCA E CATÁLOGO)
+// --------------------------------------------------
 async function fetchCartomantes() {
   if (!supabase) return;
 
@@ -189,45 +370,61 @@ async function fetchCartomantes() {
   }
 
   cartomantesList = data || [];
+  
+  // Buscar os perfis públicos para pegar as categorias do JSONB
+  for (const c of cartomantesList) {
+    const { data: perfil } = await supabase
+      .from("perfis_publicos")
+      .select("slug, redes_sociais")
+      .eq("cartomante_id", c.user_id)
+      .maybeSingle();
+    c.slug = perfil?.slug;
+    c.categorias = perfil?.redes_sociais?.categorias || [];
+  }
+
   renderCartomantes(cartomantesList);
 }
 
-// Render cartomantes grid
 function renderCartomantes(list) {
   const container = document.getElementById("cartomanteList");
-  const emptyMsg = document.getElementById("emptyCartomanteMsg");
   if (!container) return;
 
   container.innerHTML = "";
   if (list.length === 0) {
-    if (emptyMsg) emptyMsg.classList.remove("hidden");
+    container.innerHTML = `<p style="font-family:var(--font-classic); font-style:italic; color:var(--text-secondary);">Nenhuma oraculista sintonizada.</p>`;
     return;
   }
-  if (emptyMsg) emptyMsg.classList.add("hidden");
 
   list.forEach(c => {
     const card = document.createElement("div");
     card.className = "cartomante-card";
     
+    const catsHTML = c.categorias?.map(cat => `<span class="category-badge" style="font-size:0.65rem; padding:2px 6px;">${cat}</span>`).join(" ") || "";
+
     card.innerHTML = `
-      <div class="cartomante-info">
-        <img src="${c.foto_url || "assets/img/default-avatar.png"}" alt="Foto de ${c.nome}" class="cartomante-photo"/>
-        <div class="cartomante-meta">
-          <h3>${c.nome}</h3>
-          <span>${c.funcao || "Oraculista"}</span>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <img src="${c.foto_url || "assets/img/default-avatar.png"}" alt="${c.nome}" class="cartomante-photo" />
+        <div>
+          <h3 style="font-family:var(--font-decorative); color:var(--gold-color); font-size:1.05rem; margin:0;">${c.nome}</h3>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${c.funcao || "Oraculista"}</span>
         </div>
       </div>
-      <p class="cartomante-bio">${c.bio || "Oraculista sintonizada no Templo Cósmico."}</p>
-      <div class="cartomante-actions">
-        <button onclick="viewCartomanteProfile('${c.user_id}')" class="glass-button" style="border-color: rgba(255,255,255,0.1);"><i class="fas fa-eye"></i> Perfil</button>
-        <button onclick="startConversa('${c.user_id}')" class="glass-button" style="border-color: var(--gold-color);"><i class="fas fa-comments"></i> Conversar</button>
+      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">
+        ${catsHTML}
+      </div>
+      <p style="font-family:var(--font-classic); font-size:0.8rem; color:var(--text-secondary); line-height:1.4; margin:5px 0 10px 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; height:36px;">
+        "${c.bio}"
+      </p>
+      <div style="display:flex; gap:10px; margin-top:auto;">
+        <a href="public_profile.html?slug=${c.slug || "luana-carito"}" class="glass-button" style="flex:1; justify-content:center; font-size:0.72rem; padding:8px;"><i class="fas fa-eye"></i> Ver Templo</a>
+        <button onclick="startConversa('${c.user_id}')" class="glass-button" style="flex:1; justify-content:center; border-color:var(--gold-color); font-size:0.72rem; padding:8px;"><i class="fas fa-comments"></i> Conversar</button>
       </div>
     `;
     container.appendChild(card);
   });
 }
 
-// Search filter in catalog
+// Search filter
 const searchInput = document.getElementById("searchCartomante");
 if (searchInput) {
   searchInput.addEventListener("input", () => {
@@ -240,68 +437,259 @@ if (searchInput) {
     const filtered = cartomantesList.filter(c => 
       c.nome.toLowerCase().includes(term) || 
       (c.funcao && c.funcao.toLowerCase().includes(term)) ||
-      (c.bio && c.bio.toLowerCase().includes(term))
+      (c.bio && c.bio.toLowerCase().includes(term)) ||
+      (c.categorias && c.categorias.some(cat => cat.toLowerCase().includes(term)))
     );
     renderCartomantes(filtered);
   });
 }
 
-// View cartomante profile modal
-window.viewCartomanteProfile = function(cartomanteUserId) {
-  const cartomante = cartomantesList.find(c => c.user_id === cartomanteUserId);
-  if (!cartomante) return;
+// --------------------------------------------------
+// TAB 3: CHAT / HISTÓRICO DE CONVERSAS
+// --------------------------------------------------
+async function loadChatTab() {
+  if (!supabase || !loggedClient) return;
 
-  const modal = document.getElementById("cartomanteModal");
-  const modalFoto = document.getElementById("modalCartomanteFoto");
-  const modalNome = document.getElementById("modalCartomanteNome");
-  const modalFuncao = document.getElementById("modalCartomanteFuncao");
-  const modalBio = document.getElementById("modalCartomanteBio");
-  const modalBtn = document.getElementById("modalConversarBtn");
+  const { data: convs, error } = await supabase
+    .from("conversas")
+    .select("id, cartomante_id, created_at")
+    .eq("cliente_id", loggedClient.id)
+    .order("created_at", { ascending: false });
 
-  if (modalFoto) modalFoto.src = cartomante.foto_url || "assets/img/default-avatar.png";
-  if (modalNome) modalNome.textContent = cartomante.nome;
-  if (modalFuncao) modalFuncao.textContent = cartomante.funcao || "Oraculista";
-  if (modalBio) modalBio.textContent = cartomante.bio || "Sem bio cadastrada.";
-  if (modalBtn) {
-    modalBtn.setAttribute("onclick", `startConversa('${cartomante.user_id}')`);
+  const container = document.getElementById("chatHistoryList");
+  if (!container) return;
+
+  container.innerHTML = "";
+  if (error || !convs || convs.length === 0) {
+    container.innerHTML = `
+      <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
+        <i class="fas fa-comments" style="font-size: 2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
+        <p style="font-family: var(--font-classic); font-style: italic;">Nenhuma conversa iniciada. Encontre oraculistas no catálogo de templos.</p>
+      </div>
+    `;
+    return;
   }
 
-  if (modal) modal.classList.remove("hidden");
-};
+  for (const c of convs) {
+    const { data: cart } = await supabase
+      .from("cartomantes")
+      .select("nome, foto_url, funcao")
+      .eq("user_id", c.cartomante_id)
+      .maybeSingle();
 
-window.closeCartomanteModal = function() {
-  const modal = document.getElementById("cartomanteModal");
-  if (modal) modal.classList.add("hidden");
-};
+    const item = document.createElement("a");
+    item.href = `client_chat.html?cid=${c.id}`;
+    item.className = "chat-list-item";
+    
+    item.innerHTML = `
+      <div style="display:flex; align-items:center; gap:15px;">
+        <img src="${cart?.foto_url || "assets/img/default-avatar.png"}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-color);"/>
+        <div>
+          <div style="font-weight:600; font-size:0.95rem; color:var(--gold-color);">${cart?.nome || "Oraculista"}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${cart?.funcao || "Oraculista"}</div>
+        </div>
+      </div>
+      <span class="glass-button" style="font-size:0.75rem; padding:6px 12px; border-color:var(--gold-color);">Conversar <i class="fas fa-arrow-right" style="margin-left:5px;"></i></span>
+    `;
+    container.appendChild(item);
+  }
+}
 
-// Start or retrieve conversation
+// --------------------------------------------------
+// TAB 4: PERGUNTAS AO BARALHO (CENTRAL)
+// --------------------------------------------------
+async function loadPerguntasTab() {
+  if (!supabase || !loggedClient) return;
+
+  const { data: questions, error } = await supabase
+    .from("perguntas_baralho")
+    .select("id, pergunta_principal, status, valor, created_at, conversa_id, cartomante_id")
+    .eq("cliente_id", loggedClient.id)
+    .order("created_at", { ascending: false });
+
+  const container = document.getElementById("perguntasList");
+  if (!container) return;
+
+  container.innerHTML = "";
+  if (error || !questions || questions.length === 0) {
+    container.innerHTML = `
+      <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
+        <i class="fas fa-crown" style="font-size: 2.2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
+        <p style="font-family: var(--font-classic); font-style: italic;">Nenhuma Pergunta ao Baralho enviada ainda.</p>
+      </div>
+    `;
+    return;
+  }
+
+  for (const q of questions) {
+    const { data: cart } = await supabase
+      .from("cartomantes")
+      .select("nome")
+      .eq("user_id", q.cartomante_id)
+      .maybeSingle();
+
+    const card = document.createElement("a");
+    card.href = `client_chat.html?cid=${q.conversa_id}`;
+    card.className = "chat-list-item";
+    
+    let statusLabel = "";
+    let colorStyle = "";
+    switch (q.status) {
+      case "enviada": statusLabel = "Enviada"; colorStyle = "color:#3498db;"; break;
+      case "aguardando_pagamento": statusLabel = "Aguardando Troca"; colorStyle = "color:#f1c40f;"; break;
+      case "paga": statusLabel = "Paga / Sintonizando"; colorStyle = "color:#2ecc71;"; break;
+      case "respondida": statusLabel = "Respondida"; colorStyle = "color:#9b59b6;"; break;
+      case "cancelada": statusLabel = "Cancelada"; colorStyle = "color:#e74c3c;"; break;
+    }
+
+    const dataStr = new Date(q.created_at).toLocaleDateString('pt-BR');
+
+    card.innerHTML = `
+      <div style="flex:1;">
+        <div style="font-size:0.88rem; font-weight:600; color:var(--gold-color); margin-bottom:4px;">"${q.pergunta_principal}"</div>
+        <div style="font-size:0.75rem; color:var(--text-secondary);">Para: <strong>${cart?.nome || "Oraculista"}</strong> • Enviado em: ${dataStr}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.72rem; ${colorStyle} font-weight:600; text-transform:uppercase;">${statusLabel}</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">R$ ${q.valor.toFixed(2).replace('.', ',')}</div>
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// --------------------------------------------------
+// TAB 5: ATENDIMENTOS (AGENDAMENTOS)
+// --------------------------------------------------
+async function loadAtendimentosTab() {
+  if (!supabase || !loggedClient) return;
+
+  const { data: events, error } = await supabase
+    .from("agenda_eventos")
+    .select("id, inicio, fim, cartomante_id")
+    .eq("cliente_id", loggedClient.id)
+    .order("inicio", { ascending: false });
+
+  const container = document.getElementById("atendimentosList");
+  if (!container) return;
+
+  container.innerHTML = "";
+  if (error || !events || events.length === 0) {
+    container.innerHTML = `
+      <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
+        <i class="fas fa-calendar-check" style="font-size: 2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
+        <p style="font-family: var(--font-classic); font-style: italic;">Você não possui nenhum horário de agendamento registrado.</p>
+      </div>
+    `;
+    return;
+  }
+
+  for (const e of events) {
+    const { data: cart } = await supabase
+      .from("cartomantes")
+      .select("nome")
+      .eq("user_id", e.cartomante_id)
+      .maybeSingle();
+
+    const dataStr = new Date(e.inicio).toLocaleDateString('pt-BR');
+    const horaStr = new Date(e.inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isFuture = new Date(e.inicio) > new Date();
+
+    const card = document.createElement("div");
+    card.className = "chat-list-item";
+    card.innerHTML = `
+      <div>
+        <div style="font-weight:600; font-size:0.9rem; color:var(--gold-color);"><i class="far fa-calendar-alt"></i> ${dataStr} às ${horaStr}</div>
+        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Consulta Ritualística com <strong>${cart?.nome || "Oraculista"}</strong></div>
+      </div>
+      <span style="font-size:0.72rem; font-weight:600; text-transform:uppercase; color:${isFuture ? '#2ecc71;' : '#a29bfe;'}">${isFuture ? 'Confirmado' : 'Realizado'}</span>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// --------------------------------------------------
+// TAB 6: ARQUIVOS RECEBIDOS (GALERIA)
+// --------------------------------------------------
+async function loadArquivosTab() {
+  if (!supabase || !loggedClient) return;
+
+  // Buscar todas as conversas do cliente
+  const { data: convs } = await supabase
+    .from("conversas")
+    .select("id")
+    .eq("cliente_id", loggedClient.id);
+
+  const container = document.getElementById("arquivosGallery");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!convs || convs.length === 0) {
+    container.innerHTML = `<p style="font-family:var(--font-classic); font-style:italic; color:var(--text-secondary);">Nenhum arquivo recebido.</p>`;
+    return;
+  }
+
+  const convIds = convs.map(c => c.id);
+
+  // Buscar mensagens com arquivo nestas conversas
+  const { data: messages, error } = await supabase
+    .from("mensagens")
+    .select("arquivo_url, arquivo_nome, arquivo_tipo, created_at, conversa_id")
+    .in("conversa_id", convIds)
+    .not("arquivo_url", "is", null);
+
+  if (error || !messages || messages.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: span 3; text-align: center; padding: 40px; color: var(--text-secondary);">
+        <i class="fas fa-photo-film" style="font-size: 2.2rem; color: var(--gold-color); margin-bottom: 10px; display:block;"></i>
+        <p style="font-family: var(--font-classic); font-style: italic;">Nenhuma revelação em imagem, áudio ou PDF enviada pelas oraculistas ainda.</p>
+      </div>
+    `;
+    return;
+  }
+
+  messages.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "file-gallery-card glass-panel";
+
+    let icon = "fa-file";
+    if (m.arquivo_tipo === "imagem") icon = "fa-image";
+    else if (m.arquivo_tipo === "audio") icon = "fa-volume-high";
+    else if (m.arquivo_tipo === "pdf") icon = "fa-file-pdf";
+
+    const dataStr = new Date(m.created_at).toLocaleDateString('pt-BR');
+
+    card.innerHTML = `
+      <i class="fas ${icon} file-gallery-icon"></i>
+      <div style="font-size:0.75rem; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; width:100%;" title="${m.arquivo_nome}">${m.arquivo_nome || "Arquivo"}</div>
+      <div style="font-size:0.65rem; color:var(--text-muted);">${dataStr}</div>
+      <a href="${m.arquivo_url}" target="_blank" class="glass-button" style="font-size:0.68rem; padding:4px; margin-top:5px; justify-content:center; border-color:var(--gold-color);">
+        <i class="fas fa-download"></i> Acessar
+      </a>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// --------------------------------------------------
+// AÇÃO DE CONVERSAR DIRETA DO CATÁLOGO DO CLIENTE
+// --------------------------------------------------
 window.startConversa = async function(cartomanteUserId) {
   if (!supabase || !loggedClient) return;
 
-  // Close modal if open
-  closeCartomanteModal();
-
   try {
-    // Procuramos se já existe uma conversa entre esse cliente e essa cartomante
-    const { data: conversa, error } = await supabase
+    const { data: conversa } = await supabase
       .from("conversas")
       .select("id")
       .eq("cartomante_id", cartomanteUserId)
       .eq("cliente_id", loggedClient.id)
       .maybeSingle();
 
-    if (error) {
-      console.error("Erro ao buscar conversa:", error);
-      alert("Erro ao conectar ao canal de conversa.");
-      return;
-    }
-
     if (conversa) {
-      // Já existe conversa, redireciona
       window.location.href = `client_chat.html?cid=${conversa.id}`;
     } else {
-      // Criar nova conversa
-      const { data: novaConversa, error: createError } = await supabase
+      const { data: newConv } = await supabase
         .from("conversas")
         .insert({
           cartomante_id: cartomanteUserId,
@@ -310,38 +698,31 @@ window.startConversa = async function(cartomanteUserId) {
         .select()
         .single();
 
-      if (createError) {
-        console.error("Erro ao criar conversa:", createError);
-        alert("Erro ao criar canal de consulta.");
-        return;
-      }
-
-      // Adicionar link na tabela cartomante_clientes para associar na listagem de clientes dela
+      // Associar na tabela cartomante_clientes
       await supabase
         .from("cartomante_clientes")
         .insert({
           cartomante_id: cartomanteUserId,
           cliente_id: loggedClient.id,
           status: "ativo"
-        });
+        })
+        .select()
+        .maybeSingle();
 
-      window.location.href = `client_chat.html?cid=${novaConversa.id}`;
+      window.location.href = `client_chat.html?cid=${newConv.id}`;
     }
   } catch (err) {
-    console.error("Erro geral ao iniciar conversa:", err);
+    console.error("Erro ao iniciar conversa:", err);
   }
 };
 
-// Logout handling
 window.handleLogout = async function() {
   if (!supabase) return;
-  const { error } = await supabase.auth.signOut();
-  if (error) console.error("Erro no logout:", error);
+  await supabase.auth.signOut();
   window.location.href = "login.html";
 };
 
 // Init
 window.addEventListener("load", async () => {
   await checkAuthAndLoadProfile();
-  await fetchCartomantes();
 });

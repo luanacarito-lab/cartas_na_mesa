@@ -66,8 +66,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isConnected) {
     await fetchRealConfig();
     await fetchRealQuickResponses();
+    await fetchActivityLogs();
   } else {
     loadDemonstrativeConfig();
+    await fetchActivityLogs();
   }
 });
 
@@ -137,24 +139,60 @@ async function fetchRealConfig() {
   }
 }
 
+// Buscar respostas rápidas do Supabase
 async function fetchRealQuickResponses() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      loadDemonstrativeConfig();
+      return;
+    }
     const { data, error } = await supabase
       .from("respostas_rapidas")
       .select("*")
-      .eq("cartomante_id", user?.id);
+      .eq("cartomante_id", user.id);
 
-    if (!error && data && data.length > 0) {
-      data.forEach(r => {
-        if (quickResponses[r.chave]) {
-          quickResponses[r.chave].conteudo = r.conteudo;
-          quickResponses[r.chave].titulo = r.titulo;
+    if (!error && data) {
+      if (data.length === 0) {
+        // Se o banco está vazio para esta cartomante, semear os padrões
+        const defaultRows = Object.entries(quickResponses).map(([chave, val]) => ({
+          cartomante_id: user.id,
+          chave: chave,
+          titulo: val.titulo,
+          conteudo: val.conteudo
+        }));
+        await supabase.from("respostas_rapidas").insert(defaultRows);
+        
+        // Recarregar
+        const { data: dataNew } = await supabase
+          .from("respostas_rapidas")
+          .select("*")
+          .eq("cartomante_id", user.id);
+        
+        if (dataNew) {
+          quickResponses = {};
+          dataNew.forEach(r => {
+            quickResponses[r.chave] = {
+              id: r.id,
+              titulo: r.titulo,
+              conteudo: r.conteudo
+            };
+          });
         }
-      });
+      } else {
+        quickResponses = {};
+        data.forEach(r => {
+          quickResponses[r.chave] = {
+            id: r.id,
+            titulo: r.titulo,
+            conteudo: r.conteudo
+          };
+        });
+      }
     }
     renderQuickResponses();
   } catch (e) {
+    console.error("Erro ao carregar respostas rápidas reais:", e);
     renderQuickResponses();
   }
 }
@@ -207,15 +245,23 @@ function renderQuickResponses() {
     card.style.border = "1px solid var(--card-border)";
 
     card.innerHTML = `
-      <div style="font-size: 0.8rem; font-weight: 600; color: var(--gold-color); margin-bottom: 8px; font-family: var(--font-decorative);">
-        <i class="fas fa-bolt" style="margin-right:5px; color:var(--public-primary);"></i> ${val.titulo}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--gold-color); font-family: var(--font-decorative);">
+          <i class="fas fa-bolt" style="margin-right:5px; color:var(--public-primary);"></i> ${val.titulo}
+        </div>
+        <span style="font-size: 0.65rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">/${chave}</span>
       </div>
       <div class="mystic-form-group">
         <textarea id="resp-${chave}" class="response-textarea" rows="4" style="width:100%; border:1px solid rgba(255,255,255,0.05); font-size:0.78rem;">${val.conteudo}</textarea>
       </div>
-      <button class="glass-button" style="width:100%; justify-content:center; font-size:0.7rem; border-color:var(--public-primary); margin-top:8px;" onclick="saveSingleResponse('${chave}')">
-        <i class="fas fa-save"></i> Salvar Mensagem
-      </button>
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button class="glass-button" style="flex: 1; justify-content:center; font-size:0.7rem; border-color:var(--public-primary);" onclick="saveSingleResponse('${chave}')">
+          <i class="fas fa-save"></i> Salvar
+        </button>
+        <button class="glass-button" style="justify-content:center; font-size:0.7rem; border-color:#FF5F56; color:#FF5F56;" onclick="deleteResponse('${chave}')">
+          <i class="fas fa-trash-alt"></i> Excluir
+        </button>
+      </div>
     `;
 
     container.appendChild(card);
@@ -230,6 +276,7 @@ async function saveSingleResponse(chave) {
   quickResponses[chave].conteudo = textVal;
 
   const isConnected = await testSupabaseConnection();
+  const titulo = quickResponses[chave].titulo;
 
   if (isConnected) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -253,17 +300,123 @@ async function saveSingleResponse(chave) {
         .insert([{
           cartomante_id: user.id,
           chave: chave,
-          titulo: quickResponses[chave].titulo,
+          titulo: titulo,
           conteudo: textVal
         }]);
     }
-    alert(`✨ Mensagem de "${quickResponses[chave].titulo}" salva no banco de dados!`);
+    alert(`✨ Mensagem de "${titulo}" salva no banco de dados!`);
   } else {
     // Local
     localStorage.setItem("cartomante_quick_responses", JSON.stringify(quickResponses));
-    alert(`✨ Mensagem de "${quickResponses[chave].titulo}" salva localmente.`);
+    alert(`✨ Mensagem de "${titulo}" salva localmente.`);
   }
   
+  // Registrar log
+  await logSecurityAction("Edição de Template", `Template editado: ${titulo} (/${chave})`);
+  
+  renderQuickResponses();
+}
+
+// Cria novo template de resposta rápida
+async function createNewResponse(e) {
+  e.preventDefault();
+  const chaveInput = document.getElementById("newRespChave");
+  const tituloInput = document.getElementById("newRespTitulo");
+  const conteudoInput = document.getElementById("newRespConteudo");
+
+  const chave = chaveInput.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const titulo = tituloInput.value.trim();
+  const conteudo = conteudoInput.value.trim();
+
+  if (!chave || !titulo || !conteudo) return;
+
+  if (quickResponses[chave]) {
+    alert("⚠️ Já existe um template com este identificador!");
+    return;
+  }
+
+  const isConnected = await testSupabaseConnection();
+
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("respostas_rapidas").insert([{
+        cartomante_id: user.id,
+        chave: chave,
+        titulo: titulo,
+        conteudo: conteudo
+      }]);
+
+      if (error) {
+        console.error("Erro ao criar template no Supabase:", error);
+        alert("❌ Erro ao salvar o template no banco.");
+        return;
+      }
+
+      quickResponses[chave] = {
+        titulo: titulo,
+        conteudo: conteudo
+      };
+      alert(`✨ Template "${titulo}" cadastrado com sucesso!`);
+    } catch (err) {
+      console.error(err);
+    }
+  } else {
+    quickResponses[chave] = {
+      titulo: titulo,
+      conteudo: conteudo
+    };
+    localStorage.setItem("cartomante_quick_responses", JSON.stringify(quickResponses));
+    alert(`✨ Template "${titulo}" cadastrado localmente.`);
+  }
+
+  // Registrar log
+  await logSecurityAction("Criação de Template", `Novo template cadastrado: ${titulo} (/${chave})`);
+
+  // Limpar form
+  chaveInput.value = "";
+  tituloInput.value = "";
+  conteudoInput.value = "";
+
+  renderQuickResponses();
+}
+
+// Deleta template de resposta rápida
+async function deleteResponse(chave) {
+  if (!confirm(`Tem certeza que deseja excluir o template /${chave}?`)) return;
+
+  const titulo = quickResponses[chave]?.titulo || chave;
+  const isConnected = await testSupabaseConnection();
+
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("respostas_rapidas")
+        .delete()
+        .eq("cartomante_id", user.id)
+        .eq("chave", chave);
+
+      if (error) {
+        console.error("Erro ao deletar do Supabase:", error);
+        alert("❌ Erro ao deletar o template do banco de dados.");
+        return;
+      }
+
+      delete quickResponses[chave];
+      alert(`✨ Template "${titulo}" removido!`);
+    } catch (err) {
+      console.error(err);
+    }
+  } else {
+    delete quickResponses[chave];
+    localStorage.setItem("cartomante_quick_responses", JSON.stringify(quickResponses));
+    alert(`✨ Template "${titulo}" removido localmente.`);
+  }
+
+  // Registrar log
+  await logSecurityAction("Exclusão de Template", `Template removido: ${titulo} (/${chave})`);
+
   renderQuickResponses();
 }
 
@@ -313,5 +466,94 @@ async function saveEmotionalConfig(event) {
     alert("🔮 Filtro de autocuidado e limites energéticos aplicados localmente com sucesso.");
   }
 
+  // Registrar log
+  await logSecurityAction(
+    "Alteração de Diretrizes Emocionais", 
+    `Limites configurados: ${maxAtendimentos} atendimentos/dia, ${maxPerguntas} perguntas/dia, intervalo de ${minInterval} min. Modo esgotamento: ${isEsgotamento ? "Ativo" : "Inativo"}`
+  );
+
   fillConfigUI();
+}
+
+// ==========================================================================
+// REGISTRO DE ATIVIDADES & AUDITORIA
+// ==========================================================================
+async function logSecurityAction(action, details) {
+  const isConnected = await testSupabaseConnection();
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("historico_acoes").insert([{
+          cartomante_id: user.id,
+          acao: action,
+          detalhes: details
+        }]);
+        fetchActivityLogs();
+      }
+    } catch (e) {
+      console.error("Erro ao registrar log de segurança no banco:", e);
+    }
+  } else {
+    let localLogs = JSON.parse(localStorage.getItem("cartomante_local_logs") || "[]");
+    localLogs.unshift({
+      created_at: new Date().toISOString(),
+      acao: action,
+      detalhes: details
+    });
+    localStorage.setItem("cartomante_local_logs", JSON.stringify(localLogs));
+    renderActivityLogs(localLogs);
+  }
+}
+
+async function fetchActivityLogs() {
+  const isConnected = await testSupabaseConnection();
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("historico_acoes")
+        .select("*")
+        .eq("cartomante_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        renderActivityLogs(data);
+      } else {
+        renderActivityLogs([]);
+      }
+    } catch (e) {
+      renderActivityLogs([]);
+    }
+  } else {
+    let localLogs = JSON.parse(localStorage.getItem("cartomante_local_logs") || "[]");
+    renderActivityLogs(localLogs);
+  }
+}
+
+function renderActivityLogs(logs) {
+  const container = document.getElementById("activityLogContainer");
+  if (!container) return;
+
+  if (!logs || logs.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: center; padding: 20px; color: var(--text-muted);">Nenhuma atividade registrada no santuário.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  container.innerHTML = "";
+  logs.forEach(log => {
+    const tr = document.createElement("tr");
+    const formattedDate = new Date(log.created_at).toLocaleString('pt-BR');
+    tr.innerHTML = `
+      <td style="white-space: nowrap; padding: 12px 14px;">${formattedDate}</td>
+      <td style="padding: 12px 14px;"><strong style="color: var(--gold-color);">${log.acao}</strong></td>
+      <td style="padding: 12px 14px; color: var(--text-secondary);">${log.detalhes || ""}</td>
+    `;
+    container.appendChild(tr);
+  });
 }
