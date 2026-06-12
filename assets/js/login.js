@@ -35,7 +35,6 @@ let userEmail = "";
 if (emailForm) {
   emailForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!supabase) return alert("Erro de conexão com o portal místico.");
 
     const emailInput = document.getElementById("check_email").value.trim().toLowerCase();
     if (!emailInput) return;
@@ -45,6 +44,37 @@ if (emailForm) {
     if (btnNextStep) {
       btnNextStep.disabled = true;
       btnNextStep.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando Oráculos...';
+    }
+
+    const isConnected = await testSupabaseConnection();
+
+    if (!isConnected) {
+      // Login offline/mock
+      setTimeout(async () => {
+        const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
+        const userExists = userEmail === "admin@templo.com" || 
+                           userEmail === "cartomante@templo.com" || 
+                           userEmail === "cliente@templo.com" || 
+                           registeredUsers.some(u => u.email === userEmail);
+        
+        if (btnNextStep) {
+          btnNextStep.disabled = false;
+          btnNextStep.innerHTML = 'Avançar <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>';
+        }
+
+        if (userExists) {
+          emailForm.classList.add("hidden");
+          loginPasswordForm.classList.remove("hidden");
+          if (loginEmailDisplay) loginEmailDisplay.value = userEmail;
+          document.getElementById("password").focus();
+        } else {
+          emailForm.classList.add("hidden");
+          registerClienteForm.classList.remove("hidden");
+          if (registerEmailDisplay) registerEmailDisplay.value = userEmail;
+          document.getElementById("register_nome").focus();
+        }
+      }, 800);
+      return;
     }
 
     try {
@@ -100,7 +130,6 @@ window.resetToEmailStep = function() {
 if (loginPasswordForm) {
   loginPasswordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!supabase) return;
 
     const password = document.getElementById("password").value;
     const loginBtn = document.getElementById("loginBtn");
@@ -108,6 +137,60 @@ if (loginPasswordForm) {
     if (loginBtn) {
       loginBtn.disabled = true;
       loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+    }
+
+    const isConnected = await testSupabaseConnection();
+
+    if (!isConnected) {
+      // Login offline/mock
+      setTimeout(async () => {
+        const isCartomante = userEmail === "admin@templo.com" || userEmail === "cartomante@templo.com";
+        
+        if (isCartomante) {
+          const demoUser = {
+            id: "demo-admin-id",
+            email: userEmail,
+            role: "cartomante",
+            nome_completo: "Taróloga Administradora",
+            user_metadata: {
+              nome_completo: "Taróloga Administradora",
+              nome_profissional: "Luana Carito"
+            }
+          };
+          localStorage.setItem("demo_logged_user", JSON.stringify(demoUser));
+          
+          if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+          }
+          window.location.href = "index.html";
+        } else {
+          const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
+          const localUser = registeredUsers.find(u => u.email === userEmail) || {
+            nome: "Cliente Demonstrativo",
+            celular: "(11) 99999-9999",
+            religiao: "Espiritualista"
+          };
+          
+          const demoClient = {
+            id: localUser.id || "demo-client-1",
+            nome_completo: localUser.nome || "Cliente Demonstrativo",
+            email: userEmail,
+            celular: localUser.celular,
+            foto_url: "assets/img/default-avatar.png",
+            religiao: localUser.religiao,
+            role: "cliente"
+          };
+          localStorage.setItem("demo_logged_client", JSON.stringify(demoClient));
+          
+          if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+          }
+          window.location.href = "client_area.html";
+        }
+      }, 800);
+      return;
     }
 
     try {
@@ -141,7 +224,6 @@ if (loginPasswordForm) {
 if (registerClienteForm) {
   registerClienteForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!supabase) return;
 
     const nome = document.getElementById("register_nome").value.trim();
     const senha = document.getElementById("register_senha").value;
@@ -176,6 +258,47 @@ if (registerClienteForm) {
     const guia = isMistic ? (document.getElementById("register_guia").value.trim() || null) : null;
     const paiMae = isMistic ? (document.getElementById("register_pai_mae").value.trim() || null) : null;
     const tradicao = isMistic ? (document.getElementById("register_tradicao").value.trim() || null) : null;
+
+    const isConnected = await testSupabaseConnection();
+
+    if (!isConnected) {
+      // Registro offline/mock
+      setTimeout(() => {
+        const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
+        const newUser = {
+          id: "demo-client-" + (registeredUsers.length + 2),
+          nome,
+          email: userEmail,
+          celular,
+          nascimento,
+          religiao,
+          sexo,
+          pronome,
+          estadoCivil,
+          guia,
+          paiMae,
+          tradicao
+        };
+        registeredUsers.push(newUser);
+        localStorage.setItem("demo_registered_users", JSON.stringify(registeredUsers));
+
+        // Define a sessão mockada para o cliente atual
+        const demoClient = {
+          id: newUser.id,
+          nome_completo: nome,
+          email: userEmail,
+          celular,
+          foto_url: "assets/img/default-avatar.png",
+          religiao,
+          role: "cliente"
+        };
+        localStorage.setItem("demo_logged_client", JSON.stringify(demoClient));
+
+        resetRegisterBtn();
+        window.location.href = "client_area.html";
+      }, 1000);
+      return;
+    }
 
     try {
       // 1. Criar usuário no Supabase Auth
@@ -329,6 +452,16 @@ async function handleRedirectAfterLogin(user) {
     window.location.href = "client_area.html";
   } else {
     window.location.href = "index.html";
+  }
+}
+
+async function testSupabaseConnection() {
+  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
+  try {
+    const { data, error } = await supabase.from("clientes").select("id").limit(1);
+    return error ? false : true;
+  } catch (e) {
+    return false;
   }
 }
 

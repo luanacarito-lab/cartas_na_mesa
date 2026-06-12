@@ -257,11 +257,11 @@ body.mode-light .ambient-glow {
 
 /* Estrelas no Fundo (Cintilantes - Apenas Modo Escuro Noite/Entardecer) */
 .starry-sky {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     pointer-events: none;
     z-index: 1;
     opacity: 0;
@@ -2819,4 +2819,275 @@ body.mode-light .mystic-modal-content {
     }
 }
 
+/* --- CENTRAL DE TOASTS MÍSTICOS (GLASSMORPHIC) --- */
+#mystic-toast-container {
+    perspective: 1000px;
+}
 
+.mystic-toast {
+    background: rgba(26, 15, 46, 0.85);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(199, 162, 122, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: toastEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.mystic-toast.fade-out {
+    transform: translateY(20px) scale(0.9);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+@keyframes toastEnter {
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.mystic-toast .toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1.5px solid rgba(199, 162, 122, 0.15);
+    padding-bottom: 6px;
+}
+
+.mystic-toast .toast-title {
+    font-family: var(--font-decorative);
+    color: var(--gold-color);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mystic-toast .toast-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.20s ease;
+}
+
+.mystic-toast .toast-close-btn:hover {
+    color: #ff8888;
+}
+
+.mystic-toast .toast-body {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Modificações baseadas em status místico */
+.mystic-toast.mensagem {
+    border-color: rgba(110, 90, 171, 0.35);
+}
+.mystic-toast.pergunta {
+    border-color: rgba(199, 162, 122, 0.4);
+    background: rgba(36, 22, 54, 0.9);
+}
+.mystic-toast.atendimento {
+    border-color: rgba(46, 196, 182, 0.35);
+}
+.mystic-toast.pagamento {
+    border-color: rgba(224, 146, 75, 0.35);
+}
+
+/* --- STATUS DE CARTOMANTES (PULSANTE) --- */
+.mystic-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+}
+
+.mystic-status-badge.badge-online {
+    background: rgba(46, 196, 182, 0.12);
+    color: #2ecc71;
+    border-color: rgba(46, 196, 182, 0.25);
+}
+
+.mystic-status-badge.badge-ocupado {
+    background: rgba(224, 146, 75, 0.12);
+    color: #e0924b;
+    border-color: rgba(224, 146, 75, 0.25);
+}
+
+.mystic-status-badge.badge-offline {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mystic-status-badge .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.mystic-status-badge.badge-online .pulse-dot {
+    background-color: #2ecc71;
+    box-shadow: 0 0 0 0 rgba(46, 196, 182, 0.7);
+    animation: statusPulseGreen 1.6s infinite;
+}
+
+.mystic-status-badge.badge-ocupado .pulse-dot {
+    background-color: #e0924b;
+    box-shadow: 0 0 0 0 rgba(224, 146, 75, 0.7);
+    animation: statusPulseOrange 1.6s infinite;
+}
+
+.mystic-status-badge.badge-offline .pulse-dot {
+    background-color: var(--text-muted);
+}
+
+@keyframes statusPulseGreen {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 196, 182, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(46, 196, 182, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 196, 182, 0);
+    }
+}
+
+@keyframes statusPulseOrange {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(224, 146, 75, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(224, 146, 75, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(224, 146, 75, 0);
+    }
+}
+
+/* Botões adaptativos de conversação */
+.btn-conversar-online {
+    border-color: #2ecc71 !important;
+}
+.btn-conversar-online:hover {
+    background: rgba(46, 196, 182, 0.08) !important;
+}
+
+.btn-conversar-ocupado {
+    border-color: #e0924b !important;
+}
+.btn-conversar-ocupado:hover {
+    background: rgba(224, 146, 75, 0.08) !important;
+}
+
+.btn-conversar-offline {
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+/* --- AGENDADOR DE CONSULTAS (NUTRILUAR STYLE) --- */
+.booking-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.booking-day-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(199, 162, 122, 0.15);
+    color: var(--text-primary);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-family: var(--font-modern);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.booking-day-btn:hover:not(:disabled) {
+    background: rgba(199, 162, 122, 0.1);
+    border-color: var(--gold-color);
+}
+
+.booking-day-btn.selected {
+    background: rgba(199, 162, 122, 0.25) !important;
+    border-color: var(--gold-color) !important;
+    color: var(--gold-color) !important;
+    font-weight: 700;
+}
+
+.booking-day-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    border-color: transparent;
+}
+
+.booking-hours-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+.booking-hour-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(199, 162, 122, 0.15);
+    color: var(--text-primary);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.booking-hour-btn:hover:not(:disabled) {
+    background: rgba(199, 162, 122, 0.1);
+    border-color: var(--gold-color);
+}
+
+.booking-hour-btn.selected {
+    background: rgba(199, 162, 122, 0.25) !important;
+    border-color: var(--gold-color) !important;
+    color: var(--gold-color) !important;
+    font-weight: 700;
+}
+
+.booking-hour-btn:disabled {
+    background: rgba(230, 57, 70, 0.05) !important;
+    border-color: rgba(230, 57, 70, 0.15) !important;
+    color: rgba(230, 57, 70, 0.5) !important;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}

@@ -225,6 +225,42 @@
   </style>
 </head>
 <body class="theme-night mode-dark">
+  <script>
+    (function() {
+      try {
+        var s = localStorage.getItem('cartomante_app_state');
+        if (s) {
+          var state = JSON.parse(s);
+          var period = state.currentPeriod || 'night';
+          var lighting = state.lightingMode || 'dark';
+          if (state.themeChoice === 'auto') {
+            var hours = new Date().getHours();
+            if (hours >= 6 && hours < 12) { period = 'morning'; lighting = 'light'; }
+            else if (hours >= 12 && hours < 18) { period = 'afternoon'; lighting = 'light'; }
+            else { period = 'night'; lighting = 'dark'; }
+          } else if (state.themeChoice) {
+            if (['morning', 'afternoon', 'night'].indexOf(state.themeChoice) !== -1) {
+              period = state.themeChoice;
+              lighting = (state.themeChoice === 'night') ? 'dark' : 'light';
+            } else if (state.themeChoice === 'light') {
+              lighting = 'light';
+              if (period === 'night' || period === 'sunset') period = 'morning';
+            } else if (state.themeChoice === 'dark') {
+              lighting = 'dark';
+              if (period === 'morning' || period === 'afternoon') period = 'night';
+            }
+          }
+          document.body.className = 'theme-' + period + ' mode-' + lighting;
+          if (state.accessibility) {
+            if (state.accessibility.highContrast) document.body.classList.add('accessibility-high-contrast');
+            if (state.accessibility.largeFont) document.body.classList.add('accessibility-large-font');
+            if (state.accessibility.reduceMotion) document.body.classList.add('accessibility-reduce-motion');
+            if (state.accessibility.anxietyMode) document.body.classList.add('accessibility-anxiety-mode');
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
   <div id="stars-container" class="starry-sky"></div>
@@ -517,6 +553,56 @@
     </section>
 
   </main>
+
+  <!-- MODAL DE AGENDAMENTO INTERATIVO (ESTILO NUTRILUAR) -->
+  <div id="bookingModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 500px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-calendar-alt"></i> Agendar Leitura</h2>
+        <button class="close-mystic-btn" id="closeBookingModal">&times;</button>
+      </div>
+      
+      <div id="bookingModalBody" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+        <!-- Calendário Simples -->
+        <div class="booking-calendar-wrapper">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong id="bookingMonthYear" style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.95rem;">Junho 2026</strong>
+            <div style="display: flex; gap: 5px;">
+              <button class="glass-button" id="btnPrevBookingMonth" style="padding: 4px 8px; font-size: 0.75rem;"><i class="fas fa-chevron-left"></i></button>
+              <button class="glass-button" id="btnNextBookingMonth" style="padding: 4px 8px; font-size: 0.75rem;"><i class="fas fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <!-- Cabeçalho de Dias da Semana -->
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.65rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px;">
+            <span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SAB</span>
+          </div>
+          <!-- Grid de Dias -->
+          <div id="bookingCalendarGrid" class="booking-calendar-grid">
+            <!-- Injetado por JS -->
+          </div>
+        </div>
+
+        <!-- Seleção de Horários -->
+        <div id="bookingHoursSection" class="hidden">
+          <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.85rem; margin-bottom: 8px;"><i class="far fa-clock"></i> Horários Disponíveis para <span id="bookingSelectedDateText">--/--</span></h4>
+          <div id="bookingHoursGrid" class="booking-hours-grid">
+            <!-- Injetado por JS -->
+          </div>
+        </div>
+
+        <!-- Observações -->
+        <div id="bookingFormSection" class="hidden">
+          <div class="mystic-form-group">
+            <label for="bookingNotes" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase;">Perguntas ou Intenções da Consulta (Opcional)</label>
+            <textarea id="bookingNotes" class="mystic-textarea" rows="2" placeholder="Descreva brevemente sua situação para orientar o baralho..."></textarea>
+          </div>
+          <button id="btnConfirmBooking" class="glass-button" style="width: 100%; border-color: var(--gold-color); justify-content: center; padding: 12px; font-weight: 600; margin-top: 10px;">
+            <i class="fas fa-magic"></i> Selar Agendamento
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>

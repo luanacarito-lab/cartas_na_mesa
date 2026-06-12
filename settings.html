@@ -17,6 +17,42 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body class="theme-night mode-dark">
+  <script>
+    (function() {
+      try {
+        var s = localStorage.getItem('cartomante_app_state');
+        if (s) {
+          var state = JSON.parse(s);
+          var period = state.currentPeriod || 'night';
+          var lighting = state.lightingMode || 'dark';
+          if (state.themeChoice === 'auto') {
+            var hours = new Date().getHours();
+            if (hours >= 6 && hours < 12) { period = 'morning'; lighting = 'light'; }
+            else if (hours >= 12 && hours < 18) { period = 'afternoon'; lighting = 'light'; }
+            else { period = 'night'; lighting = 'dark'; }
+          } else if (state.themeChoice) {
+            if (['morning', 'afternoon', 'night'].indexOf(state.themeChoice) !== -1) {
+              period = state.themeChoice;
+              lighting = (state.themeChoice === 'night') ? 'dark' : 'light';
+            } else if (state.themeChoice === 'light') {
+              lighting = 'light';
+              if (period === 'night' || period === 'sunset') period = 'morning';
+            } else if (state.themeChoice === 'dark') {
+              lighting = 'dark';
+              if (period === 'morning' || period === 'afternoon') period = 'night';
+            }
+          }
+          document.body.className = 'theme-' + period + ' mode-' + lighting;
+          if (state.accessibility) {
+            if (state.accessibility.highContrast) document.body.classList.add('accessibility-high-contrast');
+            if (state.accessibility.largeFont) document.body.classList.add('accessibility-large-font');
+            if (state.accessibility.reduceMotion) document.body.classList.add('accessibility-reduce-motion');
+            if (state.accessibility.anxietyMode) document.body.classList.add('accessibility-anxiety-mode');
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
   <div id="stars-container" class="starry-sky"></div>

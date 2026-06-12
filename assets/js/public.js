@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const isProfilePage = document.getElementById("muralFeedContainer") !== null;
 
   if (isProfilePage) {
+    initBookingSystem();
     const isConnected = await testSupabaseConnection();
     
     // Obter parâmetros da URL
@@ -240,7 +241,7 @@ function setupClientActionButtons() {
     btnPergunta.addEventListener("click", () => handleClientAction("ask_baralho"));
   }
   if (btnSolicitar) {
-    btnSolicitar.addEventListener("click", () => handleClientAction("conversar")); // Redireciona para o chat para agendar
+    btnSolicitar.addEventListener("click", () => openBookingModalAction());
   }
 }
 
@@ -633,16 +634,30 @@ function loadDemonstrativeProfile(slug) {
 
   applyCustomCSSAura(activeCartomante.cor_primaria, activeCartomante.cor_secundaria);
 
-  document.getElementById("lblProfileName").innerHTML = `${activeCartomante.nome} <span class="profile-badge-online"><i class="fas fa-bolt"></i> Sintonizada</span>`;
-  document.getElementById("lblProfileBio").innerText = `"${activeCartomante.bio}"`;
-  document.getElementById("profileAvatar").src = activeCartomante.foto_url;
-  document.getElementById("bannerImg").src = activeCartomante.banner_url;
+  const lblName = document.getElementById("lblProfileName");
+  if (lblName) lblName.innerHTML = `${activeCartomante.nome} <span class="profile-badge-online"><i class="fas fa-bolt"></i> Sintonizada</span>`;
+  
+  const lblBio = document.getElementById("lblProfileBio");
+  if (lblBio) lblBio.innerText = `"${activeCartomante.bio}"`;
+  
+  const imgAvatar = document.getElementById("profileAvatar");
+  if (imgAvatar) imgAvatar.src = activeCartomante.foto_url;
+  
+  const imgBanner = document.getElementById("bannerImg");
+  if (imgBanner) imgBanner.src = activeCartomante.banner_url;
 
-  document.getElementById("lblSpecialties").innerHTML = activeCartomante.especialidades.map(sp => `<span class="specialty-badge">${sp}</span>`).join(" ");
-  document.getElementById("lblCategorias").innerHTML = activeCartomante.categorias.map(cat => `<span class="category-badge">${cat}</span>`).join(" ");
-  document.getElementById("lblSocials").innerHTML = `
-    <a href="#" class="social-link-item"><i class="fab fa-instagram"></i> ${activeCartomante.redes.instagram}</a>
-  `;
+  const lblSpecs = document.getElementById("lblSpecialties");
+  if (lblSpecs) lblSpecs.innerHTML = activeCartomante.especialidades.map(sp => `<span class="specialty-badge">${sp}</span>`).join(" ");
+  
+  const lblCats = document.getElementById("lblCategorias");
+  if (lblCats) lblCats.innerHTML = activeCartomante.categorias.map(cat => `<span class="category-badge">${cat}</span>`).join(" ");
+  
+  const lblSoc = document.getElementById("lblSocials");
+  if (lblSoc) {
+    lblSoc.innerHTML = `
+      <a href="#" class="social-link-item"><i class="fab fa-instagram"></i> ${activeCartomante.redes.instagram}</a>
+    `;
+  }
 
   // Renderizar mural mockado
   const container = document.getElementById("muralFeedContainer");
@@ -656,3 +671,304 @@ function loadDemonstrativeProfile(slug) {
     `;
   }
 }
+
+// --- LÓGICA DO AGENDADOR COOPERATIVO (ESTILO NUTRILUAR) ---
+let bookingDate = new Date();
+let selectedBookingDate = null;
+let selectedBookingHour = null;
+
+async function testSupabaseConnection() {
+  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
+  try {
+    const { data, error } = await supabase.from("perfis_publicos").select("slug").limit(1);
+    return error ? false : true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function initBookingSystem() {
+  const btnClose = document.getElementById("closeBookingModal");
+  if (btnClose) btnClose.addEventListener("click", closeBookingModal);
+
+  const btnPrev = document.getElementById("btnPrevBookingMonth");
+  if (btnPrev) btnPrev.addEventListener("click", () => changeBookingMonth(-1));
+
+  const btnNext = document.getElementById("btnNextBookingMonth");
+  if (btnNext) btnNext.addEventListener("click", () => changeBookingMonth(1));
+
+  const btnConfirm = document.getElementById("btnConfirmBooking");
+  if (btnConfirm) btnConfirm.addEventListener("click", confirmBookingAction);
+}
+
+window.openBookingModalAction = function() {
+  const modal = document.getElementById("bookingModal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  
+  // Limpar seleções anteriores
+  selectedBookingDate = null;
+  selectedBookingHour = null;
+  
+  const hoursSec = document.getElementById("bookingHoursSection");
+  if (hoursSec) hoursSec.classList.add("hidden");
+  
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.add("hidden");
+  
+  renderBookingCalendar();
+};
+
+function closeBookingModal() {
+  const modal = document.getElementById("bookingModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function changeBookingMonth(dir) {
+  bookingDate.setMonth(bookingDate.getMonth() + dir);
+  renderBookingCalendar();
+}
+
+async function renderBookingCalendar() {
+  const grid = document.getElementById("bookingCalendarGrid");
+  const monthTitle = document.getElementById("bookingMonthYear");
+  if (!grid || !monthTitle) return;
+
+  grid.innerHTML = "";
+  
+  const tempDate = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), 1);
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  monthTitle.innerText = `${monthNames[tempDate.getMonth()]} ${tempDate.getFullYear()}`;
+
+  const firstDayIndex = tempDate.getDay();
+  const lastDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth() + 1, 0).getDate();
+
+  // Preencher espaços vazios anteriores
+  for (let i = 0; i < firstDayIndex; i++) {
+    const space = document.createElement("div");
+    grid.appendChild(space);
+  }
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Renderizar dias
+  for (let day = 1; day <= lastDay; day++) {
+    const dayBtn = document.createElement("button");
+    dayBtn.type = "button";
+    dayBtn.className = "booking-day-btn";
+    dayBtn.innerText = day;
+
+    const currentDayDate = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), day);
+    
+    if (currentDayDate < today) {
+      dayBtn.disabled = true;
+    } else {
+      dayBtn.addEventListener("click", () => selectBookingDay(currentDayDate, dayBtn));
+    }
+
+    grid.appendChild(dayBtn);
+  }
+}
+
+async function selectBookingDay(date, btnElement) {
+  document.querySelectorAll(".booking-day-btn").forEach(btn => btn.classList.remove("selected"));
+  btnElement.classList.add("selected");
+  
+  selectedBookingDate = date;
+  selectedBookingHour = null;
+  
+  const hoursSec = document.getElementById("bookingHoursSection");
+  if (hoursSec) hoursSec.classList.remove("hidden");
+  
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.add("hidden");
+  
+  const dateText = document.getElementById("bookingSelectedDateText");
+  if (dateText) {
+    dateText.innerText = date.toLocaleDateString('pt-BR');
+  }
+
+  await loadBookingHours(date);
+}
+
+async function loadBookingHours(date) {
+  const hoursGrid = document.getElementById("bookingHoursGrid");
+  if (!hoursGrid) return;
+  hoursGrid.innerHTML = "";
+
+  const horasPadrao = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+  let ocupados = [];
+  
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0,0,0,0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23,59,59,999);
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  
+  if (isConnected && activeCartomante) {
+    try {
+      const { data: eventos } = await supabase
+        .from("agenda_eventos")
+        .select("inicio")
+        .eq("cartomante_id", activeCartomante.id)
+        .gte("inicio", startOfDay.toISOString())
+        .lte("inicio", endOfDay.toISOString());
+
+      if (eventos) {
+        ocupados = eventos.map(ev => {
+          const d = new Date(ev.inicio);
+          return String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+        });
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar eventos reais para o agendador", e);
+    }
+  } else {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_agenda_eventos") || "[]");
+    ocupados = localDb
+      .filter(ev => {
+        const evDate = new Date(ev.inicio);
+        return evDate.toDateString() === date.toDateString();
+      })
+      .map(ev => {
+        const d = new Date(ev.inicio);
+        return String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+      });
+  }
+
+  horasPadrao.forEach(h => {
+    const hrBtn = document.createElement("button");
+    hrBtn.type = "button";
+    hrBtn.className = "booking-hour-btn";
+    hrBtn.innerText = h;
+
+    const isOcupado = ocupados.includes(h);
+    if (isOcupado) {
+      hrBtn.disabled = true;
+    } else {
+      hrBtn.addEventListener("click", () => selectBookingHour(h, hrBtn));
+    }
+
+    hoursGrid.appendChild(hrBtn);
+  });
+}
+
+function selectBookingHour(hour, btnElement) {
+  document.querySelectorAll(".booking-hour-btn").forEach(btn => btn.classList.remove("selected"));
+  btnElement.classList.add("selected");
+  
+  selectedBookingHour = hour;
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.remove("hidden");
+}
+
+async function confirmBookingAction() {
+  if (!selectedBookingDate || !selectedBookingHour) {
+    alert("Por favor, selecione data e horário.");
+    return;
+  }
+
+  const [hh, mm] = selectedBookingHour.split(":");
+  const bookingDateTime = new Date(selectedBookingDate);
+  bookingDateTime.setHours(parseInt(hh), parseInt(mm), 0, 0);
+
+  const notes = document.getElementById("bookingNotes").value.trim();
+
+  const btnConfirm = document.getElementById("btnConfirmBooking");
+  btnConfirm.disabled = true;
+  btnConfirm.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Confirmando...';
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+
+  if (isConnected && activeCartomante) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Você precisa estar logado para agendar.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const { data: client } = await supabase
+        .from("clientes")
+        .select("id, nome_completo")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!client) {
+        alert("Consulente não cadastrada.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("agenda_eventos")
+        .insert({
+          cartomante_id: activeCartomante.id,
+          cliente_id: client.id,
+          titulo: `Consulta com ${client.nome_completo}`,
+          inicio: bookingDateTime.toISOString(),
+          fim: new Date(bookingDateTime.getTime() + 60 * 60 * 1000).toISOString(),
+          descricao: notes
+        });
+
+      if (error) {
+        alert("Erro ao agendar: " + error.message);
+      } else {
+        alert("Consulta agendada no plano astral com sucesso!");
+        
+        await supabase.from("notificacoes").insert([{
+          user_id: activeCartomante.id,
+          titulo: "Novo Agendamento Confirmado",
+          mensagem: `O consulente ${client.nome_completo} agendou uma consulta para ${bookingDateTime.toLocaleDateString('pt-BR')} às ${selectedBookingHour}.`,
+          tipo: "atendimento"
+        }]);
+
+        await supabase.from("historico_acoes").insert([{
+          cartomante_id: activeCartomante.id,
+          cliente_id: client.id,
+          acao: "Agendamento de Consulta",
+          detalhes: `Consulta sintonizada para ${bookingDateTime.toLocaleDateString('pt-BR')} às ${selectedBookingHour}.`
+        }]);
+
+        closeBookingModal();
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao agendar.");
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
+    }
+  } else {
+    try {
+      const localEvents = JSON.parse(localStorage.getItem("cartomante_agenda_eventos") || "[]");
+      const demoClient = JSON.parse(localStorage.getItem("demo_logged_client") || '{"id":"demo-client-1","nome_completo":"Consulente de Teste"}');
+      
+      const newEvent = {
+        id: "demo-event-" + Date.now(),
+        cartomante_id: activeCartomante ? activeCartomante.id : "cartomante-luana",
+        cliente_id: demoClient.id,
+        titulo: `Consulta com ${demoClient.nome_completo}`,
+        inicio: bookingDateTime.toISOString(),
+        fim: new Date(bookingDateTime.getTime() + 60 * 60 * 1000).toISOString(),
+        descricao: notes
+      };
+
+      localEvents.push(newEvent);
+      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(localEvents));
+      
+      alert("Consulta agendada no plano demonstrativo com sucesso!");
+      closeBookingModal();
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
+    }
+  }
+}
+

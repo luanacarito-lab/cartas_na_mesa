@@ -80,37 +80,175 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ==========================================================================
    1. GERAÇÃO DE ESTRELAS (AMBIENTE MÍSTICO)
    ========================================================================== */
+let starCanvasAnimFrame = null;
+
 function generateStars() {
     const container = document.getElementById('stars-container');
     if (!container) return;
     
+    // Evitar múltiplas inicializações se já estiver rodando
+    if (document.getElementById('interactive-stars-canvas')) {
+        return; 
+    }
+    
     container.innerHTML = '';
-    const starCount = 80;
+    const canvas = document.createElement('canvas');
+    canvas.id = 'interactive-stars-canvas';
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '1';
+    container.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    
+    let width = canvas.width = container.offsetWidth || window.innerWidth;
+    let height = canvas.height = container.offsetHeight || window.innerHeight;
+    
+    window.addEventListener('resize', () => {
+        if (!canvas) return;
+        width = canvas.width = container.offsetWidth || window.innerWidth;
+        height = canvas.height = container.offsetHeight || window.innerHeight;
+    });
+    
+    const stars = [];
+    const starCount = 100;
     
     for (let i = 0; i < starCount; i++) {
-        const star = document.createElement('div');
-        star.classList.add('star');
-        
-        // Coordenadas aleatórias
-        const x = Math.random() * 100;
-        const y = Math.random() * 100;
-        
-        // Tamanhos variados (pequenos e delicados)
-        const size = Math.random() * 2 + 0.8;
-        
-        // Atraso de animação para cintilação orgânica
-        const delay = Math.random() * 5;
-        const duration = Math.random() * 3 + 2;
-        
-        star.style.left = `${x}%`;
-        star.style.top = `${y}%`;
-        star.style.width = `${size}px`;
-        star.style.height = `${size}px`;
-        star.style.animationDelay = `${delay}s`;
-        star.style.animationDuration = `${duration}s`;
-        
-        container.appendChild(star);
+        stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: Math.random() * 2 + 0.5,
+            speedX: (Math.random() - 0.5) * 0.1,
+            speedY: (Math.random() - 0.5) * 0.1,
+            twinklePhase: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.01 + Math.random() * 0.02
+        });
     }
+    
+    const sparkles = [];
+    let mouse = { x: null, y: null, active: false };
+    
+    window.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+        mouse.active = true;
+        
+        if (state.accessibility && !state.accessibility.reduceMotion && Math.random() < 0.35) {
+            sparkles.push({
+                x: mouse.x,
+                y: mouse.y,
+                size: Math.random() * 2 + 0.8,
+                speedX: (Math.random() - 0.5) * 1.5,
+                speedY: (Math.random() - 0.5) * 1.5,
+                alpha: 1.0,
+                decay: 0.015 + Math.random() * 0.02,
+                color: Math.random() < 0.5 ? '#C7A27A' : '#ECEFF5'
+            });
+        }
+    });
+    
+    window.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+        mouse.active = false;
+    });
+    
+    function animate() {
+        if (state.accessibility && state.accessibility.reduceMotion) {
+            ctx.clearRect(0, 0, width, height);
+            stars.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, 0.75)`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            starCanvasAnimFrame = requestAnimationFrame(animate);
+            return;
+        }
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        // Desenhar Estrelas
+        stars.forEach(star => {
+            star.x += star.speedX;
+            star.y += star.speedY;
+            
+            if (mouse.active && mouse.x !== null && mouse.y !== null) {
+                const dx = mouse.x - star.x;
+                const dy = mouse.y - star.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < 180) {
+                    const force = (180 - dist) / 180;
+                    const pullX = (dx / dist) * force * 0.8;
+                    const pullY = (dy / dist) * force * 0.8;
+                    const perpX = (-dy / dist) * force * 0.5;
+                    const perpY = (dx / dist) * force * 0.5;
+                    
+                    star.x += pullX + perpX;
+                    star.y += pullY + perpY;
+                }
+            }
+            
+            if (star.x < 0) star.x = width;
+            if (star.x > width) star.x = 0;
+            if (star.y < 0) star.y = height;
+            if (star.y > height) star.y = 0;
+            
+            star.twinklePhase += star.twinkleSpeed;
+            const opacity = Math.sin(star.twinklePhase) * 0.4 + 0.6;
+            
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (star.size > 1.8 && opacity > 0.8) {
+                ctx.strokeStyle = `rgba(199, 162, 122, ${opacity * 0.4})`;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(star.x - star.size * 3, star.y);
+                ctx.lineTo(star.x + star.size * 3, star.y);
+                ctx.moveTo(star.x, star.y - star.size * 3);
+                ctx.lineTo(star.x, star.y + star.size * 3);
+                ctx.stroke();
+            }
+        });
+        
+        // Desenhar Poeira Estelar
+        for (let i = sparkles.length - 1; i >= 0; i--) {
+            const sp = sparkles[i];
+            sp.x += sp.speedX;
+            sp.y += sp.speedY;
+            sp.alpha -= sp.decay;
+            
+            if (sp.alpha <= 0) {
+                sparkles.splice(i, 1);
+                continue;
+            }
+            
+            ctx.fillStyle = sp.color === '#C7A27A' ? `rgba(199, 162, 122, ${sp.alpha})` : `rgba(236, 239, 245, ${sp.alpha})`;
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (sp.size > 2) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${sp.alpha * 0.5})`;
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y, sp.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        starCanvasAnimFrame = requestAnimationFrame(animate);
+    }
+    
+    animate();
 }
 
 /* ==========================================================================
@@ -392,11 +530,14 @@ function handleRadioQuantityChange(radioInput) {
 }
 
 function calculateTarotPrice() {
-    const area = document.getElementById('sel-area').value;
-    const urgency = parseFloat(document.getElementById('sel-urgencia').value);
+    const areaEl = document.getElementById('sel-area');
+    const urgencyEl = document.getElementById('sel-urgencia');
     const display = document.getElementById('tarot-price-display');
     
-    if (!display) return;
+    if (!areaEl || !urgencyEl || !display) return;
+    
+    const area = areaEl.value;
+    const urgency = parseFloat(urgencyEl.value);
     
     // Valor Base por Pergunta
     let basePricePerQuestion = 15.00;
@@ -719,12 +860,111 @@ function subscribeGlobalNotifications(user) {
         .on(
             "postgres_changes",
             { event: "*", schema: "public", table: "notificacoes", filter: `user_id=eq.${user.id}` },
-            async () => {
+            async (payload) => {
                 await loadGlobalNotifications(user);
+                
+                // Se for uma nova notificação criada e não lida, dispara o Toast!
+                if (payload.eventType === "INSERT" && payload.new && !payload.new.lida) {
+                    let linkChat = null;
+                    if (payload.new.tipo === "mensagem" || payload.new.tipo === "pergunta") {
+                        const isClient = window.location.pathname.includes("client_") || document.getElementById("clientActionsWidget") !== null;
+                        const baseUrl = isClient ? "client_chat.html" : "chat.html";
+                        linkChat = baseUrl;
+                        
+                        // Obter o id da conversa se estiver disponível
+                        if (payload.new.conversa_id) {
+                            linkChat += `?cid=${payload.new.conversa_id}`;
+                        } else if (payload.new.metadata) {
+                            try {
+                                const meta = typeof payload.new.metadata === 'string' ? JSON.parse(payload.new.metadata) : payload.new.metadata;
+                                if (meta.conversa_id) {
+                                    linkChat += `?cid=${meta.conversa_id}`;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                    showToastNotification(payload.new.titulo, payload.new.mensagem, payload.new.tipo, linkChat);
+                }
             }
         )
         .subscribe();
 }
+
+function showToastNotification(titulo, mensagem, tipo = 'sistema', linkChat = null) {
+    let container = document.getElementById('mystic-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'mystic-toast-container';
+        container.style.position = 'fixed';
+        container.style.top = '20px';
+        container.style.right = '20px';
+        container.style.zIndex = '9999';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '10px';
+        container.style.maxWidth = '360px';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `mystic-toast ${tipo}`;
+    toast.style.cursor = linkChat ? 'pointer' : 'default';
+    
+    let icon = "fa-bell";
+    if (tipo === "mensagem") icon = "fa-comments";
+    else if (tipo === "pergunta") icon = "fa-crown";
+    else if (tipo === "pagamento") icon = "fa-wallet";
+    else if (tipo === "atendimento") icon = "fa-calendar-check";
+
+    toast.innerHTML = `
+        <div class="toast-header">
+            <span class="toast-title"><i class="fas ${icon}"></i> ${titulo}</span>
+            <button class="toast-close-btn">&times;</button>
+        </div>
+        <div class="toast-body">${mensagem}</div>
+    `;
+
+    // Ação de clicar para abrir o chat
+    if (linkChat) {
+        toast.addEventListener('click', (e) => {
+            if (e.target.classList.contains('toast-close-btn')) return;
+            window.location.href = linkChat;
+        });
+    }
+
+    // Ação do botão fechar
+    const closeBtn = toast.querySelector('.toast-close-btn');
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeToast(toast);
+    });
+
+    container.appendChild(toast);
+
+    // Auto sumir em 5 segundos
+    const timeoutId = setTimeout(() => {
+        removeToast(toast);
+    }, 5000);
+
+    toast.dataset.timeoutId = timeoutId;
+}
+
+function removeToast(toast) {
+    toast.classList.add('fade-out');
+    if (toast.dataset.timeoutId) {
+        clearTimeout(parseInt(toast.dataset.timeoutId));
+    }
+    toast.addEventListener('transitionend', () => {
+        toast.remove();
+        const container = document.getElementById('mystic-toast-container');
+        if (container && container.children.length === 0) {
+            container.remove();
+        }
+    });
+}
+
+// Expõe a função globalmente para teste ou fallback
+window.showToastNotification = showToastNotification;
 
 function loadGlobalDemoNotifications() {
     renderGlobalNotifications([
@@ -740,3 +980,4 @@ document.addEventListener("click", (e) => {
         menu.classList.add("hidden");
     }
 });
+

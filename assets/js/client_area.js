@@ -71,7 +71,30 @@ window.switchClientTab = async function(tabId) {
 
 // Check authentication on load
 async function checkAuthAndLoadProfile() {
-  if (!supabase) return;
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    console.warn("Supabase indisponível. Carregando modo demonstrativo na área do cliente.");
+    const demoClient = localStorage.getItem("demo_logged_client");
+    if (demoClient) {
+      loggedClient = JSON.parse(demoClient);
+    } else {
+      loggedClient = {
+        id: "demo-client-1",
+        nome_completo: "Consulente de Teste",
+        email: "cliente@templo.com",
+        celular: "(11) 99999-9999",
+        foto_url: "assets/img/default-avatar.png",
+        religiao: "Espiritualista"
+      };
+      localStorage.setItem("demo_logged_client", JSON.stringify(loggedClient));
+    }
+    
+    const nameBadge = document.getElementById("clientNameBadge");
+    if (nameBadge) nameBadge.textContent = loggedClient.nome_completo;
+    populateProfileForm(loggedClient);
+    await loadInicioTab();
+    return;
+  }
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -91,7 +114,6 @@ async function checkAuthAndLoadProfile() {
   }
 
   if (!client) {
-    // Se não for cliente cadastrado, envia para login/painel
     window.location.href = "login.html";
     return;
   }
@@ -356,8 +378,23 @@ async function loadInicioTab() {
 // --------------------------------------------------
 // TAB 2: CARTOMANTES (BUSCA E CATÁLOGO)
 // --------------------------------------------------
+async function testSupabaseConnection() {
+  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
+  try {
+    const { data, error } = await supabase.from("clientes").select("id").limit(1);
+    return error ? false : true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function fetchCartomantes() {
-  if (!supabase) return;
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    console.warn("Supabase indisponível no catálogo. Carregando modo demonstrativo.");
+    loadDemoCartomantes();
+    return;
+  }
 
   const { data, error } = await supabase
     .from("cartomantes")
@@ -366,12 +403,13 @@ async function fetchCartomantes() {
 
   if (error) {
     console.error("Erro ao carregar oraculistas:", error);
+    loadDemoCartomantes();
     return;
   }
 
   cartomantesList = data || [];
   
-  // Buscar os perfis públicos para pegar as categorias do JSONB
+  // Buscar os perfis públicos e configurações de chat
   for (const c of cartomantesList) {
     const { data: perfil } = await supabase
       .from("perfis_publicos")
@@ -380,8 +418,52 @@ async function fetchCartomantes() {
       .maybeSingle();
     c.slug = perfil?.slug;
     c.categorias = perfil?.redes_sociais?.categorias || [];
+
+    // Buscar configurações de chat do banco de dados
+    const { data: config } = await supabase
+      .from("configuracoes_chat")
+      .select("modo_esgotamento, horario_inicio, horario_fim, pausa_automatica")
+      .eq("cartomante_id", c.user_id)
+      .maybeSingle();
+    c.config = config || { modo_esgotamento: false, horario_inicio: "09:00", horario_fim: "21:00", pausa_automatica: false };
   }
 
+  renderCartomantes(cartomantesList);
+}
+
+function loadDemoCartomantes() {
+  cartomantesList = [
+    {
+      user_id: "cartomante-luana",
+      nome: "Luana Carito",
+      funcao: "Sacerdotisa / Oraculista",
+      foto_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop",
+      bio: "Sacerdotisa dos caminhos, sintonizando sua frequência com a luz do oráculo para revelar segredos da alma.",
+      slug: "luana-carito",
+      categorias: ["Tarot", "Baralho Cigano", "Espiritualidade"],
+      config: { modo_esgotamento: false, horario_inicio: "09:00", horario_fim: "21:00", pausa_automatica: false }
+    },
+    {
+      user_id: "cartomante-morgana",
+      nome: "Morgana das Runas",
+      funcao: "Runóloga / Bruxa Wicca",
+      foto_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop",
+      bio: "Conexão com os sussurros de Odin e a magia das runas antigas. Tiragens para caminhos e decisões difíceis.",
+      slug: "morgana-runas",
+      categorias: ["Oráculos", "Wicca", "Terapias Holísticas"],
+      config: { modo_esgotamento: true, horario_inicio: "10:00", horario_fim: "18:00", pausa_automatica: false }
+    },
+    {
+      user_id: "cartomante-solange",
+      nome: "Solange Astrologia",
+      funcao: "Astróloga / Terapeuta",
+      foto_url: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150&auto=format&fit=crop",
+      bio: "Estudo dos astros e revolução solar. Alinhando a órbita da sua vida às influências celestes.",
+      slug: "solange-astros",
+      categorias: ["Astrologia", "Numerologia"],
+      config: { modo_esgotamento: false, horario_inicio: "09:00", horario_fim: "17:00", pausa_automatica: true }
+    }
+  ];
   renderCartomantes(cartomantesList);
 }
 
@@ -401,23 +483,61 @@ function renderCartomantes(list) {
     
     const catsHTML = c.categorias?.map(cat => `<span class="category-badge" style="font-size:0.65rem; padding:2px 6px;">${cat}</span>`).join(" ") || "";
 
+    // Determinar Status de Atendimento Dinâmico
+    let status = "online";
+    let statusText = "Online";
+    let badgeClass = "badge-online";
+    let buttonText = "Conversar";
+    let buttonClass = "btn-conversar-online";
+    let buttonDisabled = "";
+
+    const cfg = c.config || { modo_esgotamento: false, horario_inicio: "09:00", horario_fim: "21:00", pausa_automatica: false };
+    
+    // Validar horário de atendimento
+    const now = new Date();
+    const nowHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+    const isWorkingHours = nowHHMM >= cfg.horario_inicio && nowHHMM <= cfg.horario_fim;
+    
+    if (cfg.pausa_automatica || !isWorkingHours) {
+      status = "offline";
+      statusText = "Offline";
+      badgeClass = "badge-offline";
+      buttonText = "Indisponível";
+      buttonClass = "btn-conversar-offline";
+      buttonDisabled = "disabled";
+    } else if (cfg.modo_esgotamento) {
+      status = "ocupado";
+      statusText = "Fila de Espera";
+      badgeClass = "badge-ocupado";
+      buttonText = "Fila de Espera";
+      buttonClass = "btn-conversar-ocupado";
+    }
+
+    const badgeHTML = `<span class="mystic-status-badge ${badgeClass}"><span class="pulse-dot"></span> ${statusText}</span>`;
+
     card.innerHTML = `
-      <div style="display:flex; gap:12px; align-items:center;">
-        <img src="${c.foto_url || "assets/img/default-avatar.png"}" alt="${c.nome}" class="cartomante-photo" />
+      <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; width:100%;">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <img src="${c.foto_url || "assets/img/default-avatar.png"}" alt="${c.nome}" class="cartomante-photo" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--gold-color);" />
+          <div>
+            <h3 style="font-family:var(--font-decorative); color:var(--gold-color); font-size:1.05rem; margin:0;">${c.nome}</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${c.funcao || "Oraculista"}</span>
+          </div>
+        </div>
         <div>
-          <h3 style="font-family:var(--font-decorative); color:var(--gold-color); font-size:1.05rem; margin:0;">${c.nome}</h3>
-          <span style="font-size:0.75rem; color:var(--text-muted);">${c.funcao || "Oraculista"}</span>
+          ${badgeHTML}
         </div>
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">
+      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:10px;">
         ${catsHTML}
       </div>
-      <p style="font-family:var(--font-classic); font-size:0.8rem; color:var(--text-secondary); line-height:1.4; margin:5px 0 10px 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; height:36px;">
+      <p style="font-family:var(--font-classic); font-size:0.8rem; color:var(--text-secondary); line-height:1.4; margin:8px 0 12px 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; height:36px;">
         "${c.bio}"
       </p>
-      <div style="display:flex; gap:10px; margin-top:auto;">
-        <a href="public_profile.html?slug=${c.slug || "luana-carito"}" class="glass-button" style="flex:1; justify-content:center; font-size:0.72rem; padding:8px;"><i class="fas fa-eye"></i> Ver Templo</a>
-        <button onclick="startConversa('${c.user_id}')" class="glass-button" style="flex:1; justify-content:center; border-color:var(--gold-color); font-size:0.72rem; padding:8px;"><i class="fas fa-comments"></i> Conversar</button>
+      <div style="display:flex; gap:10px; margin-top:auto; flex-wrap: wrap;">
+        <a href="public_profile.html?slug=${c.slug || "luana-carito"}" class="glass-button" style="flex:1; justify-content:center; font-size:0.72rem; padding:8px; min-width: 80px;"><i class="fas fa-eye"></i> Templo</a>
+        <button onclick="openBookingForCartomante('${c.user_id}', '${c.nome.replace(/'/g, "\\'")}')" class="glass-button" style="flex:1; justify-content:center; font-size:0.72rem; padding:8px; min-width: 80px; border-color: rgba(255,255,255,0.15);"><i class="fas fa-calendar-check"></i> Agendar</button>
+        <button onclick="${status !== 'offline' ? `startConversa('${c.user_id}')` : ''}" class="glass-button ${buttonClass}" style="flex:1.2; justify-content:center; font-size:0.72rem; padding:8px; min-width: 100px;" ${buttonDisabled}><i class="fas fa-comments"></i> ${buttonText}</button>
       </div>
     `;
     container.appendChild(card);
@@ -724,5 +844,298 @@ window.handleLogout = async function() {
 
 // Init
 window.addEventListener("load", async () => {
+  initBookingSystem();
   await checkAuthAndLoadProfile();
 });
+
+// --- LÓGICA DO AGENDADOR COOPERATIVO (ESTILO NUTRILUAR) ---
+let bookingDate = new Date();
+let selectedBookingDate = null;
+let selectedBookingHour = null;
+let bookingCartomanteId = null;
+
+function initBookingSystem() {
+  const btnClose = document.getElementById("closeBookingModal");
+  if (btnClose) btnClose.addEventListener("click", closeBookingModal);
+
+  const btnPrev = document.getElementById("btnPrevBookingMonth");
+  if (btnPrev) btnPrev.addEventListener("click", () => changeBookingMonth(-1));
+
+  const btnNext = document.getElementById("btnNextBookingMonth");
+  if (btnNext) btnNext.addEventListener("click", () => changeBookingMonth(1));
+
+  const btnConfirm = document.getElementById("btnConfirmBooking");
+  if (btnConfirm) btnConfirm.addEventListener("click", confirmBookingAction);
+}
+
+window.openBookingForCartomante = function(cartomanteId, cartomanteNome) {
+  bookingCartomanteId = cartomanteId;
+  const modal = document.getElementById("bookingModal");
+  if (!modal) return;
+  
+  modal.querySelector("h2").innerHTML = `<i class="fas fa-calendar-alt"></i> Agendar com ${cartomanteNome}`;
+  modal.classList.remove("hidden");
+  
+  selectedBookingDate = null;
+  selectedBookingHour = null;
+  
+  const hoursSec = document.getElementById("bookingHoursSection");
+  if (hoursSec) hoursSec.classList.add("hidden");
+  
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.add("hidden");
+  
+  renderBookingCalendar();
+};
+
+function closeBookingModal() {
+  const modal = document.getElementById("bookingModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function changeBookingMonth(dir) {
+  bookingDate.setMonth(bookingDate.getMonth() + dir);
+  renderBookingCalendar();
+}
+
+async function renderBookingCalendar() {
+  const grid = document.getElementById("bookingCalendarGrid");
+  const monthTitle = document.getElementById("bookingMonthYear");
+  if (!grid || !monthTitle) return;
+
+  grid.innerHTML = "";
+  
+  const tempDate = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), 1);
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  monthTitle.innerText = `${monthNames[tempDate.getMonth()]} ${tempDate.getFullYear()}`;
+
+  const firstDayIndex = tempDate.getDay();
+  const lastDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth() + 1, 0).getDate();
+
+  for (let i = 0; i < firstDayIndex; i++) {
+    const space = document.createElement("div");
+    grid.appendChild(space);
+  }
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  for (let day = 1; day <= lastDay; day++) {
+    const dayBtn = document.createElement("button");
+    dayBtn.type = "button";
+    dayBtn.className = "booking-day-btn";
+    dayBtn.innerText = day;
+
+    const currentDayDate = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), day);
+    
+    if (currentDayDate < today) {
+      dayBtn.disabled = true;
+    } else {
+      dayBtn.addEventListener("click", () => selectBookingDay(currentDayDate, dayBtn));
+    }
+
+    grid.appendChild(dayBtn);
+  }
+}
+
+async function selectBookingDay(date, btnElement) {
+  document.querySelectorAll(".booking-day-btn").forEach(btn => btn.classList.remove("selected"));
+  btnElement.classList.add("selected");
+  
+  selectedBookingDate = date;
+  selectedBookingHour = null;
+  
+  const hoursSec = document.getElementById("bookingHoursSection");
+  if (hoursSec) hoursSec.classList.remove("hidden");
+  
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.add("hidden");
+  
+  const dateText = document.getElementById("bookingSelectedDateText");
+  if (dateText) {
+    dateText.innerText = date.toLocaleDateString('pt-BR');
+  }
+
+  await loadBookingHours(date);
+}
+
+async function loadBookingHours(date) {
+  const hoursGrid = document.getElementById("bookingHoursGrid");
+  if (!hoursGrid) return;
+  hoursGrid.innerHTML = "";
+
+  const horasPadrao = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+  let ocupados = [];
+  
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0,0,0,0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23,59,59,999);
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  
+  if (isConnected && bookingCartomanteId) {
+    try {
+      const { data: eventos } = await supabase
+        .from("agenda_eventos")
+        .select("inicio")
+        .eq("cartomante_id", bookingCartomanteId)
+        .gte("inicio", startOfDay.toISOString())
+        .lte("inicio", endOfDay.toISOString());
+
+      if (eventos) {
+        ocupados = eventos.map(ev => {
+          const d = new Date(ev.inicio);
+          return String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+        });
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar eventos reais para o agendador", e);
+    }
+  } else {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_agenda_eventos") || "[]");
+    ocupados = localDb
+      .filter(ev => {
+        const evDate = new Date(ev.inicio);
+        return evDate.toDateString() === date.toDateString() && ev.cartomante_id === bookingCartomanteId;
+      })
+      .map(ev => {
+        const d = new Date(ev.inicio);
+        return String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+      });
+  }
+
+  horasPadrao.forEach(h => {
+    const hrBtn = document.createElement("button");
+    hrBtn.type = "button";
+    hrBtn.className = "booking-hour-btn";
+    hrBtn.innerText = h;
+
+    const isOcupado = ocupados.includes(h);
+    if (isOcupado) {
+      hrBtn.disabled = true;
+    } else {
+      hrBtn.addEventListener("click", () => selectBookingHour(h, hrBtn));
+    }
+
+    hoursGrid.appendChild(hrBtn);
+  });
+}
+
+function selectBookingHour(hour, btnElement) {
+  document.querySelectorAll(".booking-hour-btn").forEach(btn => btn.classList.remove("selected"));
+  btnElement.classList.add("selected");
+  
+  selectedBookingHour = hour;
+  const formSec = document.getElementById("bookingFormSection");
+  if (formSec) formSec.classList.remove("hidden");
+}
+
+async function confirmBookingAction() {
+  if (!selectedBookingDate || !selectedBookingHour || !bookingCartomanteId) {
+    alert("Por favor, selecione data e horário.");
+    return;
+  }
+
+  const [hh, mm] = selectedBookingHour.split(":");
+  const bookingDateTime = new Date(selectedBookingDate);
+  bookingDateTime.setHours(parseInt(hh), parseInt(mm), 0, 0);
+
+  const notes = document.getElementById("bookingNotes").value.trim();
+
+  const btnConfirm = document.getElementById("btnConfirmBooking");
+  btnConfirm.disabled = true;
+  btnConfirm.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Confirmando...';
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Você precisa estar logado para agendar.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const { data: client } = await supabase
+        .from("clientes")
+        .select("id, nome_completo")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!client) {
+        alert("Consulente não cadastrada.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("agenda_eventos")
+        .insert({
+          cartomante_id: bookingCartomanteId,
+          cliente_id: client.id,
+          titulo: `Consulta com ${client.nome_completo}`,
+          inicio: bookingDateTime.toISOString(),
+          fim: new Date(bookingDateTime.getTime() + 60 * 60 * 1000).toISOString(),
+          descricao: notes
+        });
+
+      if (error) {
+        alert("Erro ao agendar: " + error.message);
+      } else {
+        alert("Consulta agendada no plano astral com sucesso!");
+        
+        await supabase.from("notificacoes").insert([{
+          user_id: bookingCartomanteId,
+          titulo: "Novo Agendamento Confirmado",
+          mensagem: `O consulente ${client.nome_completo} agendou uma consulta para ${bookingDateTime.toLocaleDateString('pt-BR')} às ${selectedBookingHour}.`,
+          tipo: "atendimento"
+        }]);
+
+        await supabase.from("historico_acoes").insert([{
+          cartomante_id: bookingCartomanteId,
+          cliente_id: client.id,
+          acao: "Agendamento de Consulta",
+          detalhes: `Consulta sintonizada para ${bookingDateTime.toLocaleDateString('pt-BR')} às ${selectedBookingHour}.`
+        }]);
+
+        closeBookingModal();
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao agendar.");
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
+    }
+  } else {
+    try {
+      const localEvents = JSON.parse(localStorage.getItem("cartomante_agenda_eventos") || "[]");
+      const demoClient = loggedClient || { id: "demo-client-1", nome_completo: "Consulente de Teste" };
+      
+      const newEvent = {
+        id: "demo-event-" + Date.now(),
+        cartomante_id: bookingCartomanteId,
+        cliente_id: demoClient.id,
+        titulo: `Consulta com ${demoClient.nome_completo}`,
+        inicio: bookingDateTime.toISOString(),
+        fim: new Date(bookingDateTime.getTime() + 60 * 60 * 1000).toISOString(),
+        descricao: notes
+      };
+
+      localEvents.push(newEvent);
+      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(localEvents));
+      
+      alert("Consulta agendada no plano demonstrativo com sucesso!");
+      closeBookingModal();
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
+    }
+  }
+}
+
