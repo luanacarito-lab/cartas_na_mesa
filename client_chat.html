@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat com Oraculista – Cartas na Mesa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
+  <style>
+    /* Chat window layout custom overrides matching the classic cartomante theme */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1000px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      padding: 20px;
+      z-index: 10;
+      position: relative;
+    }
+    
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 25px;
+      margin-bottom: 15px;
+    }
+    
+    .chat-oraculista-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .chat-oraculista-photo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--gold-color);
+    }
+    
+    .chat-oraculista-name h2 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.15rem;
+      margin: 0;
+    }
+    
+    .chat-oraculista-name span {
+      font-family: var(--font-modern);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 15px;
+      border-radius: 16px;
+    }
+    
+    .message-row {
+      display: flex;
+      width: 100%;
+    }
+    
+    .message-row.client {
+      justify-content: flex-end;
+    }
+    
+    .message-row.cartomante {
+      justify-content: flex-start;
+    }
+    
+    .message-bubble {
+      max-width: 70%;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-family: var(--font-modern);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    .message-row.client .message-bubble {
+      background: var(--gold-color);
+      color: #1a0f2e;
+      border-bottom-right-radius: 2px;
+      font-weight: 500;
+    }
+    
+    .message-row.cartomante .message-bubble {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom-left-radius: 2px;
+    }
+    
+    .message-time {
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 5px;
+      text-align: right;
+      display: block;
+    }
+    
+    .message-row.client .message-time {
+      color: rgba(26, 15, 46, 0.6);
+    }
+    
+    /* Tarot Question Card inside chat bubble */
+    .question-card {
+      background: rgba(110, 90, 171, 0.15) !important;
+      border: 1px solid rgba(199, 162, 122, 0.3) !important;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 85%;
+      margin: 10px 0;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    }
+    
+    .question-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(199, 162, 122, 0.15);
+      padding-bottom: 8px;
+    }
+    
+    .question-card-title {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .question-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge-enviada { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+    .badge-pagamento { background: rgba(241, 196, 15, 0.2); color: #f1c40f; }
+    .badge-paga { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+    .badge-respondida { background: rgba(155, 89, 182, 0.2); color: #9b59b6; }
+    .badge-cancelada { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+    
+    .question-card-body {
+      font-family: var(--font-classic);
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+    
+    .question-card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    
+    .question-answer {
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 3px solid var(--gold-color);
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-top: 15px;
+      font-style: italic;
+    }
+    
+    .chat-input-bar {
+      display: flex;
+      gap: 12px;
+      padding: 15px;
+      align-items: center;
+    }
+    
+    .chat-input-bar input {
+      flex: 1;
+      height: 48px;
+    }
+    
+    .chat-input-bar button {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <div class="chat-container">
+    
+    <!-- Header de Chat -->
+    <header class="chat-header glass-panel">
+      <div class="chat-oraculista-info">
+        <img id="cartomanteFoto" src="assets/img/default-avatar.png" alt="Oraculista" class="chat-oraculista-photo" />
+        <div class="chat-oraculista-name">
+          <h2 id="cartomanteNome">Carregando...</h2>
+          <span id="cartomanteFuncao">Oraculista</span>
+        </div>
+      </div>
+      <a href="client_area.html" class="glass-button" style="padding: 8px 16px; font-size: 0.8rem;"><i class="fas fa-arrow-left"></i> Sair do Chat</a>
+    </header>
+    
+    <!-- Histórico de Mensagens -->
+    <div id="chatMessages" class="chat-messages glass-panel">
+      <!-- Injetado por JS -->
+    </div>
+    
+    <!-- Barra de Input e Botões Especiais -->
+    <div class="glass-panel chat-input-bar">
+      <!-- Botão para invocar pergunta ao baralho -->
+      <button id="askBaralhoBtn" class="glass-button" style="border-color: var(--gold-color); color: var(--gold-color);" title="Pergunta ao Baralho">
+        <i class="fas fa-crown"></i> <span style="margin-left: 6px; font-size: 0.82rem; font-weight: 600;">Pergunta ao Baralho</span>
+      </button>
+      
+      <form id="messageForm" style="display: flex; flex: 1; gap: 12px; margin: 0;">
+        <input type="text" id="messageInput" class="mystic-input" placeholder="Envie sua mensagem ao templo..." required />
+        <button type="submit" class="glass-button" style="background: rgba(255,255,255,0.03);"><i class="fas fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para Enviar Pergunta ao Baralho (Visual de Alta Costura Mística) -->
+  <div id="askBaralhoModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 550px; padding: 30px;">
+      <div class="modal-header-mystic" style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin: 0;"><i class="fas fa-crown"></i> Perguntar ao Baralho</h2>
+        <button class="close-mystic-btn" onclick="closeAskBaralhoModal()">&times;</button>
+      </div>
+      
+      <p style="font-family: var(--font-classic); font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; font-style: italic;">
+        Formule sua questão com respeito e clareza. As cartas trazem respostas às dúvidas sinceras da alma.
+      </p>
+      
+      <form id="askBaralhoForm">
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Sua Dúvida Central (Pergunta Principal)</label>
+          <input type="text" id="askPergunta" class="mystic-input" placeholder="Ex: Vou conseguir um novo emprego nos próximos 3 meses?" required />
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Contexto ou Histórico (Para sintonizar as cartas)</label>
+          <textarea id="askContexto" class="mystic-textarea" rows="3" placeholder="Fale brevemente sobre sua situação atual relacionada a essa dúvida..." required></textarea>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Área da Vida</label>
+            <select id="askArea" class="mystic-select" required>
+              <option value="amor">Amor & Relações</option>
+              <option value="espiritual">Espiritualidade</option>
+              <option value="financeiro">Financeiro / Dinheiro</option>
+              <option value="trabalho">Trabalho / Carreira</option>
+              <option value="familia">Família</option>
+              <option value="saude_emocional">Saúde Emocional</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label style="display:block; margin-bottom:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Urgência Espiritual</label>
+            <select id="askUrgencia" class="mystic-select" required>
+              <option value="baixa">Baixa (Pode aguardar)</option>
+              <option value="media">Média (Aconselhamento breve)</option>
+              <option value="alta">Alta (Ritual urgente)</option>
+            </select>
+          </div>
+        </div>
+        
+        <button type="submit" id="sendAskBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+          <i class="fas fa-magic"></i> Enviar Ritualisticamente ao Baralho
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalhes / responder / pagar a Pergunta no Chat -->
+  <div id="paymentModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 450px; padding: 30px; text-align: center;">
+      <div class="modal-header-mystic" style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.3rem; margin: 0;"><i class="fas fa-wallet"></i> Sintonia de Pagamento</h2>
+        <button class="close-mystic-btn" onclick="closePaymentModal()">&times;</button>
+      </div>
+      
+      <p style="font-family: var(--font-classic); font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 15px;">
+        Sua pergunta foi analisada e a cartomante definiu o valor de troca espiritual:
+      </p>
+      
+      <div style="font-size: 2.2rem; font-family: var(--font-decorative); color: var(--gold-color); margin: 20px 0; text-shadow: 0 0 10px rgba(199, 162, 122, 0.4);">
+        <span id="paymentValue">R$ 0,00</span>
+      </div>
+      
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 25px; line-height: 1.4;">
+        Para liberar a tiragem, efetue o pagamento da troca energética. O saldo será computado automaticamente no financeiro dela.
+      </p>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="payConfirmBtn" class="glass-button" style="border-color: var(--gold-color); justify-content: center; padding: 12px; font-weight: 600;">
+          <i class="fas fa-check-circle"></i> Confirmar Pagamento Simulado
+        </button>
+        <button onclick="closePaymentModal()" class="glass-button" style="border-color: rgba(255,255,255,0.05); justify-content: center; padding: 10px; font-size: 0.82rem;">
+          Voltar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script src="assets/js/client_chat.js"></script>
+</body>
+</html>

@@ -6,45 +6,137 @@
   <title>Login – Sistema Cartomante</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
   <style>
-    .login-container {
-      max-width: 400px;
-      margin: 8rem auto;
-      padding: 2rem;
-      background: var(--color-surface);
-      backdrop-filter: blur(8px);
-      border-radius: .8rem;
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    
+    .login-wrapper {
+      width: 100%;
+      max-width: 420px;
+      z-index: 10;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    
+    .login-header h1 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 2.2rem;
+      margin: 0 0 10px 0;
+      text-shadow: 0 0 10px rgba(199, 162, 122, 0.3);
+    }
+    
+    .login-header p {
+      font-family: var(--font-classic);
+      color: var(--text-secondary);
+      font-style: italic;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    
+    .login-card {
+      padding: 35px 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .register-links {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(199, 162, 122, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       text-align: center;
     }
-    .login-container input {
-      width: 100%;
-      margin-bottom: 1rem;
-      padding: .6rem .8rem;
-      border: none;
-      border-radius: .4rem;
+    
+    .register-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-family: var(--font-modern);
+      transition: color var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .login-container button {
-      width: 100%;
-      padding: .6rem .8rem;
-      background: var(--color-primary);
-      color: #fff;
-      border: none;
-      border-radius: .4rem;
-      cursor: pointer;
+    
+    .register-links a:hover {
+      color: var(--gold-color);
     }
   </style>
 </head>
-<body>
-  <div class="login-container">
-    <h2>Entrar</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Senha" />
-    <button id="loginBtn">Login</button>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <div class="login-wrapper">
+    <div class="login-header">
+      <h1>Cartas na Mesa</h1>
+      <p>O portal místico para sua jornada espiritual</p>
+    </div>
+    
+    <div class="login-card glass-panel">
+      <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin-top: 0; margin-bottom: 25px; text-align: center;">Portal de Sintonia</h2>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">E-mail sagrado</label>
+          <input type="email" id="email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 25px;">
+          <label for="password">Chave secreta (Senha)</label>
+          <input type="password" id="password" class="mystic-input" placeholder="••••••••" required />
+        </div>
+        
+        <button type="submit" id="loginBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
+          <i class="fas fa-sign-in-alt"></i> Entrar no Portal
+        </button>
+      </form>
+      
+      <div class="register-links">
+        <a href="register_cliente.html"><i class="fas fa-user-sparkles"></i> Quero me cadastrar como Consulente (Cliente)</a>
+        <a href="register_cartomante.html"><i class="fas fa-magic"></i> Sou Cartomante / Oraculista</a>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
   <script src="assets/js/login.js"></script>
 </body>
 </html>

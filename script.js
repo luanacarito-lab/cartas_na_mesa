@@ -5,6 +5,7 @@
 
 // Estados do Sistema
 let state = {
+    themeChoice: 'auto', // 'auto' | 'morning' | 'afternoon' | 'night' | 'light' | 'dark'
     lightingMode: 'dark', // 'light' | 'dark'
     timeMode: 'auto',     // 'auto' | 'manual'
     currentPeriod: 'night', // 'morning' | 'afternoon' | 'sunset' | 'night'
@@ -120,69 +121,72 @@ function initTimeSystem() {
         }
     }
     
-    if (state.timeMode === 'auto') {
-        updateAutomaticTime();
-    } else {
-        applyStateToDOM();
+    applyTheme();
+}
+
+function applyTheme() {
+    if (!state.themeChoice) {
+        state.themeChoice = 'auto';
     }
+    
+    if (state.themeChoice === 'auto') {
+        const now = new Date();
+        const hours = now.getHours();
+        if (hours >= 6 && hours < 12) {
+            state.currentPeriod = 'morning';
+            state.lightingMode = 'light';
+        } else if (hours >= 12 && hours < 18) {
+            state.currentPeriod = 'afternoon';
+            state.lightingMode = 'light';
+        } else {
+            state.currentPeriod = 'night';
+            state.lightingMode = 'dark';
+        }
+    } else if (state.themeChoice === 'morning') {
+        state.currentPeriod = 'morning';
+        state.lightingMode = 'light';
+    } else if (state.themeChoice === 'afternoon') {
+        state.currentPeriod = 'afternoon';
+        state.lightingMode = 'light';
+    } else if (state.themeChoice === 'night') {
+        state.currentPeriod = 'night';
+        state.lightingMode = 'dark';
+    } else if (state.themeChoice === 'light') {
+        state.lightingMode = 'light';
+        if (state.currentPeriod === 'night' || state.currentPeriod === 'sunset') {
+            state.currentPeriod = 'morning';
+        }
+    } else if (state.themeChoice === 'dark') {
+        state.lightingMode = 'dark';
+        if (state.currentPeriod === 'morning' || state.currentPeriod === 'afternoon') {
+            state.currentPeriod = 'night';
+        }
+    }
+    
+    applyStateToDOM();
 }
 
 function updateAutomaticTime() {
-    const now = new Date();
-    const hours = now.getHours();
-    
-    // Regra de transição baseada nas horas reais do usuário
-    let period = 'night';
-    if (hours >= 6 && hours < 12) {
-        period = 'morning';
-    } else if (hours >= 12 && hours < 18) {
-        period = 'afternoon';
-    } else if (hours >= 18 && hours < 20) {
-        period = 'sunset';
-    } else {
-        period = 'night';
-    }
-    
-    if (state.timeMode === 'auto') {
-        state.currentPeriod = period;
-        applyStateToDOM();
+    if (state.themeChoice === 'auto') {
+        applyTheme();
     }
 }
 
 function setLightingMode(mode) {
-    state.lightingMode = mode;
-    
-    // Atualizar botões no cabeçalho
-    document.getElementById('btn-mode-dark').classList.toggle('active', mode === 'dark');
-    document.getElementById('btn-mode-light').classList.toggle('active', mode === 'light');
-    
-    applyStateToDOM();
+    state.themeChoice = mode;
+    applyTheme();
 }
 
 function setTimeMode(mode) {
-    state.timeMode = mode;
-    
-    // Atualizar botões no cabeçalho
-    document.getElementById('btn-time-auto').classList.toggle('active', mode === 'auto');
-    document.getElementById('btn-time-manual').classList.toggle('active', mode === 'manual');
-    
     if (mode === 'auto') {
-        // Trava o slider de controle manual
-        document.getElementById('time-range-slider').disabled = true;
-        document.getElementById('time-range-slider').style.opacity = '0.5';
-        updateAutomaticTime();
+        state.themeChoice = 'auto';
     } else {
-        // Destrava o slider
-        document.getElementById('time-range-slider').disabled = false;
-        document.getElementById('time-range-slider').style.opacity = '1';
+        state.themeChoice = state.currentPeriod;
     }
-    
-    applyStateToDOM();
+    applyTheme();
 }
 
 function handleSliderChange(val) {
-    if (state.timeMode === 'auto') return;
-    
     let period = 'night';
     switch (parseInt(val)) {
         case 1: period = 'morning'; break;
@@ -190,26 +194,13 @@ function handleSliderChange(val) {
         case 3: period = 'sunset'; break;
         case 4: period = 'night'; break;
     }
-    
-    state.currentPeriod = period;
-    applyStateToDOM();
+    state.themeChoice = period;
+    applyTheme();
 }
 
 function selectPeriod(period) {
-    // Força o modo manual se clicar em um card específico
-    setTimeMode('manual');
-    state.currentPeriod = period;
-    
-    // Sincroniza o slider de horário
-    let sliderVal = 4;
-    if (period === 'morning') sliderVal = 1;
-    else if (period === 'afternoon') sliderVal = 2;
-    else if (period === 'sunset') sliderVal = 3;
-    else if (period === 'night') sliderVal = 4;
-    
-    document.getElementById('time-range-slider').value = sliderVal;
-    
-    applyStateToDOM();
+    state.themeChoice = period;
+    applyTheme();
 }
 
 // Aplica as classes e estilos ao DOM com base no estado ativo
@@ -233,6 +224,12 @@ function applyStateToDOM() {
     // Persistir preferências no armazenamento local
     localStorage.setItem('cartomante_app_state', JSON.stringify(state));
     
+    // Sincronizar o dropdown se existir
+    const themeChoiceSelect = document.getElementById('themeChoiceSelect');
+    if (themeChoiceSelect) {
+        themeChoiceSelect.value = state.themeChoice || 'auto';
+    }
+    
     // Sincronizar os cards de atmosfera para realçar o ativo (se existirem na página)
     const cardMorning = document.getElementById('card-morning');
     if (cardMorning) cardMorning.classList.toggle('active', state.currentPeriod === 'morning');
@@ -243,15 +240,33 @@ function applyStateToDOM() {
     const cardNight = document.getElementById('card-night');
     if (cardNight) cardNight.classList.toggle('active', state.currentPeriod === 'night');
     
+    // Sincronizar os botões do header se existirem
+    const btnModeDark = document.getElementById('btn-mode-dark');
+    if (btnModeDark) btnModeDark.classList.toggle('active', state.lightingMode === 'dark');
+    const btnModeLight = document.getElementById('btn-mode-light');
+    if (btnModeLight) btnModeLight.classList.toggle('active', state.lightingMode === 'light');
+    
+    const btnTimeAuto = document.getElementById('btn-time-auto');
+    if (btnTimeAuto) btnTimeAuto.classList.toggle('active', state.themeChoice === 'auto');
+    const btnTimeManual = document.getElementById('btn-time-manual');
+    if (btnTimeManual) btnTimeManual.classList.toggle('active', state.themeChoice !== 'auto');
+    
     // Sincronizar o slider caso esteja no modo manual
     const slider = document.getElementById('time-range-slider');
-    if (slider && state.timeMode === 'manual') {
-        let sliderVal = 4;
-        if (state.currentPeriod === 'morning') sliderVal = 1;
-        else if (state.currentPeriod === 'afternoon') sliderVal = 2;
-        else if (state.currentPeriod === 'sunset') sliderVal = 3;
-        else if (state.currentPeriod === 'night') sliderVal = 4;
-        slider.value = sliderVal;
+    if (slider) {
+        if (state.themeChoice === 'auto') {
+            slider.disabled = true;
+            slider.style.opacity = '0.5';
+        } else {
+            slider.disabled = false;
+            slider.style.opacity = '1';
+            let sliderVal = 4;
+            if (state.currentPeriod === 'morning') sliderVal = 1;
+            else if (state.currentPeriod === 'afternoon') sliderVal = 2;
+            else if (state.currentPeriod === 'sunset') sliderVal = 3;
+            else if (state.currentPeriod === 'night') sliderVal = 4;
+            slider.value = sliderVal;
+        }
     }
     
     // Sincronizar os seletores do painel de acessibilidade (se existirem na página)
@@ -276,11 +291,14 @@ function applyStateToDOM() {
         else if (state.currentPeriod === 'afternoon') periodName = 'Tarde';
         else if (state.currentPeriod === 'sunset') periodName = 'Entardecer';
         
-        if (state.timeMode === 'auto') {
-            textStatus.innerHTML = `Modo Automático: Adaptado para a <strong>${periodName}</strong> baseado no relógio do sistema (<strong>${HH}:${MM}</strong>).`;
-        } else {
-            textStatus.innerHTML = `Modo Manual: Atmosfera da <strong>${periodName}</strong> fixa por escolha do usuário.`;
-        }
+        let choiceName = 'Automático';
+        if (state.themeChoice === 'morning') choiceName = 'Manhã';
+        else if (state.themeChoice === 'afternoon') choiceName = 'Tarde';
+        else if (state.themeChoice === 'night') choiceName = 'Noite';
+        else if (state.themeChoice === 'light') choiceName = 'Claro';
+        else if (state.themeChoice === 'dark') choiceName = 'Escuro';
+        
+        textStatus.innerHTML = `Sintonia Ativa: <strong>${choiceName}</strong> (Atmosfera: <strong>${periodName}</strong> - <strong>${state.lightingMode === 'light' ? 'Claro' : 'Escuro'}</strong>).`;
     }
 }
 
@@ -475,4 +493,9 @@ function toggleAccessibilityFeature(feature) {
             break;
     }
     applyStateToDOM();
+}
+
+function changeThemeChoice(choice) {
+    state.themeChoice = choice;
+    applyTheme();
 }

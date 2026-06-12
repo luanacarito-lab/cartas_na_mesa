@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro Cartomante – Sistema Cartomante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    
+    .register-wrapper {
+      width: 100%;
+      max-width: 600px;
+      z-index: 10;
+    }
+    
+    .register-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    
+    .register-header h1 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 2rem;
+      margin: 0 0 10px 0;
+      text-shadow: 0 0 10px rgba(199, 162, 122, 0.3);
+    }
+    
+    .register-header p {
+      font-family: var(--font-classic);
+      color: var(--text-secondary);
+      font-style: italic;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    
+    .register-card {
+      padding: 35px 30px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    @media (max-width: 500px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+    
+    @media (max-width: 500px) {
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .register-footer {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(199, 162, 122, 0.15);
+      text-align: center;
+    }
+    
+    .register-footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-family: var(--font-modern);
+      transition: color var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .register-footer a:hover {
+      color: var(--gold-color);
+    }
+  </style>
+</head>
+<body class="theme-night mode-dark">
+
+  <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+  <div class="ambient-glow" id="glow-3"></div>
+
+  <div class="register-wrapper">
+    <div class="register-header">
+      <h1>Iniciação Ritualística</h1>
+      <p>Junte-se à egrégora de oraculistas profissionais</p>
+    </div>
+    
+    <div class="register-card glass-panel">
+      <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.3rem; margin-top: 0; margin-bottom: 25px; text-align: center;">Inscrição de Cartomante</h2>
+      
+      <form id="registerCartomanteForm">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="nome_completo">Nome completo ou Nome Artístico</label>
+            <input type="text" id="nome_completo" class="mystic-input" placeholder="Ex: Morgana das Runas" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="email">E-mail de sintonia</label>
+            <input type="email" id="email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="telefone">Telefone / Celular</label>
+            <input type="tel" id="telefone" class="mystic-input" placeholder="(00) 99999-9999" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="senha">Chave secreta (Senha)</label>
+            <input type="password" id="senha" class="mystic-input" placeholder="Min. 6 caracteres" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="confirma_senha">Confirmar Chave secreta</label>
+            <input type="password" id="confirma_senha" class="mystic-input" placeholder="••••••••" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="funcao">Oráculo Principal (Função)</label>
+            <select id="funcao" class="mystic-select" required>
+              <option value="">Selecione</option>
+              <option value="Cartomante">Cartomante</option>
+              <option value="Taróloga">Taróloga</option>
+              <option value="Oraculista Cigana">Oraculista Cigana</option>
+              <option value="Runóloga">Runóloga</option>
+              <option value="Astróloga">Astróloga</option>
+              <option value="Espiritualista">Espiritualista Geral</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="foto_url">Link da Imagem de Perfil (Opcional)</label>
+            <input type="url" id="foto_url" class="mystic-input" placeholder="https://exemplo.com/sua-foto.jpg" />
+          </div>
+          
+          <div class="form-group full-width">
+            <label for="bio">Sua Jornada & Apresentação (Bio)</label>
+            <textarea id="bio" class="mystic-textarea" rows="3" placeholder="Fale brevemente sobre sua experiência com os oráculos, sua missão e tradições espirituais que segue..."></textarea>
+          </div>
+        </div>
+        
+        <button type="submit" id="registerBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600; margin-top: 15px;">
+          <i class="fas fa-magic"></i> Despertar Perfil & Registrar
+        </button>
+      </form>
+      
+      <div class="register-footer">
+        <a href="login.html"><i class="fas fa-arrow-left"></i> Já possui cadastro? Retorne ao Portal de Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script src="assets/js/register_cartomante.js"></script>
+</body>
+</html>

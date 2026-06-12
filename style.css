@@ -2444,12 +2444,34 @@ body.mode-light .sidebar .menu a:hover, body.mode-light .sidebar .menu-item:hove
     transition: border-color var(--transition-fast);
 }
 
+select.mystic-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C7A27A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+select.mystic-select option {
+    background-color: var(--bg-gradient-start, #0b0e1b);
+    color: var(--text-primary, #eceff5);
+}
+
 body.mode-light .mystic-input, 
 body.mode-light .mystic-select, 
 body.mode-light .mystic-textarea,
 body.mode-light .response-textarea {
-    background: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.4);
     color: var(--text-primary);
+}
+
+body.mode-light select.mystic-select option {
+    background-color: #fff;
+    color: #3e2b35;
 }
 
 .mystic-input:focus, .mystic-select:focus, .mystic-textarea:focus, .response-textarea:focus {

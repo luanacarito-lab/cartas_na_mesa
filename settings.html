@@ -138,32 +138,18 @@
           <div>
             <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--public-primary); letter-spacing:0.5px; margin-bottom:15px; border-bottom:1px dashed rgba(255,255,255,0.05); padding-bottom:5px;">Sintonias Visuais por Horário</h3>
             <div class="theme-control-panel" style="display:flex; flex-direction:column; gap:15px;">
-              
-              <!-- Seletor Claro / Escuro -->
-              <div style="display:flex; gap:10px; align-items:center; font-size:0.8rem;">
-                <span>Atmosfera:</span>
-                <button type="button" class="chart-filter-btn" id="btn-mode-light" onclick="setLightingMode('light')"><i class="fas fa-sun"></i> Iluminado (Claro)</button>
-                <button type="button" class="chart-filter-btn" id="btn-mode-dark" onclick="setLightingMode('dark')"><i class="fas fa-moon"></i> Noturno (Escuro)</button>
+              <div class="mystic-form-group" style="width: 100%;">
+                <label for="themeChoiceSelect" style="font-size:0.75rem; text-transform:uppercase; color:var(--public-primary); letter-spacing:0.5px; margin-bottom:8px; display:block;">Sintonizar Atmosfera do Templo</label>
+                <select id="themeChoiceSelect" class="mystic-select" onchange="changeThemeChoice(this.value)">
+                  <option value="auto">Automático (Baseado no Horário Local)</option>
+                  <option value="morning">Manhã 🌅</option>
+                  <option value="afternoon">Tarde ☀️</option>
+                  <option value="night">Noite 🌙</option>
+                  <option value="light">Iluminado (Claro) ☀️</option>
+                  <option value="dark">Noturno (Escuro) 🌙</option>
+                </select>
               </div>
-
-              <!-- Seletor Automático / Manual -->
-              <div style="display:flex; gap:10px; align-items:center; font-size:0.8rem;">
-                <span>Sincronia:</span>
-                <button type="button" class="chart-filter-btn" id="btn-time-auto" onclick="setTimeMode('auto')"><i class="fas fa-clock"></i> Relógio Real (Auto)</button>
-                <button type="button" class="chart-filter-btn" id="btn-time-manual" onclick="setTimeMode('manual')"><i class="fas fa-sliders-h"></i> Estação Fixa (Manual)</button>
-              </div>
-
-              <!-- Slider de Estação Solar/Lunar -->
-              <div class="slider-wrapper" style="margin-top:10px;">
-                <label for="time-range-slider" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Mudar Estação Fictícia (Arraste para transições lentas):</label>
-                <input type="range" id="time-range-slider" min="1" max="4" step="1" value="4" style="width: 100%; outline: none;" oninput="handleSliderChange(this.value)" disabled />
-                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;">
-                  <span>Manhã 🌅</span>
-                  <span>Tarde ☀️</span>
-                  <span>Entardecer 🌇</span>
-                  <span>Noite 🌙</span>
-                </div>
-              </div>
+              <p id="time-status-text" style="font-size:0.75rem; color:var(--text-muted); line-height:1.4; margin-top:5px;"></p>
             </div>
           </div>
 
