@@ -166,6 +166,20 @@ async function loadRealProfile(slug) {
   // Carregar mural e serviços
   await loadRealMuralFeed();
   await loadRealServices();
+
+  // Verificar se há pending_intent
+  const pendingIntent = sessionStorage.getItem("pending_intent");
+  if (pendingIntent) {
+    try {
+      const intent = JSON.parse(pendingIntent);
+      sessionStorage.removeItem("pending_intent");
+      if (intent.action === "contratar_servico" && intent.service_id) {
+         setTimeout(() => {
+           selectServiceForClient(intent.service_id);
+         }, 1000);
+      }
+    } catch(e){}
+  }
 }
 
 function adjustLayoutForRole() {
@@ -398,20 +412,68 @@ if (postForm) {
   });
 }
 
+// Mock de Serviços Iniciais de Demonstração
+const MOCK_INITIAL_SERVICES = [
+  {
+    id: "srv-1",
+    cartomante_id: "cartomante-luana",
+    titulo: "Tiragem Completa de Amor",
+    descricao: "Análise profunda dos sentimentos, caminhos e futuro do seu relacionamento através das cartas sagradas.",
+    preco: 80.00,
+    duracao_minutos: 45,
+    prazo_dias: 2,
+    meio_pagamento: "PIX",
+    ativo: true
+  },
+  {
+    id: "srv-2",
+    cartomante_id: "cartomante-luana",
+    titulo: "Ritual de Abertura de Caminhos Financeiros",
+    descricao: "Mentalização e tiragem direcionada para destravar projetos, emprego e prosperidade material.",
+    preco: 120.00,
+    duracao_minutos: 60,
+    prazo_dias: 3,
+    meio_pagamento: "PIX / Transferência",
+    ativo: true
+  }
+];
+
 // Carregar Serviços Reais do Supabase
 async function loadRealServices() {
   const container = document.getElementById("servicesGridContainer");
-  if (!container || !supabase || !activeCartomante) return;
+  if (!container || !activeCartomante) return;
 
-  const { data: services, error } = await supabase
-    .from("servicos_publicos")
-    .select("*")
-    .eq("cartomante_id", activeCartomante.id)
-    .eq("ativo", true)
-    .order("preco", { ascending: true });
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  let services = [];
+
+  if (isConnected) {
+    try {
+      const { data, error } = await supabase
+        .from("servicos_publicos")
+        .select("*")
+        .eq("cartomante_id", activeCartomante.id)
+        .eq("ativo", true)
+        .order("preco", { ascending: true });
+      if (!error) {
+        services = data || [];
+      }
+    } catch (e) {
+      console.warn("Erro ao carregar serviços do Supabase, usando contingência local.", e);
+    }
+  }
+
+  if (services.length === 0) {
+    const stored = localStorage.getItem("cartomante_servicos_publicos");
+    if (stored) {
+      services = JSON.parse(stored).filter(s => s.cartomante_id === activeCartomante.id && s.ativo);
+    } else {
+      services = MOCK_INITIAL_SERVICES.filter(s => s.cartomante_id === activeCartomante.id && s.ativo);
+      localStorage.setItem("cartomante_servicos_publicos", JSON.stringify(MOCK_INITIAL_SERVICES));
+    }
+  }
 
   container.innerHTML = "";
-  if (error || !services || services.length === 0) {
+  if (services.length === 0) {
     container.innerHTML = `
       <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
         <i class="fas fa-concierge-bell" style="font-size: 2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
@@ -429,11 +491,13 @@ async function loadRealServices() {
       <div class="service-meta" style="flex:1;">
         <h4>${s.titulo} <span class="service-duration"><i class="far fa-clock"></i> ${s.duracao_minutos} min</span></h4>
         <p class="service-desc">${s.descricao}</p>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Prazo de revelação: ${s.prazo_dias} dia(s)</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">
+          Prazo de revelação: ${s.prazo_dias} dia(s) • Pagamento: <strong>${s.meio_pagamento || 'PIX'}</strong>
+        </div>
       </div>
       <div class="service-price-tag">
         <div class="service-price">R$ ${s.preco.toFixed(2).replace('.', ',')}</div>
-        <button onclick="handleClientAction('conversar')" class="glass-button" style="border-color:var(--gold-color); font-size:0.72rem; margin-top:10px; width:100%; justify-content:center;">
+        <button onclick="selectServiceForClient('${s.id}')" class="glass-button" style="border-color:var(--gold-color); font-size:0.72rem; margin-top:10px; width:100%; justify-content:center;">
           <i class="fas fa-shopping-cart"></i> Solicitar
         </button>
         ${isDona ? `<button onclick="deleteService('${s.id}')" class="glass-button" style="border-color:#ff8888; color:#ff8888; font-size:0.72rem; margin-top:5px; width:100%; justify-content:center;"><i class="fas fa-trash"></i> Excluir</button>` : ''}
@@ -446,12 +510,19 @@ async function loadRealServices() {
 // Excluir serviço (para a dona)
 window.deleteService = async function(id) {
   if (!confirm("Deseja desativar este serviço do perfil?")) return;
-  const { error } = await supabase.from("servicos_publicos").delete().eq("id", id);
-  if (error) {
-    alert("Erro ao excluir: " + error.message);
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (isConnected) {
+    const { error } = await supabase.from("servicos_publicos").delete().eq("id", id);
+    if (error) {
+      alert("Erro ao excluir: " + error.message);
+      return;
+    }
   } else {
-    await loadRealServices();
+    let localDb = JSON.parse(localStorage.getItem("cartomante_servicos_publicos") || "[]");
+    localDb = localDb.filter(s => s.id !== id);
+    localStorage.setItem("cartomante_servicos_publicos", JSON.stringify(localDb));
   }
+  await loadRealServices();
 };
 
 // Criar novo serviço (para a dona)
@@ -459,32 +530,55 @@ const serviceForm = document.getElementById("frmCreateService");
 if (serviceForm) {
   serviceForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!supabase || !activeCartomante || !isDona) return;
+    if (!activeCartomante || !isDona) return;
 
     const title = document.getElementById("serviceTitle").value.trim();
     const price = parseFloat(document.getElementById("servicePrice").value);
     const duration = parseInt(document.getElementById("serviceDuration").value);
     const deadline = parseInt(document.getElementById("serviceDeadline").value);
     const desc = document.getElementById("serviceDesc").value.trim();
+    const payment = document.getElementById("servicePaymentMethod").value.trim();
 
-    const { error } = await supabase
-      .from("servicos_publicos")
-      .insert({
+    const isConnected = supabase ? await testSupabaseConnection() : false;
+    
+    if (isConnected) {
+      const { error } = await supabase
+        .from("servicos_publicos")
+        .insert({
+          cartomante_id: activeCartomante.id,
+          titulo: title,
+          preco: price,
+          duracao_minutos: duration,
+          prazo_dias: deadline,
+          descricao: desc,
+          meio_pagamento: payment,
+          ativo: true
+        });
+
+      if (error) {
+        alert("Erro ao salvar serviço: " + error.message);
+        return;
+      }
+    } else {
+      const newService = {
+        id: "srv-local-" + Date.now(),
         cartomante_id: activeCartomante.id,
         titulo: title,
         preco: price,
         duracao_minutos: duration,
         prazo_dias: deadline,
         descricao: desc,
-        ativo: true
-      });
-
-    if (error) {
-      alert("Erro ao salvar serviço: " + error.message);
-    } else {
-      serviceForm.reset();
-      await loadRealServices();
+        meio_pagamento: payment,
+        ativo: true,
+        created_at: new Date().toISOString()
+      };
+      const localDb = JSON.parse(localStorage.getItem("cartomante_servicos_publicos") || "[]");
+      localDb.push(newService);
+      localStorage.setItem("cartomante_servicos_publicos", JSON.stringify(localDb));
     }
+    
+    serviceForm.reset();
+    await loadRealServices();
   });
 }
 
@@ -968,7 +1062,279 @@ async function confirmBookingAction() {
     } finally {
       btnConfirm.disabled = false;
       btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
-    }
   }
 }
+
+// ==========================================================================
+// FLUXO DE CONTRATAÇÃO DE SERVIÇOS FINANCEIRO/MANUAL E BLOQUEIOS
+// ==========================================================================
+let selectedService = null;
+
+async function getLoggedClient() {
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (isConnected && loggedUser) {
+    const { data: client } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("user_id", loggedUser.id)
+      .maybeSingle();
+    return client;
+  } else {
+    const demo = localStorage.getItem("demo_logged_client");
+    if (demo) return JSON.parse(demo);
+    return {
+      id: "demo-client-1",
+      nome_completo: "Consulente de Teste",
+      email: "cliente@templo.com"
+    };
+  }
+}
+
+async function checkClientBlocked(cartomanteId) {
+  const client = await getLoggedClient();
+  if (!client) return false;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (isConnected) {
+    try {
+      const { data, error } = await supabase
+        .from("cartomante_clientes")
+        .select("status, bloqueado")
+        .eq("cartomante_id", cartomanteId)
+        .eq("cliente_id", client.id)
+        .maybeSingle();
+      if (!error && data) {
+        return data.status === "pendente" && data.bloqueado;
+      }
+    } catch (e) {
+      console.warn("Erro ao verificar bloqueio no Supabase:", e);
+    }
+  }
+
+  const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+  const match = vinculos.find(v => v.cartomante_id === cartomanteId && v.cliente_id === client.id);
+  return match ? (match.status === "pendente" && match.bloqueado) : false;
+}
+
+window.showClientBlockedModal = function() {
+  const modal = document.getElementById("clientBlockedModal");
+  if (modal) modal.classList.remove("hidden");
+};
+
+window.closeClientBlockedModal = function() {
+  const modal = document.getElementById("clientBlockedModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+window.selectServiceForClient = async function(serviceId) {
+  if (!activeCartomante) return;
+
+  if (userRole === "visitante") {
+    sessionStorage.setItem("pending_intent", JSON.stringify({
+      action: "contratar_servico",
+      service_id: serviceId,
+      cartomante_id: activeCartomante.id,
+      cartomante_slug: activeCartomante.slug
+    }));
+    window.location.href = "login.html";
+    return;
+  }
+
+  if (userRole === "cartomante") {
+    alert("Como cartomante, você não pode contratar serviços no site.");
+    return;
+  }
+
+  const isBlocked = await checkClientBlocked(activeCartomante.id);
+  if (isBlocked) {
+    window.showClientBlockedModal();
+    return;
+  }
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  let service = null;
+
+  if (isConnected) {
+    try {
+      const { data } = await supabase
+        .from("servicos_publicos")
+        .select("*")
+        .eq("id", serviceId)
+        .maybeSingle();
+      service = data;
+    } catch(e){}
+  }
+
+  if (!service) {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_servicos_publicos") || "[]");
+    service = localDb.find(s => s.id === serviceId);
+  }
+
+  if (!service) {
+    alert("Serviço não encontrado.");
+    return;
+  }
+
+  selectedService = service;
+
+  document.getElementById("lblChoiceCartomante").innerText = activeCartomante.nome;
+  document.getElementById("lblChoiceServico").innerText = service.titulo;
+  document.getElementById("lblChoiceDesc").innerText = service.descricao;
+  document.getElementById("lblChoicePreco").innerText = "R$ " + service.preco.toFixed(2).replace('.', ',');
+  document.getElementById("lblChoiceMeioPagamento").innerText = service.meio_pagamento || "PIX";
+
+  document.getElementById("serviceChoiceModal").classList.remove("hidden");
+};
+
+window.closeServiceChoiceModal = function() {
+  document.getElementById("serviceChoiceModal").classList.add("hidden");
+  selectedService = null;
+};
+
+window.proceedToPaymentConfirmation = function() {
+  document.getElementById("serviceChoiceModal").classList.add("hidden");
+  document.getElementById("servicePaymentConfirmationModal").classList.remove("hidden");
+};
+
+window.closeServicePaymentConfirmationModal = function() {
+  document.getElementById("servicePaymentConfirmationModal").classList.add("hidden");
+  selectedService = null;
+};
+
+window.submitServiceOrder = async function(alreadyPaid) {
+  if (!selectedService || !activeCartomante) return;
+
+  const client = await getLoggedClient();
+  if (!client) {
+    alert("Erro ao identificar o consulente conectado.");
+    return;
+  }
+
+  // Obter valores de defesa do cliente
+  const noteEl = document.getElementById("paymentClientNote");
+  const hashEl = document.getElementById("paymentTxHash");
+  const receiptEl = document.getElementById("paymentReceiptUrl");
+
+  const clientNote = noteEl ? noteEl.value.trim() : "";
+  const txHash = hashEl ? hashEl.value.trim() : "";
+  const receiptUrl = receiptEl ? receiptEl.value.trim() : "";
+
+  const statusInicial = alreadyPaid ? "pagamento_informado" : "aguardando_pagamento";
+  const orderId = "ord-" + Date.now();
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+
+  if (isConnected) {
+    try {
+      const { error: orderErr } = await supabase
+        .from("pedidos_servicos")
+        .insert({
+          cliente_id: client.id,
+          cartomante_id: activeCartomante.id,
+          servico_id: selectedService.id.startsWith("srv-local") ? null : selectedService.id,
+          servico_titulo: selectedService.titulo,
+          servico_preco: selectedService.preco,
+          meio_pagamento: selectedService.meio_pagamento || "PIX",
+          status: statusInicial,
+          nota_cliente: clientNote || null,
+          hash_transacao: txHash || null,
+          comprovante_url: receiptUrl || null,
+          data_envio_pagamento: alreadyPaid ? new Date().toISOString() : null
+        });
+
+      if (orderErr) {
+        alert("Erro ao registrar pedido no servidor: " + orderErr.message);
+        return;
+      }
+
+      await supabase.from("cartomante_clientes").insert({
+        cartomante_id: activeCartomante.id,
+        cliente_id: client.id,
+        status: "ativo",
+        bloqueado: false
+      }).select().maybeSingle();
+
+      const msgNotif = alreadyPaid 
+        ? `Cliente ${client.nome_completo} selecionou o serviço ${selectedService.titulo}. O pagamento chegou?`
+        : `Cliente ${client.nome_completo} selecionou o serviço ${selectedService.titulo}, mas ainda não informou o envio do pagamento.`;
+
+      await supabase.from("notificacoes").insert({
+        user_id: activeCartomante.id,
+        titulo: "Novo Pedido de Serviço",
+        mensagem: msgNotif,
+        tipo: "pagamento",
+        lida: false
+      });
+
+    } catch (e) {
+      console.error("Erro no fluxo do Supabase:", e);
+    }
+  } else {
+    const newOrder = {
+      id: orderId,
+      cliente_id: client.id,
+      cliente_nome: client.nome_completo,
+      cartomante_id: activeCartomante.id,
+      servico_id: selectedService.id,
+      servico_titulo: selectedService.titulo,
+      servico_preco: selectedService.preco,
+      meio_pagamento: selectedService.meio_pagamento || "PIX",
+      status: statusInicial,
+      created_at: new Date().toISOString(),
+      nota_cliente: clientNote || null,
+      hash_transacao: txHash || null,
+      comprovante_url: receiptUrl || null,
+      data_envio_pagamento: alreadyPaid ? new Date().toISOString() : null
+    };
+
+    const localOrders = JSON.parse(localStorage.getItem("cartomante_pedidos_servicos") || "[]");
+    localOrders.push(newOrder);
+    localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(localOrders));
+
+    const localVinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+    const match = localVinculos.find(v => v.cartomante_id === activeCartomante.id && v.cliente_id === client.id);
+    if (!match) {
+      localVinculos.push({
+        cartomante_id: activeCartomante.id,
+        cliente_id: client.id,
+        status: "ativo",
+        bloqueado: false
+      });
+      localStorage.setItem("cartomante_clientes_vinculos", JSON.stringify(localVinculos));
+    }
+
+    const msgNotif = alreadyPaid 
+      ? `Cliente ${client.nome_completo} selecionou o serviço ${selectedService.titulo}. O pagamento chegou?`
+      : `Cliente ${client.nome_completo} selecionou o serviço ${selectedService.titulo}, mas ainda não informou o envio do pagamento.`;
+
+    const notifs = JSON.parse(localStorage.getItem("cartomante_notificacoes") || "[]");
+    notifs.unshift({
+      id: "notif-local-" + Date.now(),
+      user_id: activeCartomante.id,
+      titulo: "Novo Pedido de Serviço",
+      mensagem: msgNotif,
+      tipo: "pagamento",
+      lida: false,
+      created_at: new Date().toISOString(),
+      metadata: { pedido_id: orderId }
+    });
+    localStorage.setItem("cartomante_notificacoes", JSON.stringify(notifs));
+  }
+
+  // Notificar visualmente o cliente com a frase de defesa do cliente solicitada
+  if (alreadyPaid) {
+    alert("Seu envio de pagamento foi registrado. Agora aguarde a confirmação da cartomante.");
+  } else {
+    alert("Pedido solicitado com sucesso! Seu pedido está com o status: Aguardando Pagamento.");
+  }
+
+  document.getElementById("servicePaymentConfirmationModal").classList.add("hidden");
+  
+  // Limpar inputs
+  if (noteEl) noteEl.value = "";
+  if (hashEl) hashEl.value = "";
+  if (receiptEl) receiptEl.value = "";
+  
+  selectedService = null;
+};
 

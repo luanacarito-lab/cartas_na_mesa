@@ -257,6 +257,44 @@
         </div>
       </section>
 
+      <!-- SEÇÃO 5: SEGURANÇA DA CONTA (TROCA DE SENHA) -->
+      <section class="glass-panel" style="padding: 25px; border: 1px solid var(--card-border);">
+        <h2 class="decorative-title" style="font-size: 1.15rem; color: var(--gold-color); margin-bottom: 20px; border-bottom: 1.5px solid var(--public-primary); padding-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-key" style="color: var(--public-primary);"></i> Segurança da Conta & Alteração de Senha
+        </h2>
+        <p class="section-desc" style="font-size: 0.75rem; margin-bottom: 20px;">Atualize sua senha de acesso ao Santuário. Para salvar alterações, você precisará confirmar sua senha atual como barreira protetora.</p>
+        
+        <form class="mystic-form" id="frmSecurityPassword" onsubmit="saveNewPassword(event)">
+          
+          <div class="mystic-form-group">
+            <label for="pwdSenhaAtual">Senha Atual</label>
+            <input type="password" id="pwdSenhaAtual" class="mystic-input" placeholder="Sua senha atual..." required />
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-top:15px;">
+            <div class="mystic-form-group">
+              <label for="pwdNovaSenha">Nova Senha</label>
+              <input type="password" id="pwdNovaSenha" class="mystic-input" placeholder="Mínimo 8 caracteres, letras e números..." required oninput="validatePasswordStrength(this.value)" />
+              <div id="pwdStrengthMeter" style="font-size: 0.7rem; margin-top: 4px; font-weight: 600;"></div>
+            </div>
+            
+            <div class="mystic-form-group">
+              <label for="pwdConfirmaNovaSenha">Confirmar Nova Senha</label>
+              <input type="password" id="pwdConfirmaNovaSenha" class="mystic-input" placeholder="Repita a nova senha..." required />
+            </div>
+          </div>
+
+          <div style="margin-top: 15px; display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="chkLogoutOthers" style="width: 16px; height: 16px; cursor: pointer;" />
+            <label for="chkLogoutOthers" style="font-size: 0.8rem; cursor: pointer; color: var(--text-secondary);">Encerrar outras sessões ativas nesta conta</label>
+          </div>
+
+          <button type="submit" class="glass-button" style="border-color: var(--public-primary); margin-top: 20px; padding:10px 20px;">
+            <i class="fas fa-save"></i> Atualizar Senha
+          </button>
+        </form>
+      </section>
+
       <!-- SEÇÃO 4: REGISTRO DE ATIVIDADES (AUDITORIA) -->
       <section class="glass-panel" style="padding: 25px; border: 1px solid var(--card-border);">
         <h2 class="decorative-title" style="font-size: 1.15rem; color: var(--gold-color); margin-bottom: 20px; border-bottom: 1.5px solid var(--public-primary); padding-bottom: 8px; display: flex; align-items: center; gap: 10px;">

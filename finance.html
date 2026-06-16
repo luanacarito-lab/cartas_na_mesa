@@ -244,72 +244,159 @@
       <!-- 4. TABELA DE MOVIMENTAÇÕES (LISTAGEM) -->
       <section class="transactions-panel glass-panel">
         
-        <!-- Cabeçalho do Painel com Filtros e Lançamento -->
-        <div class="panel-header-row">
-          <h2 class="decorative-title" style="font-size:1.2rem; margin:0;"><i class="fas fa-seedling"></i> Livro de Colheitas</h2>
-          
-          <!-- Filtros Rápidos -->
-          <div class="panel-actions">
+        <!-- Abas do Painel -->
+        <div class="tabs" style="margin-bottom: 20px; display: flex; gap: 10px; border-bottom: 1px solid rgba(199, 162, 122, 0.15); padding-bottom: 10px;">
+          <button class="tab-link active" id="tab-movimentacoes-btn" onclick="switchFinanceTab('movimentacoes')" style="background: none; border: none; color: var(--gold-color); cursor: pointer; padding: 6px 12px; font-weight: 600; font-family: var(--font-modern); font-size: 0.85rem; transition: color 0.2s;">
+            <i class="fas fa-receipt"></i> Movimentações Financeiras
+          </button>
+          <button class="tab-link" id="tab-pedidos-btn" onclick="switchFinanceTab('pedidos')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px 12px; font-weight: 600; font-family: var(--font-modern); font-size: 0.85rem; transition: color 0.2s;">
+            <i class="fas fa-file-invoice-dollar"></i> Pedidos de Serviços
+          </button>
+          <button class="tab-link" id="tab-auditoria-btn" onclick="switchFinanceTab('auditoria')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px 12px; font-weight: 600; font-family: var(--font-modern); font-size: 0.85rem; transition: color 0.2s;">
+            <i class="fas fa-history"></i> Histórico de Auditoria
+          </button>
+        </div>
+
+        <!-- Painel 1: Movimentações (Tabela Existente) -->
+        <div id="panel-movimentacoes">
+          <!-- Cabeçalho do Painel com Filtros e Lançamento -->
+          <div class="panel-header-row">
+            <h2 class="decorative-title" style="font-size:1.2rem; margin:0;"><i class="fas fa-seedling"></i> Livro de Colheitas</h2>
             
-            <!-- Busca por Consulente -->
-            <select class="filter-dropdown" id="fltCliente" onchange="applyFilters()">
-              <option value="">Todos os Consulentes</option>
-              <!-- Injetado via JS -->
-            </select>
+            <!-- Filtros Rápidos -->
+            <div class="panel-actions">
+              
+              <!-- Busca por Consulente -->
+              <select class="filter-dropdown" id="fltCliente" onchange="applyFilters()">
+                <option value="">Todos os Consulentes</option>
+                <!-- Injetado via JS -->
+              </select>
 
-            <!-- Filtro de Categoria -->
-            <select class="filter-dropdown" id="fltCategoria" onchange="applyFilters()">
-              <option value="">Todas as Categorias</option>
-              <option value="atendimento">Atendimentos</option>
-              <option value="pergunta_baralho">Perguntas ao Baralho</option>
-              <option value="servico">Serviços Especiais</option>
-              <option value="gasto_pessoal">Gastos Pessoais</option>
-              <option value="plataforma">Taxas da Plataforma</option>
-              <option value="outros">Outros</option>
-            </select>
+              <!-- Filtro de Categoria -->
+              <select class="filter-dropdown" id="fltCategoria" onchange="applyFilters()">
+                <option value="">Todas as Categorias</option>
+                <option value="atendimento">Atendimentos</option>
+                <option value="pergunta_baralho">Perguntas ao Baralho</option>
+                <option value="servico">Serviços Especiais</option>
+                <option value="gasto_pessoal">Gastos Pessoais</option>
+                <option value="plataforma">Taxas da Plataforma</option>
+                <option value="outros">Outros</option>
+              </select>
 
-            <!-- Filtro de Status -->
-            <select class="filter-dropdown" id="fltStatus" onchange="applyFilters()">
-              <option value="">Todos os Status</option>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-              <option value="cancelado">Cancelado</option>
-              <option value="reembolsado">Reembolsado</option>
-            </select>
+              <!-- Filtro de Status -->
+              <select class="filter-dropdown" id="fltStatus" onchange="applyFilters()">
+                <option value="">Todos os Status</option>
+                <option value="pago">Pago</option>
+                <option value="pendente">Pendente</option>
+                <option value="cancelado">Cancelado</option>
+                <option value="reembolsado">Reembolsado</option>
+              </select>
 
-            <!-- Filtro de Período -->
-            <select class="filter-dropdown" id="fltPeriodo" onchange="applyFilters()">
-              <option value="todos">Todo o Histórico</option>
-              <option value="diario">Fluxo Diário</option>
-              <option value="semanal">Fluxo Semanal</option>
-              <option value="mensal" selected>Fluxo Mensal (30 dias)</option>
-            </select>
+              <!-- Filtro de Período -->
+              <select class="filter-dropdown" id="fltPeriodo" onchange="applyFilters()">
+                <option value="todos">Todo o Histórico</option>
+                <option value="diario">Fluxo Diário</option>
+                <option value="semanal">Fluxo Semanal</option>
+                <option value="mensal" selected>Fluxo Mensal (30 dias)</option>
+              </select>
 
-            <!-- Botão Lançar Manual -->
-            <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openTransactionModal()">
-              <i class="fas fa-plus"></i> Lançar Manual
-            </button>
+              <!-- Botão Lançar Manual -->
+              <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openTransactionModal()">
+                <i class="fas fa-plus"></i> Lançar Manual
+              </button>
 
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="transactions-table-wrapper">
+            <table class="transactions-table">
+              <thead>
+                <tr>
+                  <th>Movimentação / Categoria</th>
+                  <th>Consulente</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Valor</th>
+                  <th style="text-align:center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody">
+                <!-- Injetado dinamicamente por JS -->
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Tabela -->
-        <div class="transactions-table-wrapper">
-          <table class="transactions-table">
-            <thead>
-              <tr>
-                <th>Movimentação / Categoria</th>
-                <th>Consulente</th>
-                <th>Data</th>
-                <th>Status</th>
-                <th>Valor</th>
-                <th style="text-align:center;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="transactionsTableBody">
-              <!-- Injetado dinamicamente por JS -->
-            </tbody>
-          </table>
+        <!-- Painel 2: Pedidos de Serviços (Fluxo Financeiro/Manual) -->
+        <div id="panel-pedidos" class="hidden">
+          <div class="panel-header-row">
+            <h2 class="decorative-title" style="font-size:1.2rem; margin:0;"><i class="fas fa-concierge-bell"></i> Gestão de Contratações</h2>
+            
+            <div class="panel-actions">
+              <!-- Filtro de Status do Pedido -->
+              <select class="filter-dropdown" id="fltPedidoStatus" onchange="applyPedidoFilters()">
+                <option value="">Todos os Status</option>
+                <option value="aguardando_pagamento">Aguardando Pagamento</option>
+                <option value="pagamento_informado">Pagamento Informado</option>
+                <option value="pagamento_confirmado">Confirmados</option>
+                <option value="pagamento_pendente">Pendentes (Não Recebidos)</option>
+                <option value="bloqueado_temporariamente">Casos com Bloqueio</option>
+                <option value="cancelado">Cancelados</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="transactions-table-wrapper">
+            <table class="transactions-table">
+              <thead>
+                <tr>
+                  <th>Consulente</th>
+                  <th>Serviço</th>
+                  <th>Valor</th>
+                  <th>Status de Pagamento</th>
+                  <th>Data/Hora</th>
+                  <th style="text-align:center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="pedidosTableBody">
+                <!-- Injetado dinamicamente por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel 3: Histórico de Auditoria Imutável -->
+        <div id="panel-auditoria" class="hidden">
+          <div class="panel-header-row" style="margin-bottom: 15px;">
+            <h2 class="decorative-title" style="font-size:1.2rem; margin:0;"><i class="fas fa-history"></i> Histórico de Auditoria Imutável</h2>
+            <div class="panel-actions">
+              <!-- Botão Lançar Ajuste -->
+              <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openAjusteModal()">
+                <i class="fas fa-balance-scale"></i> Registrar Entrada de Ajuste
+              </button>
+            </div>
+          </div>
+          <p class="section-desc" style="font-style: italic; margin-bottom: 20px; font-size: 0.8rem;">
+            Os registros abaixo são definitivos e imutáveis. Não é possível editar ou excluir logs passados. Ajustes financeiros devem ser feitos através do lançamento de novos registros de ajuste corretivos.
+          </p>
+
+          <div class="transactions-table-wrapper">
+            <table class="transactions-table">
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Ação</th>
+                  <th>Consulente</th>
+                  <th>Comprovante/Nota</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody id="auditoriaTableBody">
+                <!-- Injetado dinamicamente por JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </section>
@@ -448,6 +535,126 @@
 
   <!-- Tooltip flutuante de gráficos -->
   <div class="chart-tooltip" id="chartTooltip"></div>
+
+  <!-- MODAL: DETALHES DO PEDIDO FINANCEIRO -->
+  <div class="mystic-modal" id="orderDetailModal" style="display: none;">
+    <div class="mystic-modal-content glass-panel" style="max-width:480px; padding: 25px;">
+      <div class="modal-header-mystic" style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.3rem; margin: 0;"><i class="fas fa-file-invoice-dollar"></i> Detalhes do Pedido</h2>
+        <button class="close-mystic-btn" onclick="closeOrderDetailModal()">&times;</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+        <input type="hidden" id="detailPedidoId" />
+        <input type="hidden" id="detailClienteId" />
+        
+        <div>
+          <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Cliente / Consulente</label>
+          <div id="lblDetailCliente" style="font-weight: 600; color: #fff; font-size: 1rem;"></div>
+        </div>
+        <div>
+          <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Serviço</label>
+          <div id="lblDetailServico" style="font-weight: 600; color: var(--gold-color); font-size: 1.1rem;"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Valor</label>
+            <div id="lblDetailValor" style="font-weight: bold; color: #fff; font-size: 1.15rem;"></div>
+          </div>
+          <div>
+            <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Meio de Pagamento</label>
+            <div id="lblDetailMeio" style="font-weight: 600; color: #fff; font-size: 0.95rem;"></div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Status Atual</label>
+            <div id="lblDetailStatus" style="font-weight: 600;"></div>
+          </div>
+          <div>
+            <label style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Data da Solicitação</label>
+            <div id="lblDetailData" style="font-size: 0.85rem; color: var(--text-secondary);"></div>
+          </div>
+        </div>
+
+        <div id="detailDefenseSection" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(199, 162, 122, 0.25); display: none;">
+          <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.85rem; margin-top: 0; margin-bottom: 8px;"><i class="fas fa-shield-alt"></i> Informações de Envio do Cliente</h4>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem;">
+            <div>
+              <span style="color: var(--text-muted);">Nota/Defesa:</span>
+              <span id="lblDetailNotaCliente" style="color: #fff; font-style: italic;"></span>
+            </div>
+            <div>
+              <span style="color: var(--text-muted);">Hash da Transação:</span>
+              <span id="lblDetailHashTransacao" style="color: #fff; font-family: monospace;"></span>
+            </div>
+            <div>
+              <span style="color: var(--text-muted);">Comprovante:</span>
+              <span id="lblDetailComprovanteUrl"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 15px; display: flex; flex-direction: column; gap: 10px;" id="orderActionsContainer">
+          <!-- Botões de ação injetados dinamicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PERGUNTA DE BLOQUEIO DO CLIENTE -->
+  <div class="mystic-modal" id="confirmBlockModal" style="display: none;">
+    <div class="mystic-modal-content glass-panel" style="max-width:420px; padding: 25px; text-align: center;">
+      <div style="font-size: 2.5rem; color: var(--gold-color); margin-bottom: 15px;">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <h3 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.25rem; margin-bottom: 15px;">Bloqueio de Consulente</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 25px;">
+        “Deseja bloquear novos pedidos, perguntas ou serviços deste cliente até a confirmação do pagamento?”
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button id="btnConfirmBlockYes" class="glass-button" style="border-color: #ff8888; color: #ff8888; flex: 1; justify-content: center; padding: 12px; font-weight: 600;">
+          Sim, bloquear
+        </button>
+        <button id="btnConfirmBlockNo" class="glass-button" style="flex: 1; justify-content: center; padding: 12px;">
+          Não, manter apenas pendente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR ENTRADA DE AJUSTE (AUDITORIA) -->
+  <div class="mystic-modal" id="ajusteModal" style="display: none;">
+    <div class="mystic-modal-content glass-panel" style="max-width:480px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-balance-scale"></i> Registrar Entrada de Ajuste</h2>
+        <button class="close-mystic-btn" onclick="closeAjusteModal()">&times;</button>
+      </div>
+      
+      <form id="ajusteForm" onsubmit="saveAjuste(event)" style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">
+        <div class="mystic-form-group">
+          <label for="ajusteClienteId" style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Consulente Relacionado (Opcional)</label>
+          <select id="ajusteClienteId" class="mystic-select">
+            <option value="">Nenhum</option>
+            <!-- Injetado por JS -->
+          </select>
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="ajusteAcao" style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Tipo de Ajuste / Ação</label>
+          <input type="text" id="ajusteAcao" class="mystic-input" placeholder="Ex: Ajuste de Caixa, Correção de Saldo" required />
+        </div>
+
+        <div class="mystic-form-group">
+          <label for="ajusteDetalhes" style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Detalhes / Justificativa do Ajuste</label>
+          <textarea id="ajusteDetalhes" class="mystic-textarea" rows="4" placeholder="Descreva os motivos do ajuste e o impacto financeiro..." required></textarea>
+        </div>
+
+        <button type="submit" class="glass-button" style="width:100%; border-color:var(--gold-color); justify-content:center; padding:12px; font-weight:600;">
+          <i class="fas fa-save"></i> Registrar Ajuste
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- Main layout animations and theme -->
   <script src="script.js"></script>

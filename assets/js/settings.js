@@ -424,6 +424,40 @@ async function deleteResponse(chave) {
 async function saveEmotionalConfig(event) {
   event.preventDefault();
 
+  const confirmPass = prompt("Para confirmar as novas diretrizes do templo, insira sua senha atual de acesso:");
+  if (confirmPass === null) return;
+  if (!confirmPass) {
+    alert("Confirmação de senha é obrigatória.");
+    return;
+  }
+
+  const isConnected = await testSupabaseConnection();
+
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error: reauthError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: confirmPass
+        });
+        if (reauthError) {
+          alert("Senha incorreta. Acesso negado para alteração de diretrizes.");
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao reautenticar.");
+      return;
+    }
+  } else {
+    if (confirmPass !== "cartomante123") {
+      alert("Senha incorreta. (A senha do mock é 'cartomante123')");
+      return;
+    }
+  }
+
   const isEsgotamento = document.getElementById("cfgModoEsgotamento").checked;
   const msgEsgotamento = document.getElementById("cfgMsgEsgotamento").value.trim();
   const maxAtendimentos = parseInt(document.getElementById("cfgMaxAtendimentos").value);
@@ -437,8 +471,6 @@ async function saveEmotionalConfig(event) {
     max_perguntas: maxPerguntas,
     min_interval: minInterval
   };
-
-  const isConnected = await testSupabaseConnection();
 
   if (isConnected) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -557,3 +589,122 @@ function renderActivityLogs(logs) {
     container.appendChild(tr);
   });
 }
+
+window.validatePasswordStrength = function(password) {
+  const meter = document.getElementById("pwdStrengthMeter");
+  if (!meter) return;
+
+  if (!password) {
+    meter.innerText = "";
+    return;
+  }
+
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+  const minLength = password.length >= 8;
+
+  let score = 0;
+  if (minLength) score++;
+  if (hasLetter) score++;
+  if (hasNumber) score++;
+  if (hasSpecial) score++;
+
+  let strength = "Fraca";
+  let color = "#FF5F56";
+  
+  if (score === 4) {
+    strength = "Forte (Segura e Energizada)";
+    color = "#2ecc71";
+  } else if (score === 3) {
+    strength = "Média (Adicione caracteres especiais para melhor proteção)";
+    color = "#f1c40f";
+  } else {
+    strength = "Fraca (Mínimo de 8 caracteres, contendo letras e números)";
+    color = "#FF5F56";
+  }
+
+  meter.innerText = `Força da Senha: ${strength}`;
+  meter.style.color = color;
+};
+
+window.saveNewPassword = async function(event) {
+  event.preventDefault();
+
+  const currentPassword = document.getElementById("pwdSenhaAtual").value;
+  const newPassword = document.getElementById("pwdNovaSenha").value;
+  const confirmPassword = document.getElementById("pwdConfirmaNovaSenha").value;
+  const logoutOthers = document.getElementById("chkLogoutOthers").checked;
+
+  if (newPassword.length < 8) {
+    alert("A nova senha deve ter no mínimo 8 caracteres.");
+    return;
+  }
+  const hasLetter = /[a-zA-Z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  if (!hasLetter || !hasNumber) {
+    alert("A nova senha deve conter letras e números.");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert("A confirmação da nova senha não confere.");
+    return;
+  }
+
+  const isConnected = await testSupabaseConnection();
+  
+  if (isConnected) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Usuário não autenticado.");
+        return;
+      }
+
+      // Reautenticação (barreira de segurança)
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword
+      });
+
+      if (reauthError) {
+        alert("Senha atual incorreta. Acesso negado para alteração de credenciais.");
+        return;
+      }
+
+      // Atualizar a senha
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        alert("Erro ao atualizar senha no servidor: " + updateError.message);
+        return;
+      }
+      
+      alert("Sua senha foi atualizada com sucesso no servidor!");
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao atualizar credenciais.");
+      return;
+    }
+  } else {
+    // Modo local / demo
+    if (currentPassword !== "cartomante123") {
+      alert("Senha atual incorreta. (Dica no modo de demonstração: a senha padrão é 'cartomante123')");
+      return;
+    }
+    alert("Senha atualizada com sucesso no modo de demonstração!");
+  }
+
+  // Registrar log de auditoria
+  await logSecurityAction(
+    "Alteração de Senha", 
+    `Senha da conta atualizada com sucesso. Outras sessões encerradas: ${logoutOthers ? 'Sim' : 'Não'}`
+  );
+
+  document.getElementById("frmSecurityPassword").reset();
+  const meter = document.getElementById("pwdStrengthMeter");
+  if (meter) meter.innerText = "";
+};

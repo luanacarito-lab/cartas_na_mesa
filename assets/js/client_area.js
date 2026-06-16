@@ -65,6 +65,9 @@ window.switchClientTab = async function(tabId) {
       case "arquivos":
         await loadArquivosTab();
         break;
+      case "servicos-contratados":
+        await loadServicosContratadosTab();
+        break;
     }
   }
 };
@@ -682,19 +685,37 @@ async function loadPerguntasTab() {
 // TAB 5: ATENDIMENTOS (AGENDAMENTOS)
 // --------------------------------------------------
 async function loadAtendimentosTab() {
-  if (!supabase || !loggedClient) return;
-
-  const { data: events, error } = await supabase
-    .from("agenda_eventos")
-    .select("id, inicio, fim, cartomante_id")
-    .eq("cliente_id", loggedClient.id)
-    .order("inicio", { ascending: false });
+  if (!loggedClient) return;
 
   const container = document.getElementById("atendimentosList");
   if (!container) return;
 
   container.innerHTML = "";
-  if (error || !events || events.length === 0) {
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  let appointments = [];
+
+  if (isConnected) {
+    try {
+      const { data, error } = await supabase
+        .from("agenda_eventos")
+        .select("id, inicio, fim, cartomante_id, status")
+        .eq("cliente_id", loggedClient.id)
+        .order("inicio", { ascending: false });
+      if (!error) {
+        appointments = data || [];
+      }
+    } catch (e) {
+      console.warn("Erro ao carregar agendamentos do Supabase:", e);
+    }
+  }
+
+  if (appointments.length === 0) {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_agenda_eventos") || "[]");
+    appointments = localDb.filter(e => e.cliente_id === loggedClient.id);
+  }
+
+  if (appointments.length === 0) {
     container.innerHTML = `
       <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
         <i class="fas fa-calendar-check" style="font-size: 2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
@@ -704,12 +725,22 @@ async function loadAtendimentosTab() {
     return;
   }
 
-  for (const e of events) {
-    const { data: cart } = await supabase
-      .from("cartomantes")
-      .select("nome")
-      .eq("user_id", e.cartomante_id)
-      .maybeSingle();
+  for (const e of appointments) {
+    let cartomanteNome = "Oraculista";
+    if (isConnected) {
+      try {
+        const { data: cart } = await supabase
+          .from("cartomantes")
+          .select("nome")
+          .eq("user_id", e.cartomante_id)
+          .maybeSingle();
+        if (cart) cartomanteNome = cart.nome;
+      } catch(e){}
+    } else {
+      const storedCartomantes = JSON.parse(localStorage.getItem("demo_cartomantes") || "[]");
+      const localCart = storedCartomantes.find(c => c.user_id === e.cartomante_id);
+      cartomanteNome = localCart ? localCart.nome : "Luana Carito";
+    }
 
     const dataStr = new Date(e.inicio).toLocaleDateString('pt-BR');
     const horaStr = new Date(e.inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -717,12 +748,31 @@ async function loadAtendimentosTab() {
 
     const card = document.createElement("div");
     card.className = "chat-list-item";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "flex-start";
+    card.style.gap = "8px";
+
+    let statusLabel = "";
+    let statusColor = "";
+    let detailText = `Consulta Ritualística com <strong>${cartomanteNome}</strong>`;
+
+    if (e.status === "recusado") {
+      statusLabel = "Indisponível";
+      statusColor = "#ff8888";
+      detailText = `<span style="color:#ff8888; font-family: var(--font-classic); font-style: italic;">No momento, este atendimento não pôde ser iniciado. Verifique suas pendências ou tente novamente mais tarde.</span>`;
+    } else {
+      statusLabel = isFuture ? 'Confirmado' : 'Realizado';
+      statusColor = isFuture ? '#2ecc71' : '#a29bfe';
+    }
+
     card.innerHTML = `
-      <div>
-        <div style="font-weight:600; font-size:0.9rem; color:var(--gold-color);"><i class="far fa-calendar-alt"></i> ${dataStr} às ${horaStr}</div>
-        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Consulta Ritualística com <strong>${cart?.nome || "Oraculista"}</strong></div>
+      <div style="display:flex; justify-content:space-between; width:100%; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="font-weight:600; font-size:0.9rem; color:var(--gold-color);"><i class="far fa-calendar-alt"></i> ${dataStr} às ${horaStr}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">${detailText}</div>
+        </div>
+        <span style="font-size:0.72rem; font-weight:600; text-transform:uppercase; color:${statusColor};">${statusLabel}</span>
       </div>
-      <span style="font-size:0.72rem; font-weight:600; text-transform:uppercase; color:${isFuture ? '#2ecc71;' : '#a29bfe;'}">${isFuture ? 'Confirmado' : 'Realizado'}</span>
     `;
     container.appendChild(card);
   }
@@ -792,11 +842,20 @@ async function loadArquivosTab() {
   });
 }
 
-// --------------------------------------------------
-// AÇÃO DE CONVERSAR DIRETA DO CATÁLOGO DO CLIENTE
-// --------------------------------------------------
 window.startConversa = async function(cartomanteUserId) {
-  if (!supabase || !loggedClient) return;
+  if (!loggedClient) return;
+
+  const isBlocked = await checkClientBlocked(cartomanteUserId);
+  if (isBlocked) {
+    window.showClientBlockedModal();
+    return;
+  }
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    alert("Chat indisponível no modo offline.");
+    return;
+  }
 
   try {
     const { data: conversa } = await supabase
@@ -868,7 +927,15 @@ function initBookingSystem() {
   if (btnConfirm) btnConfirm.addEventListener("click", confirmBookingAction);
 }
 
-window.openBookingForCartomante = function(cartomanteId, cartomanteNome) {
+window.openBookingForCartomante = async function(cartomanteId, cartomanteNome) {
+  if (!loggedClient) return;
+
+  const isBlocked = await checkClientBlocked(cartomanteId);
+  if (isBlocked) {
+    window.showClientBlockedModal();
+    return;
+  }
+
   bookingCartomanteId = cartomanteId;
   const modal = document.getElementById("bookingModal");
   if (!modal) return;
@@ -1135,7 +1202,258 @@ async function confirmBookingAction() {
     } finally {
       btnConfirm.disabled = false;
       btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
-    }
   }
 }
+
+async function checkClientBlocked(cartomanteId) {
+  if (!loggedClient) return false;
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (isConnected) {
+    try {
+      const { data, error } = await supabase
+        .from("cartomante_clientes")
+        .select("status, bloqueado")
+        .eq("cartomante_id", cartomanteId)
+        .eq("cliente_id", loggedClient.id)
+        .maybeSingle();
+      if (!error && data) {
+        return data.status === "pendente" && data.bloqueado;
+      }
+    } catch (e) {
+      console.warn("Erro ao verificar bloqueio no Supabase:", e);
+    }
+  }
+
+  // Fallback offline
+  const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+  const match = vinculos.find(v => v.cartomante_id === cartomanteId && v.cliente_id === loggedClient.id);
+  return match ? (match.status === "pendente" && match.bloqueado) : false;
+}
+
+window.showClientBlockedModal = function() {
+  const modal = document.getElementById("clientBlockedModal");
+  if (modal) modal.classList.remove("hidden");
+};
+
+window.closeClientBlockedModal = function() {
+  const modal = document.getElementById("clientBlockedModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+window.loadServicosContratadosTab = async function() {
+  if (!loggedClient) return;
+
+  const container = document.getElementById("servicosContratadosList");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  let orders = [];
+
+  if (isConnected) {
+    try {
+      const { data, error } = await supabase
+        .from("pedidos_servicos")
+        .select("*")
+        .eq("cliente_id", loggedClient.id)
+        .order("created_at", { ascending: false });
+      if (!error) {
+        orders = data || [];
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar pedidos do Supabase:", e);
+    }
+  }
+
+  if (orders.length === 0) {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_pedidos_servicos") || "[]");
+    orders = localDb.filter(o => o.cliente_id === loggedClient.id);
+  }
+
+  if (orders.length === 0) {
+    container.innerHTML = `
+      <div class="chat-empty-state" style="padding: 40px; text-align: center; color: var(--text-secondary);">
+        <i class="fas fa-file-invoice-dollar" style="font-size: 2.2rem; color: var(--gold-color); margin-bottom: 10px;"></i>
+        <p style="font-family: var(--font-classic); font-style: italic;">Nenhum serviço contratado ainda.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const statusLabels = {
+    "aguardando_pagamento": "Aguardando pagamento",
+    "pagamento_informado": "Pagamento informado, aguardando confirmação",
+    "pagamento_confirmado": "Pagamento confirmado",
+    "pagamento_pendente": "Pagamento pendente",
+    "bloqueado_temporariamente": "Aguardando regularização (bloqueio temporário)",
+    "cancelado": "Cancelado"
+  };
+
+  const statusColors = {
+    "aguardando_pagamento": "#f1c40f",
+    "pagamento_informado": "#3498db",
+    "pagamento_confirmado": "#2ecc71",
+    "pagamento_pendente": "#e63946",
+    "bloqueado_temporariamente": "#ff8888",
+    "cancelado": "#95a5a6"
+  };
+
+  for (const o of orders) {
+    let cartomanteNome = "Oraculista";
+    if (isConnected) {
+      try {
+        const { data } = await supabase
+          .from("cartomantes")
+          .select("nome")
+          .eq("user_id", o.cartomante_id)
+          .maybeSingle();
+        if (data) cartomanteNome = data.nome;
+      } catch(e){}
+    } else {
+      const storedCartomantes = JSON.parse(localStorage.getItem("demo_cartomantes") || "[]");
+      const localCart = storedCartomantes.find(c => c.user_id === o.cartomante_id);
+      cartomanteNome = localCart ? localCart.nome : "Luana Carito";
+    }
+
+    const card = document.createElement("div");
+    card.className = "chat-list-item";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "flex-start";
+    card.style.gap = "10px";
+
+    const labelStatus = statusLabels[o.status] || o.status;
+    const colorStatus = statusColors[o.status] || "#fff";
+    const dataStr = new Date(o.created_at).toLocaleDateString('pt-BR');
+
+    let actionBtnHTML = "";
+    if (o.status === "aguardando_pagamento" || o.status === "pagamento_pendente") {
+      actionBtnHTML = `
+        <button onclick="informarEnvioPagamento('${o.id}')" class="glass-button" style="font-size:0.7rem; border-color:var(--gold-color); padding: 4px 8px; margin-top: 5px;">
+          <i class="fas fa-check"></i> Informar Envio de Pagamento
+        </button>
+      `;
+    }
+
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+        <div>
+          <h4 style="font-family:var(--font-decorative); color:var(--gold-color); font-size:1.05rem; margin:0;">${o.servico_titulo}</h4>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Cartomante: <strong>${cartomanteNome}</strong> • Contratado em: ${dataStr}</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.8rem; font-weight:bold; color:var(--gold-color);">R$ ${Number(o.servico_preco).toFixed(2).replace('.', ',')}</div>
+          <span style="font-size:0.7rem; font-weight:600; color:${colorStatus}; text-transform:uppercase;">${labelStatus}</span>
+        </div>
+      </div>
+      <div style="font-size:0.75rem; color:var(--text-secondary); width:100%;">
+        Meio de pagamento: <strong>${o.meio_pagamento || "PIX"}</strong>
+      </div>
+      ${actionBtnHTML}
+    `;
+
+    container.appendChild(card);
+  }
+};
+
+window.informarEnvioPagamento = function(pedidoId) {
+  const modal = document.getElementById("informarPagamentoModal");
+  if (!modal) return;
+  
+  document.getElementById("infPagamentoPedidoId").value = pedidoId;
+  document.getElementById("infPagamentoReceiptUrl").value = "";
+  document.getElementById("infPagamentoTxHash").value = "";
+  document.getElementById("infPagamentoClientNote").value = "";
+  
+  modal.classList.remove("hidden");
+};
+
+window.closeInformarPagamentoModal = function() {
+  const modal = document.getElementById("informarPagamentoModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+window.submitInformarPagamento = async function() {
+  const pedidoId = document.getElementById("infPagamentoPedidoId").value;
+  const receiptUrl = document.getElementById("infPagamentoReceiptUrl").value.trim();
+  const txHash = document.getElementById("infPagamentoTxHash").value.trim();
+  const clientNote = document.getElementById("infPagamentoClientNote").value.trim();
+  
+  window.closeInformarPagamentoModal();
+  
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  let orderData = null;
+  const nowStr = new Date().toISOString();
+
+  if (isConnected) {
+    try {
+      const { error } = await supabase
+        .from("pedidos_servicos")
+        .update({ 
+          status: "pagamento_informado", 
+          updated_at: nowStr,
+          nota_cliente: clientNote || null,
+          hash_transacao: txHash || null,
+          comprovante_url: receiptUrl || null,
+          data_envio_pagamento: nowStr
+        })
+        .eq("id", pedidoId);
+
+      if (error) {
+        alert("Erro ao atualizar status do pagamento no servidor: " + error.message);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("pedidos_servicos")
+        .select("*")
+        .eq("id", pedidoId)
+        .maybeSingle();
+      orderData = data;
+
+      if (orderData) {
+        const msgNotif = `Cliente informou envio de pagamento para o serviço ${orderData.servico_titulo}. O pagamento chegou?`;
+        await supabase.from("notificacoes").insert({
+          user_id: orderData.cartomante_id,
+          titulo: "Pagamento Informado de Serviço",
+          mensagem: msgNotif,
+          tipo: "pagamento",
+          lida: false
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  } else {
+    const localDb = JSON.parse(localStorage.getItem("cartomante_pedidos_servicos") || "[]");
+    const idx = localDb.findIndex(o => o.id === pedidoId);
+    if (idx !== -1) {
+      localDb[idx].status = "pagamento_informado";
+      localDb[idx].updated_at = nowStr;
+      localDb[idx].nota_cliente = clientNote || null;
+      localDb[idx].hash_transacao = txHash || null;
+      localDb[idx].comprovante_url = receiptUrl || null;
+      localDb[idx].data_envio_pagamento = nowStr;
+      localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(localDb));
+      orderData = localDb[idx];
+      
+      const notifs = JSON.parse(localStorage.getItem("cartomante_notificacoes") || "[]");
+      const msgNotif = `Cliente informou envio de pagamento para o serviço ${orderData.servico_titulo}. O pagamento chegou?`;
+      notifs.unshift({
+        id: "notif-local-" + Date.now(),
+        user_id: orderData.cartomante_id,
+        titulo: "Pagamento Informado de Serviço",
+        mensagem: msgNotif,
+        tipo: "pagamento",
+        lida: false,
+        created_at: nowStr,
+        metadata: { pedido_id: pedidoId }
+      });
+      localStorage.setItem("cartomante_notificacoes", JSON.stringify(notifs));
+    }
+  }
+
+  alert("Informação de pagamento enviada com sucesso! Aguarde a confirmação da cartomante.");
+  await loadServicosContratadosTab();
+};
 

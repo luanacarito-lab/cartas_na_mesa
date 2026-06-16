@@ -498,6 +498,9 @@
                 <div>
                   <input type="number" id="serviceDeadline" class="mystic-input" placeholder="Prazo de Entrega (dias)" required />
                 </div>
+                <div style="grid-column: span 2;">
+                  <input type="text" id="servicePaymentMethod" class="mystic-input" placeholder="Meio de Pagamento Aceito (ex: PIX, Transferência Bancária)" required />
+                </div>
               </div>
               <div class="mystic-form-group" style="margin-bottom:12px;">
                 <textarea id="serviceDesc" class="mystic-textarea" rows="2" placeholder="Descreva brevemente o serviço espiritual..." required></textarea>
@@ -628,7 +631,118 @@
             <i class="fas fa-magic"></i> Selar Agendamento
           </button>
         </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALHES E ESCOLHA DO SERVIÇO -->
+  <div id="serviceChoiceModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 500px; padding: 25px;">
+      <div class="modal-header-mystic" style="margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.3rem; margin: 0;"><i class="fas fa-shopping-bag"></i> Confirmar Serviço</h2>
+        <button class="close-mystic-btn" onclick="closeServiceChoiceModal()">&times;</button>
       </div>
+      <div style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Oraculista</label>
+          <div id="lblChoiceCartomante" style="font-size: 1.05rem; font-weight: 600; color: #fff;"></div>
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Serviço Selecionado</label>
+          <div id="lblChoiceServico" style="font-size: 1.15rem; font-weight: 600; color: var(--gold-color);"></div>
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Descrição</label>
+          <p id="lblChoiceDesc" style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin: 4px 0 0 0; font-family: var(--font-classic); font-style: italic;"></p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Valor</label>
+            <div id="lblChoicePreco" style="font-size: 1.3rem; font-weight: bold; color: var(--gold-color);"></div>
+          </div>
+          <div>
+            <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Meio de Pagamento</label>
+            <div id="lblChoiceMeioPagamento" style="font-size: 0.95rem; font-weight: 600; color: #fff;"></div>
+          </div>
+        </div>
+        
+        <div style="background: rgba(199, 162, 122, 0.05); border: 1px solid rgba(199, 162, 122, 0.15); border-radius: 8px; padding: 12px; margin-top: 10px;">
+          <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+            <i class="fas fa-info-circle" style="color: var(--gold-color); margin-right: 5px;"></i>
+            <strong>Aviso de Pagamento Externo:</strong> A contratação deste serviço envolve transação manual externa diretamente com a cartomante através do meio de pagamento indicado acima.
+          </p>
+        </div>
+
+        <div style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 15px;">
+          <p style="font-size: 0.82rem; font-weight: 600; color: #fff; margin-bottom: 12px; text-align: center;">
+            “Aqui envolve uma transação bancária/pagamento externo. Você tem certeza que deseja continuar?”
+          </p>
+          <div style="display: flex; gap: 10px;">
+            <button onclick="closeServiceChoiceModal()" class="glass-button" style="flex: 1; justify-content: center; padding: 10px; font-size: 0.8rem;">
+              <i class="fas fa-arrow-left"></i> Não, voltar
+            </button>
+            <button onclick="proceedToPaymentConfirmation()" class="glass-button" style="flex: 1.2; justify-content: center; padding: 10px; font-size: 0.8rem; border-color: var(--gold-color); font-weight: 600;">
+              Sim, continuar <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMAÇÃO DE ENVIO DE PAGAMENTO -->
+  <div id="servicePaymentConfirmationModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 450px; padding: 25px; text-align: center;">
+      <div style="font-size: 2.5rem; color: var(--gold-color); margin-bottom: 15px;">
+        <i class="fas fa-wallet"></i>
+      </div>
+      <h3 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.25rem; margin-bottom: 15px;">Envio do Pagamento</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 25px;">
+        “Você já enviou o pagamento para a cartomante pelo meio selecionado?”
+      </p>
+      
+      <!-- Campos de defesa do cliente para registro de transação -->
+      <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Nota/Observação (Opcional)</label>
+          <input type="text" id="paymentClientNote" class="mystic-input" placeholder="Ex: Enviei pelo PIX do meu marido João..." />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Código/Hash da Transação (Opcional)</label>
+          <input type="text" id="paymentTxHash" class="mystic-input" placeholder="Digite o código da transação..." />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Link do Comprovante (Opcional)</label>
+          <input type="url" id="paymentReceiptUrl" class="mystic-input" placeholder="https://exemplo.com/comprovante.jpg" />
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button onclick="submitServiceOrder(true)" class="glass-button" style="border-color: var(--gold-color); justify-content: center; padding: 12px; font-weight: 600;">
+          <i class="fas fa-check"></i> Sim, já enviei
+        </button>
+        <button onclick="submitServiceOrder(false)" class="glass-button" style="justify-content: center; padding: 12px;">
+          <i class="fas fa-clock"></i> Não, ainda não enviei
+        </button>
+        <button onclick="closeServicePaymentConfirmationModal()" style="background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; text-decoration: underline; margin-top: 5px;">
+          Cancelar e voltar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BLOQUEIO TEMPORÁRIO -->
+  <div id="clientBlockedModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 450px; padding: 25px; text-align: center; border-color: rgba(230, 57, 70, 0.3);">
+      <div style="font-size: 2.8rem; color: #ff8888; margin-bottom: 15px;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 style="font-family: var(--font-decorative); color: #ff8888; font-size: 1.25rem; margin-bottom: 15px;">Acesso Restrito</h3>
+      <p style="font-size: 0.9rem; color: var(--text-primary); line-height: 1.6; margin-bottom: 25px; font-family: var(--font-classic); font-style: italic;">
+        “Existe uma pendência de pagamento com esta cartomante. Aguarde a confirmação ou entre em contato para regularizar antes de solicitar um novo serviço.”
+      </p>
+      <button onclick="closeClientBlockedModal()" class="glass-button" style="width: 100%; border-color: #ff8888; color: #ff8888; justify-content: center; padding: 12px; font-weight: 600;">
+        Entendido
+      </button>
     </div>
   </div>
 

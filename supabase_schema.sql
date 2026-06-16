@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.conversas (
 ALTER TABLE public.conversas ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Segurança RLS para conversas
+DROP POLICY IF EXISTS "Cartomantes podem acessar suas próprias conversas" ON public.conversas;
+DROP POLICY IF EXISTS "Cartomantes podem acessar suas próprias conversas" ON conversas;
 CREATE POLICY "Cartomantes podem acessar suas próprias conversas" 
     ON public.conversas 
     FOR ALL 
@@ -47,6 +49,8 @@ CREATE TABLE IF NOT EXISTS public.configuracoes_chat (
 ALTER TABLE public.configuracoes_chat ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para configuracoes_chat
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas próprias configurações" ON public.configuracoes_chat;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas próprias configurações" ON configuracoes_chat;
 CREATE POLICY "Cartomantes podem gerenciar suas próprias configurações"
     ON public.configuracoes_chat
     FOR ALL
@@ -79,6 +83,8 @@ CREATE TABLE IF NOT EXISTS public.perguntas_baralho (
 ALTER TABLE public.perguntas_baralho ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para perguntas_baralho
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas próprias perguntas ao baralho" ON public.perguntas_baralho;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas próprias perguntas ao baralho" ON perguntas_baralho;
 CREATE POLICY "Cartomantes podem gerenciar suas próprias perguntas ao baralho"
     ON public.perguntas_baralho
     FOR ALL
@@ -106,6 +112,8 @@ CREATE TABLE IF NOT EXISTS public.mensagens (
 ALTER TABLE public.mensagens ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para mensagens
+DROP POLICY IF EXISTS "Cartomantes podem acessar mensagens de suas conversas" ON public.mensagens;
+DROP POLICY IF EXISTS "Cartomantes podem acessar mensagens de suas conversas" ON mensagens;
 CREATE POLICY "Cartomantes podem acessar mensagens de suas conversas"
     ON public.mensagens
     FOR ALL
@@ -147,6 +155,8 @@ CREATE TABLE IF NOT EXISTS public.financeiro (
 ALTER TABLE public.financeiro ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Segurança RLS para financeiro
+DROP POLICY IF EXISTS "Cartomantes possuem controle total sobre seu próprio financeiro" ON public.financeiro;
+DROP POLICY IF EXISTS "Cartomantes possuem controle total sobre seu próprio financeiro" ON financeiro;
 CREATE POLICY "Cartomantes possuem controle total sobre seu próprio financeiro"
     ON public.financeiro
     FOR ALL
@@ -177,11 +187,15 @@ CREATE TABLE IF NOT EXISTS public.perfis_publicos (
 ALTER TABLE public.perfis_publicos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS: Leitura pública para qualquer visitante, escrita apenas pela dona do perfil
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar perfis públicos publicados" ON public.perfis_publicos;
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar perfis públicos publicados" ON perfis_publicos;
 CREATE POLICY "Qualquer visitante pode visualizar perfis públicos publicados"
     ON public.perfis_publicos
     FOR SELECT
     USING (publicado = true);
 
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seu próprio perfil público" ON public.perfis_publicos;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seu próprio perfil público" ON perfis_publicos;
 CREATE POLICY "Cartomantes podem gerenciar seu próprio perfil público"
     ON public.perfis_publicos
     FOR ALL
@@ -199,6 +213,7 @@ CREATE TABLE IF NOT EXISTS public.servicos_publicos (
     preco NUMERIC(10, 2) NOT NULL CHECK (preco >= 0.0),
     duracao_minutos INT NOT NULL CHECK (duracao_minutos > 0),
     prazo_dias INT NOT NULL DEFAULT 1 CHECK (prazo_dias >= 0),
+    meio_pagamento TEXT DEFAULT 'PIX',
     ativo BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -207,11 +222,15 @@ CREATE TABLE IF NOT EXISTS public.servicos_publicos (
 ALTER TABLE public.servicos_publicos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS: Leitura pública para ativos, modificações apenas pela cartomante dona
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar serviços públicos ativos" ON public.servicos_publicos;
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar serviços públicos ativos" ON servicos_publicos;
 CREATE POLICY "Qualquer visitante pode visualizar serviços públicos ativos"
     ON public.servicos_publicos
     FOR SELECT
     USING (ativo = true);
 
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seus serviços públicos" ON public.servicos_publicos;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seus serviços públicos" ON servicos_publicos;
 CREATE POLICY "Cartomantes podem gerenciar seus serviços públicos"
     ON public.servicos_publicos
     FOR ALL
@@ -236,11 +255,15 @@ CREATE TABLE IF NOT EXISTS public.mural_postagens (
 ALTER TABLE public.mural_postagens ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS: Leitura pública, gravação/exclusão apenas pela própria cartomante
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar postagens públicas do mural" ON public.mural_postagens;
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar postagens públicas do mural" ON mural_postagens;
 CREATE POLICY "Qualquer visitante pode visualizar postagens públicas do mural"
     ON public.mural_postagens
     FOR SELECT
     USING (visibilidade = 'publico');
 
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas postagens no mural" ON public.mural_postagens;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar suas postagens no mural" ON mural_postagens;
 CREATE POLICY "Cartomantes podem gerenciar suas postagens no mural"
     ON public.mural_postagens
     FOR ALL
@@ -263,11 +286,15 @@ CREATE TABLE IF NOT EXISTS public.avaliacoes_futuras (
 ALTER TABLE public.avaliacoes_futuras ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS: Leitura pública de avaliações
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar as avaliações" ON public.avaliacoes_futuras;
+DROP POLICY IF EXISTS "Qualquer visitante pode visualizar as avaliações" ON avaliacoes_futuras;
 CREATE POLICY "Qualquer visitante pode visualizar as avaliações"
     ON public.avaliacoes_futuras
     FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Apenas cartomantes ou usuários cadastrados criam avaliações" ON public.avaliacoes_futuras;
+DROP POLICY IF EXISTS "Apenas cartomantes ou usuários cadastrados criam avaliações" ON avaliacoes_futuras;
 CREATE POLICY "Apenas cartomantes ou usuários cadastrados criam avaliações"
     ON public.avaliacoes_futuras
     FOR INSERT
@@ -356,6 +383,8 @@ CREATE TABLE IF NOT EXISTS public.anotacoes_pessoais (
 ALTER TABLE public.anotacoes_pessoais ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para anotacoes_pessoais
+DROP POLICY IF EXISTS "Cartomantes possuem privacidade total sobre suas anotações" ON public.anotacoes_pessoais;
+DROP POLICY IF EXISTS "Cartomantes possuem privacidade total sobre suas anotações" ON anotacoes_pessoais;
 CREATE POLICY "Cartomantes possuem privacidade total sobre suas anotações"
     ON public.anotacoes_pessoais
     FOR ALL
@@ -377,6 +406,8 @@ CREATE TABLE IF NOT EXISTS public.respostas_rapidas (
 ALTER TABLE public.respostas_rapidas ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para respostas_rapidas
+DROP POLICY IF EXISTS "Cartomantes gerenciam suas próprias respostas rápidas" ON public.respostas_rapidas;
+DROP POLICY IF EXISTS "Cartomantes gerenciam suas próprias respostas rápidas" ON respostas_rapidas;
 CREATE POLICY "Cartomantes gerenciam suas próprias respostas rápidas"
     ON public.respostas_rapidas
     FOR ALL
@@ -405,6 +436,7 @@ CREATE TABLE IF NOT EXISTS public.cartomante_clientes (
     cartomante_id UUID NOT NULL, -- references cartomante user id,
     cliente_id UUID NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo','inativo','pendente')),
+    bloqueado BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (cartomante_id, cliente_id)
 );
@@ -413,6 +445,8 @@ CREATE TABLE IF NOT EXISTS public.cartomante_clientes (
 ALTER TABLE public.cartomante_clientes ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Cartomante can manage its own links, clients can view their own link status
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seus clientes" ON public.cartomante_clientes;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar seus clientes" ON cartomante_clientes;
 CREATE POLICY "Cartomantes podem gerenciar seus clientes"
     ON public.cartomante_clientes
     FOR ALL
@@ -420,8 +454,170 @@ CREATE POLICY "Cartomantes podem gerenciar seus clientes"
     USING (auth.uid() = cartomante_id)
     WITH CHECK (auth.uid() = cartomante_id);
 
+DROP POLICY IF EXISTS "Clientes podem visualizar seu vínculo" ON public.cartomante_clientes;
+DROP POLICY IF EXISTS "Clientes podem visualizar seu vínculo" ON cartomante_clientes;
 CREATE POLICY "Clientes podem visualizar seu vínculo"
     ON public.cartomante_clientes
     FOR SELECT
     TO authenticated
     USING (auth.uid() = cliente_id);
+
+
+-- ==========================================================================
+-- 14. EXPANSÃO FINANCEIRA E FLUXO MANUAL DE SERVIÇOS
+-- ==========================================================================
+ALTER TABLE public.servicos_publicos ADD COLUMN IF NOT EXISTS meio_pagamento TEXT DEFAULT 'PIX';
+ALTER TABLE public.cartomante_clientes ADD COLUMN IF NOT EXISTS bloqueado BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS public.pedidos_servicos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cliente_id UUID NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
+    cartomante_id UUID NOT NULL, -- references auth.users(id)
+    servico_id UUID REFERENCES public.servicos_publicos(id) ON DELETE SET NULL,
+    servico_titulo TEXT NOT NULL,
+    servico_preco NUMERIC(10, 2) NOT NULL,
+    meio_pagamento TEXT,
+    status TEXT NOT NULL DEFAULT 'aguardando_pagamento' CHECK (status IN ('aguardando_pagamento', 'pagamento_informado', 'pagamento_confirmado', 'pagamento_pendente', 'bloqueado_temporariamente', 'cancelado')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Habilitar RLS em pedidos_servicos
+ALTER TABLE public.pedidos_servicos ENABLE ROW LEVEL SECURITY;
+
+-- Políticas RLS para pedidos_servicos
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar pedidos de seus serviços" ON public.pedidos_servicos;
+DROP POLICY IF EXISTS "Cartomantes podem gerenciar pedidos de seus serviços" ON pedidos_servicos;
+CREATE POLICY "Cartomantes podem gerenciar pedidos de seus serviços"
+    ON public.pedidos_servicos
+    FOR ALL
+    TO authenticated
+    USING (auth.uid() = cartomante_id)
+    WITH CHECK (auth.uid() = cartomante_id);
+
+DROP POLICY IF EXISTS "Clientes podem visualizar e criar seus próprios pedidos" ON public.pedidos_servicos;
+DROP POLICY IF EXISTS "Clientes podem visualizar e criar seus próprios pedidos" ON pedidos_servicos;
+CREATE POLICY "Clientes podem visualizar e criar seus próprios pedidos"
+    ON public.pedidos_servicos
+    FOR ALL
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.clientes c
+            WHERE c.id = pedidos_servicos.cliente_id
+            AND c.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.clientes c
+            WHERE c.id = pedidos_servicos.cliente_id
+            AND c.user_id = auth.uid()
+        )
+    );
+
+-- ==========================================================================
+-- 15. MELHORIAS DE SEGURANÇA E AUDITORIA FINANCEIRA ADICIONAL
+-- ==========================================================================
+ALTER TABLE public.pedidos_servicos ADD COLUMN IF NOT EXISTS nota_cliente TEXT;
+ALTER TABLE public.pedidos_servicos ADD COLUMN IF NOT EXISTS hash_transacao TEXT;
+ALTER TABLE public.pedidos_servicos ADD COLUMN IF NOT EXISTS comprovante_url TEXT;
+ALTER TABLE public.pedidos_servicos ADD COLUMN IF NOT EXISTS data_envio_pagamento TIMESTAMP WITH TIME ZONE;
+
+CREATE TABLE IF NOT EXISTS public.historico_acoes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cartomante_id UUID NOT NULL,
+    cliente_id UUID REFERENCES public.clientes(id) ON DELETE SET NULL,
+    acao TEXT NOT NULL,
+    detalhes TEXT NOT NULL,
+    status_pedido TEXT,
+    comprovante_anexado BOOLEAN DEFAULT false,
+    observacao_cartomante TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Habilitar RLS em historico_acoes
+ALTER TABLE public.historico_acoes ENABLE ROW LEVEL SECURITY;
+
+-- Políticas RLS: cartomantes só visualizam e inserem logs associados a elas.
+DROP POLICY IF EXISTS "Cartomantes podem visualizar seu próprio histórico" ON public.historico_acoes;
+DROP POLICY IF EXISTS "Cartomantes podem visualizar seu próprio histórico" ON historico_acoes;
+CREATE POLICY "Cartomantes podem visualizar seu próprio histórico"
+    ON public.historico_acoes FOR SELECT TO authenticated
+    USING (auth.uid() = cartomante_id);
+
+DROP POLICY IF EXISTS "Cartomantes podem inserir registros no histórico" ON public.historico_acoes;
+DROP POLICY IF EXISTS "Cartomantes podem inserir registros no histórico" ON historico_acoes;
+CREATE POLICY "Cartomantes podem inserir registros no histórico"
+    ON public.historico_acoes FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = cartomante_id);
+
+
+-- ==========================================================================
+-- 16. AJUSTES DE RLS PARA FLUXO DE CADASTRO (CLIENTES & CARTOMANTES)
+-- ==========================================================================
+
+-- Habilitar RLS em clientes e cartomantes (garantindo que estejam ativos)
+ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cartomantes ENABLE ROW LEVEL SECURITY;
+
+-- 1. Políticas de Inserção para Cadastro Inicial (Abertura para anon/authenticated)
+DROP POLICY IF EXISTS "Permitir inserção de clientes" ON public.clientes;
+DROP POLICY IF EXISTS "Permitir inserção de clientes" ON clientes;
+CREATE POLICY "Permitir inserção de clientes" 
+    ON public.clientes FOR INSERT 
+    TO anon, authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir inserção de cartomantes" ON public.cartomantes;
+DROP POLICY IF EXISTS "Permitir inserção de cartomantes" ON cartomantes;
+CREATE POLICY "Permitir inserção de cartomantes" 
+    ON public.cartomantes FOR INSERT 
+    TO anon, authenticated
+    WITH CHECK (true);
+
+-- 2. Políticas de Seleção e Atualização pós-login (Segurança do Usuário)
+DROP POLICY IF EXISTS "Clientes podem visualizar seu próprio perfil" ON public.clientes;
+DROP POLICY IF EXISTS "Clientes podem visualizar seu próprio perfil" ON clientes;
+CREATE POLICY "Clientes podem visualizar seu próprio perfil" 
+    ON public.clientes FOR SELECT 
+    TO authenticated 
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Clientes podem atualizar seu próprio perfil" ON public.clientes;
+DROP POLICY IF EXISTS "Clientes podem atualizar seu próprio perfil" ON clientes;
+CREATE POLICY "Clientes podem atualizar seu próprio perfil" 
+    ON public.clientes FOR UPDATE 
+    TO authenticated 
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Cartomantes podem visualizar seu próprio perfil" ON public.cartomantes;
+DROP POLICY IF EXISTS "Cartomantes podem visualizar seu próprio perfil" ON cartomantes;
+CREATE POLICY "Cartomantes podem visualizar seu próprio perfil" 
+    ON public.cartomantes FOR SELECT 
+    TO authenticated 
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Cartomantes podem atualizar seu próprio perfil" ON public.cartomantes;
+DROP POLICY IF EXISTS "Cartomantes podem atualizar seu próprio perfil" ON cartomantes;
+CREATE POLICY "Cartomantes podem atualizar seu próprio perfil" 
+    ON public.cartomantes FOR UPDATE 
+    TO authenticated 
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- Permitir que qualquer visitante logado ou anônimo veja perfis e cartomantes para a vitrine
+DROP POLICY IF EXISTS "Qualquer um pode ver lista de cartomantes" ON public.cartomantes;
+DROP POLICY IF EXISTS "Qualquer um pode ver lista de cartomantes" ON cartomantes;
+CREATE POLICY "Qualquer um pode ver lista de cartomantes" 
+    ON public.cartomantes FOR SELECT 
+    USING (true);
+
+DROP POLICY IF EXISTS "Qualquer um pode ver lista de clientes" ON public.clientes;
+DROP POLICY IF EXISTS "Qualquer um pode ver lista de clientes" ON clientes;
+CREATE POLICY "Qualquer um pode ver lista de clientes" 
+    ON public.clientes FOR SELECT 
+    USING (true);
+
+

@@ -148,12 +148,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("pin1").focus();
   }
 
-  // Carregar dados de movimentações
+  // Carregar dados de movimentações e pedidos
   const isConnected = await testSupabaseConnection();
   if (isConnected) {
     await fetchRealFinances();
+    await fetchRealPedidos();
   } else {
     loadDemonstrativeFinances();
+    loadDemonstrativePedidos();
+  }
+
+  // Redirecionamento de aba baseado nos parâmetros da URL (ex: cliques em notificações)
+  const urlParams = new URLSearchParams(window.location.search);
+  const statusParam = urlParams.get("status");
+  const selectTab = urlParams.get("tab") || (statusParam ? "pedidos" : "movimentacoes");
+  if (selectTab === "pedidos") {
+     switchFinanceTab("pedidos");
+     if (statusParam) {
+       document.getElementById("fltPedidoStatus").value = statusParam;
+     }
   }
 });
 
@@ -987,3 +1000,789 @@ async function handlePinConfigSubmit(event) {
   closePinConfigModal();
   alert("Configurações de segurança financeira gravadas com sucesso.");
 }
+
+// ==========================================================================
+// GESTÃO FINANCEIRA E ADMINISTRATIVA DE PEDIDOS DE SERVIÇOS (FLUXO MANUAL)
+// ==========================================================================
+let pedidosData = [];
+let filteredPedidos = [];
+let currentOrderForBlock = null;
+
+const MOCK_INITIAL_PEDIDOS = [
+  {
+    id: "ord-1",
+    cliente_id: "c1-uuid-helena",
+    cliente_nome: "Helena de Souza",
+    cartomante_id: "cartomante-luana",
+    servico_id: "srv-1",
+    servico_titulo: "Tiragem Completa de Amor",
+    servico_preco: 80.00,
+    meio_pagamento: "PIX",
+    status: "pagamento_informado",
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString()
+  },
+  {
+    id: "ord-2",
+    cliente_id: "c2-uuid-gabriel",
+    cliente_nome: "Gabriel Medeiros",
+    cartomante_id: "cartomante-luana",
+    servico_id: "srv-2",
+    servico_titulo: "Ritual de Abertura de Caminhos Financeiros",
+    servico_preco: 120.00,
+    meio_pagamento: "Transferência",
+    status: "aguardando_pagamento",
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString()
+  }
+];
+
+window.switchFinanceTab = function(tabName) {
+  const btnMov = document.getElementById("tab-movimentacoes-btn");
+  const btnPed = document.getElementById("tab-pedidos-btn");
+  const btnAud = document.getElementById("tab-auditoria-btn");
+  const panelMov = document.getElementById("panel-movimentacoes");
+  const panelPed = document.getElementById("panel-pedidos");
+  const panelAud = document.getElementById("panel-auditoria");
+
+  if (!panelMov || !panelPed) return;
+
+  btnMov.classList.remove("active");
+  btnPed.classList.remove("active");
+  if (btnAud) btnAud.classList.remove("active");
+  
+  panelMov.classList.add("hidden");
+  panelPed.classList.add("hidden");
+  if (panelAud) panelAud.classList.add("hidden");
+
+  btnMov.style.color = "var(--text-secondary)";
+  btnPed.style.color = "var(--text-secondary)";
+  if (btnAud) btnAud.style.color = "var(--text-secondary)";
+
+  if (tabName === "movimentacoes") {
+    btnMov.classList.add("active");
+    btnMov.style.color = "var(--gold-color)";
+    panelMov.classList.remove("hidden");
+  } else if (tabName === "pedidos") {
+    btnPed.classList.add("active");
+    btnPed.style.color = "var(--gold-color)";
+    panelPed.classList.remove("hidden");
+    applyPedidoFilters();
+  } else if (tabName === "auditoria") {
+    if (btnAud) {
+      btnAud.classList.add("active");
+      btnAud.style.color = "var(--gold-color)";
+    }
+    if (panelAud) {
+      panelAud.classList.remove("hidden");
+    }
+    loadAuditoriaTab();
+  }
+};
+
+async function getCartomanteId() {
+  if (supabase) {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user ? user.id : "cartomante-luana";
+  }
+  return "cartomante-luana";
+}
+
+async function fetchRealPedidos() {
+  const isConnected = await testSupabaseConnection();
+  if (!isConnected) return;
+
+  try {
+    const user_id = await getCartomanteId();
+    if (!user_id) return;
+
+    const { data, error } = await supabase
+      .from("pedidos_servicos")
+      .select(`
+        *,
+        clientes (
+          id,
+          nome_completo
+        )
+      `)
+      .eq("cartomante_id", user_id)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      pedidosData = data.map(o => ({
+        id: o.id,
+        cliente_id: o.cliente_id,
+        cliente_nome: o.clientes ? o.clientes.nome_completo : "Consulente",
+        servico_id: o.servico_id,
+        servico_titulo: o.servico_titulo,
+        servico_preco: Number(o.servico_preco),
+        meio_pagamento: o.meio_pagamento,
+        status: o.status,
+        created_at: o.created_at,
+        cartomante_id: o.cartomante_id,
+        nota_cliente: o.nota_cliente,
+        hash_transacao: o.hash_transacao,
+        comprovante_url: o.comprovante_url,
+        data_envio_pagamento: o.data_envio_pagamento
+      }));
+    }
+  } catch (e) {
+    console.error("Erro ao carregar pedidos reais:", e);
+  }
+}
+
+function loadDemonstrativePedidos() {
+  const stored = localStorage.getItem("cartomante_pedidos_servicos");
+  if (stored) {
+    pedidosData = JSON.parse(stored);
+  } else {
+    pedidosData = MOCK_INITIAL_PEDIDOS;
+    localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(pedidosData));
+  }
+}
+
+window.applyPedidoFilters = function() {
+  const statusFilter = document.getElementById("fltPedidoStatus").value;
+
+  filteredPedidos = pedidosData.filter(o => {
+    if (statusFilter && o.status !== statusFilter) return false;
+    return true;
+  });
+
+  renderPedidosTable();
+};
+
+function renderPedidosTable() {
+  const tbody = document.getElementById("pedidosTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (filteredPedidos.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center; padding: 30px; color: var(--text-muted); font-style:italic;">
+          ✨ Nenhum pedido de serviço sintonizado nestes filtros.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const statusLabels = {
+    "aguardando_pagamento": "Aguardando pagamento",
+    "pagamento_informado": "Pagamento informado",
+    "pagamento_confirmado": "Confirmado",
+    "pagamento_pendente": "Pendente",
+    "bloqueado_temporariamente": "Bloqueado",
+    "cancelado": "Cancelado"
+  };
+
+  const statusColors = {
+    "aguardando_pagamento": "#f1c40f",
+    "pagamento_informado": "#3498db",
+    "pagamento_confirmado": "#2ecc71",
+    "pagamento_pendente": "#e63946",
+    "bloqueado_temporariamente": "#ff8888",
+    "cancelado": "#95a5a6"
+  };
+
+  filteredPedidos.forEach(o => {
+    const tr = document.createElement("tr");
+    const valFmt = Number(o.servico_preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const dateFmt = new Date(o.created_at).toLocaleDateString('pt-BR') + " " + new Date(o.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const labelStatus = statusLabels[o.status] || o.status;
+    const colorStatus = statusColors[o.status] || "#fff";
+
+    tr.innerHTML = `
+      <td>
+        <i class="fas fa-user-circle" style="color:var(--text-muted); margin-right:4px;"></i> ${o.cliente_nome}
+      </td>
+      <td style="font-weight:600; color:var(--text-primary);">${o.servico_titulo}</td>
+      <td style="font-weight:bold; color:var(--gold-color);">${valFmt}</td>
+      <td>
+        <span class="status-badge" style="background:${colorStatus}15; color:${colorStatus}; border: 1px solid ${colorStatus}30; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight:600; text-transform:uppercase;">${labelStatus}</span>
+      </td>
+      <td>${dateFmt}</td>
+      <td>
+        <div class="trans-actions" style="justify-content:center; gap: 8px;">
+          <button class="glass-button" style="padding: 4px 10px; font-size: 0.72rem; border-color: var(--gold-color);" onclick="openOrderDetail('${o.id}')" title="Ver Detalhes do Pedido">
+            <i class="fas fa-eye"></i> Detalhes
+          </button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.openOrderDetail = async function(orderId) {
+  const o = pedidosData.find(x => x.id === orderId);
+  if (!o) return;
+
+  currentOrderForBlock = o;
+
+  document.getElementById("detailPedidoId").value = o.id;
+  document.getElementById("detailClienteId").value = o.cliente_id;
+  document.getElementById("lblDetailCliente").innerText = o.cliente_nome;
+  document.getElementById("lblDetailServico").innerText = o.servico_titulo;
+  document.getElementById("lblDetailValor").innerText = Number(o.servico_preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  document.getElementById("lblDetailMeio").innerText = o.meio_pagamento || "PIX";
+  
+  const statusLabels = {
+    "aguardando_pagamento": "Aguardando pagamento",
+    "pagamento_informado": "Pagamento informado",
+    "pagamento_confirmado": "Confirmado",
+    "pagamento_pendente": "Pendente",
+    "bloqueado_temporariamente": "Bloqueado",
+    "cancelado": "Cancelado"
+  };
+  const statusColors = {
+    "aguardando_pagamento": "#f1c40f",
+    "pagamento_informado": "#3498db",
+    "pagamento_confirmado": "#2ecc71",
+    "pagamento_pendente": "#e63946",
+    "bloqueado_temporariamente": "#ff8888",
+    "cancelado": "#95a5a6"
+  };
+  const lblStatus = document.getElementById("lblDetailStatus");
+  lblStatus.innerText = statusLabels[o.status] || o.status;
+  lblStatus.style.color = statusColors[o.status] || "#fff";
+
+  document.getElementById("lblDetailData").innerText = new Date(o.created_at).toLocaleDateString('pt-BR') + " às " + new Date(o.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  // Preencher dados de defesa do cliente
+  const defenseSection = document.getElementById("detailDefenseSection");
+  const lblNota = document.getElementById("lblDetailNotaCliente");
+  const lblHash = document.getElementById("lblDetailHashTransacao");
+  const lblComp = document.getElementById("lblDetailComprovanteUrl");
+  
+  if (defenseSection && lblNota && lblHash && lblComp) {
+    if (o.nota_cliente || o.hash_transacao || o.comprovante_url) {
+      defenseSection.style.display = "block";
+      lblNota.innerText = o.nota_cliente || "Nenhuma";
+      lblHash.innerText = o.hash_transacao || "Não informado";
+      
+      if (o.comprovante_url) {
+        lblComp.innerHTML = `<a href="${o.comprovante_url}" target="_blank" class="gold-link" style="color:var(--gold-color); text-decoration:underline;"><i class="fas fa-external-link-alt"></i> Visualizar Comprovante</a>`;
+      } else {
+        lblComp.innerText = "Não anexado";
+      }
+    } else {
+      defenseSection.style.display = "none";
+    }
+  }
+
+  const actionContainer = document.getElementById("orderActionsContainer");
+  actionContainer.innerHTML = "";
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  
+  let isBlocked = false;
+  if (isConnected) {
+    try {
+      const { data } = await supabase
+        .from("cartomante_clientes")
+        .select("status, bloqueado")
+        .eq("cartomante_id", o.cartomante_id)
+        .eq("cliente_id", o.cliente_id)
+        .maybeSingle();
+      if (data) isBlocked = data.status === "pendente" && data.bloqueado;
+    } catch(e){}
+  } else {
+    const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+    const match = vinculos.find(v => v.cartomante_id === o.cartomante_id && v.cliente_id === o.cliente_id);
+    if (match) isBlocked = match.status === "pendente" && match.bloqueado;
+  }
+
+  if (o.status !== "pagamento_confirmado" && o.status !== "cancelado") {
+    actionContainer.innerHTML += `
+      <button onclick="confirmarPagamentoPedido('${o.id}')" class="glass-button" style="border-color:#2ecc71; color:#2ecc71; justify-content:center; padding:10px; font-weight:600;">
+        <i class="fas fa-check"></i> Sim, pagamento chegou
+      </button>
+    `;
+    
+    if (o.status !== "pagamento_pendente" && o.status !== "bloqueado_temporariamente") {
+      actionContainer.innerHTML += `
+        <button onclick="marcarPagamentoNaoRecebido('${o.id}')" class="glass-button" style="border-color:#e63946; color:#e63946; justify-content:center; padding:10px;">
+          <i class="fas fa-times"></i> Não, pagamento não chegou
+        </button>
+      `;
+    }
+  }
+
+  if (o.status === "pagamento_pendente" || o.status === "bloqueado_temporariamente") {
+    if (isBlocked) {
+      actionContainer.innerHTML += `
+        <button onclick="removerBloqueioCliente('${o.id}', '${o.cliente_id}')" class="glass-button" style="border-color:#f1c40f; color:#f1c40f; justify-content:center; padding:10px;">
+          <i class="fas fa-unlock"></i> Remover Bloqueio do Consulente
+        </button>
+      `;
+    } else {
+      actionContainer.innerHTML += `
+        <button onclick="bloquearCliente('${o.id}', '${o.cliente_id}')" class="glass-button" style="border-color:#ff8888; color:#ff8888; justify-content:center; padding:10px;">
+          <i class="fas fa-ban"></i> Bloquear Consulente Temporariamente
+        </button>
+      `;
+    }
+  }
+
+  document.getElementById("orderDetailModal").style.display = "block";
+};
+
+window.closeOrderDetailModal = function() {
+  document.getElementById("orderDetailModal").style.display = "none";
+  currentOrderForBlock = null;
+};
+
+window.confirmarPagamentoPedido = async function(pedidoId) {
+  if (!confirm("Confirmar que o pagamento chegou de forma integral e compensado?")) return;
+
+  const o = pedidosData.find(x => x.id === pedidoId);
+  if (!o) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  
+  if (isConnected) {
+    try {
+      const user_id = await getCartomanteId();
+      if (!user_id) return;
+
+      await supabase.from("pedidos_servicos").update({ status: "pagamento_confirmado", updated_at: new Date().toISOString() }).eq("id", pedidoId);
+      
+      await supabase.from("financeiro").insert({
+        cartomante_id: user_id,
+        cliente_id: o.cliente_id,
+        tipo: "entrada",
+        categoria: "servico",
+        valor: o.servico_preco,
+        status: "pago",
+        origem: "automatico",
+        referencia_id: pedidoId,
+        descricao: `Contratação de Serviço: ${o.servico_titulo}`
+      });
+
+      await supabase.from("cartomante_clientes").update({ status: "ativo", bloqueado: false }).eq("cartomante_id", user_id).eq("cliente_id", o.cliente_id);
+
+      const { data: clientObj } = await supabase.from("clientes").select("user_id").eq("id", o.cliente_id).maybeSingle();
+      if (clientObj && clientObj.user_id) {
+        await supabase.from("notificacoes").insert({
+          user_id: clientObj.user_id,
+          titulo: "Pagamento Confirmado!",
+          mensagem: `Seu pagamento do serviço ${o.servico_titulo} foi confirmado pela cartomante.`,
+          tipo: "pagamento",
+          lida: false
+        });
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  } else {
+    const idx = pedidosData.findIndex(x => x.id === pedidoId);
+    if (idx !== -1) {
+      pedidosData[idx].status = "pagamento_confirmado";
+      pedidosData[idx].updated_at = new Date().toISOString();
+      localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(pedidosData));
+    }
+
+    const finances = JSON.parse(localStorage.getItem("cartomante_finances_db") || "[]");
+    finances.push({
+      id: "tx-local-" + Date.now(),
+      cliente_id: o.cliente_id,
+      cliente_nome: o.cliente_nome,
+      tipo: "entrada",
+      categoria: "servico",
+      valor: o.servico_preco,
+      status: "pago",
+      origem: "automatico",
+      referencia_id: pedidoId,
+      descricao: `Contratação de Serviço: ${o.servico_titulo}`,
+      data_registro: new Date().toISOString()
+    });
+    localStorage.setItem("cartomante_finances_db", JSON.stringify(finances));
+
+    const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+    const vIdx = vinculos.findIndex(v => v.cartomante_id === o.cartomante_id && v.cliente_id === o.cliente_id);
+    if (vIdx !== -1) {
+      vinculos[vIdx].status = "ativo";
+      vinculos[vIdx].bloqueado = false;
+      localStorage.setItem("cartomante_clientes_vinculos", JSON.stringify(vinculos));
+    }
+
+    const notifs = JSON.parse(localStorage.getItem("cartomante_notificacoes") || "[]");
+    notifs.unshift({
+      id: "notif-local-" + Date.now(),
+      user_id: o.cliente_id,
+      titulo: "Pagamento Confirmado!",
+      mensagem: `Seu pagamento do serviço ${o.servico_titulo} foi confirmado pela cartomante.`,
+      tipo: "pagamento",
+      lida: false,
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem("cartomante_notificacoes", JSON.stringify(notifs));
+  }
+
+  const user_id = isConnected ? (await getCartomanteId()) : "cartomante-luana";
+  if (typeof window.logSecurityAction === "function") {
+    await window.logSecurityAction(
+      user_id,
+      o.cliente_id,
+      "Aprovação de Pagamento",
+      `Pagamento do serviço "${o.servico_titulo}" de R$ ${Number(o.servico_preco).toFixed(2).replace('.', ',')} foi confirmado pela cartomante.`,
+      "pagamento_confirmado",
+      !!o.comprovante_url,
+      "Pagamento chegou integralmente"
+    );
+  }
+
+  alert("Pagamento confirmado com sucesso! O serviço foi liberado para atendimento.");
+  closeOrderDetailModal();
+  
+  if (isConnected) {
+    await fetchRealFinances();
+    await fetchRealPedidos();
+  } else {
+    loadDemonstrativeFinances();
+    loadDemonstrativePedidos();
+  }
+};
+
+window.marcarPagamentoNaoRecebido = async function(pedidoId) {
+  const o = pedidosData.find(x => x.id === pedidoId);
+  if (!o) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+
+  if (isConnected) {
+    try {
+      const user_id = await getCartomanteId();
+      if (!user_id) return;
+
+      await supabase.from("pedidos_servicos").update({ status: "pagamento_pendente", updated_at: new Date().toISOString() }).eq("id", pedidoId);
+      
+      await supabase.from("cartomante_clientes").update({ status: "pendente" }).eq("cartomante_id", user_id).eq("cliente_id", o.cliente_id);
+
+    } catch (e) {
+      console.error(e);
+    }
+  } else {
+    const idx = pedidosData.findIndex(x => x.id === pedidoId);
+    if (idx !== -1) {
+      pedidosData[idx].status = "pagamento_pendente";
+      pedidosData[idx].updated_at = new Date().toISOString();
+      localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(pedidosData));
+    }
+
+    const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+    const vIdx = vinculos.findIndex(v => v.cartomante_id === o.cartomante_id && v.cliente_id === o.cliente_id);
+    if (vIdx !== -1) {
+      vinculos[vIdx].status = "pendente";
+      localStorage.setItem("cartomante_clientes_vinculos", JSON.stringify(vinculos));
+    }
+  }
+
+  closeOrderDetailModal();
+  document.getElementById("confirmBlockModal").style.display = "block";
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const yesBtn = document.getElementById("btnConfirmBlockYes");
+  const noBtn = document.getElementById("btnConfirmBlockNo");
+  
+  if (yesBtn) {
+    yesBtn.onclick = async () => {
+      if (!currentOrderForBlock) return;
+      await processarBloqueioCliente(currentOrderForBlock.id, currentOrderForBlock.cliente_id, true);
+      document.getElementById("confirmBlockModal").style.display = "none";
+    };
+  }
+
+  if (noBtn) {
+    noBtn.onclick = async () => {
+      if (!currentOrderForBlock) return;
+      await processarBloqueioCliente(currentOrderForBlock.id, currentOrderForBlock.cliente_id, false);
+      document.getElementById("confirmBlockModal").style.display = "none";
+    };
+  }
+});
+
+async function processarBloqueioCliente(pedidoId, clienteId, bloquear) {
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  
+  if (isConnected) {
+    try {
+      const user_id = await getCartomanteId();
+      if (!user_id) return;
+
+      if (bloquear) {
+        await supabase.from("pedidos_servicos").update({ status: "bloqueado_temporariamente", updated_at: new Date().toISOString() }).eq("id", pedidoId);
+        await supabase.from("cartomante_clientes").update({ status: "pendente", bloqueado: true }).eq("cartomante_id", user_id).eq("cliente_id", clienteId);
+      } else {
+        await supabase.from("pedidos_servicos").update({ status: "pagamento_pendente", updated_at: new Date().toISOString() }).eq("id", pedidoId);
+        await supabase.from("cartomante_clientes").update({ status: "pendente", bloqueado: false }).eq("cartomante_id", user_id).eq("cliente_id", clienteId);
+      }
+    } catch(e){
+      console.error(e);
+    }
+  } else {
+    const idx = pedidosData.findIndex(x => x.id === pedidoId);
+    if (idx !== -1) {
+      pedidosData[idx].status = bloquear ? "bloqueado_temporariamente" : "pagamento_pendente";
+      pedidosData[idx].updated_at = new Date().toISOString();
+      localStorage.setItem("cartomante_pedidos_servicos", JSON.stringify(pedidosData));
+    }
+
+    const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+    const vIdx = vinculos.findIndex(v => v.cartomante_id === currentOrderForBlock.cartomante_id && v.cliente_id === clienteId);
+    if (vIdx !== -1) {
+      vinculos[vIdx].status = "pendente";
+      vinculos[vIdx].bloqueado = bloquear;
+      localStorage.setItem("cartomante_clientes_vinculos", JSON.stringify(vinculos));
+    }
+  }
+
+  const user_id = isConnected ? (await getCartomanteId()) : "cartomante-luana";
+  const o = pedidosData.find(x => x.id === pedidoId);
+  if (typeof window.logSecurityAction === "function" && o) {
+    const statusLog = bloquear ? "bloqueado_temporariamente" : "pagamento_pendente";
+    const acaoLog = bloquear ? "Recusa com Bloqueio" : "Recusa sem Bloqueio";
+    const detalhesLog = bloquear 
+      ? `Pagamento do serviço "${o.servico_titulo}" de R$ ${Number(o.servico_preco).toFixed(2).replace('.', ',')} não foi identificado. O consulente foi bloqueado temporariamente.`
+      : `Pagamento do serviço "${o.servico_titulo}" de R$ ${Number(o.servico_preco).toFixed(2).replace('.', ',')} não foi identificado. O consulente foi marcado apenas com pendência financeira, sem bloqueio.`;
+
+    await window.logSecurityAction(
+      user_id,
+      clienteId,
+      acaoLog,
+      detalhesLog,
+      statusLog,
+      !!o.comprovante_url,
+      bloquear ? "Bloqueio temporário ativado" : "Apenas pendência financeira ativada"
+    );
+  }
+
+  alert(bloquear ? "O consulente foi bloqueado para novos pedidos e interações temporariamente." : "O consulente foi marcado apenas com pendência financeira, sem bloqueios.");
+  
+  if (isConnected) {
+    await fetchRealFinances();
+    await fetchRealPedidos();
+  } else {
+    loadDemonstrativeFinances();
+    loadDemonstrativePedidos();
+  }
+}
+
+window.bloquearCliente = async function(pedidoId, clienteId) {
+  if (!confirm("Deseja bloquear temporariamente este cliente para novas consultas, perguntas e serviços?")) return;
+  await processarBloqueioCliente(pedidoId, clienteId, true);
+  closeOrderDetailModal();
+};
+
+window.removerBloqueioCliente = async function(pedidoId, clienteId) {
+  if (!confirm("Deseja remover o acesso restrito (bloqueio) deste cliente?")) return;
+  await processarBloqueioCliente(pedidoId, clienteId, false);
+  closeOrderDetailModal();
+};
+
+window.loadAuditoriaTab = async function() {
+  const tbody = document.getElementById("auditoriaTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align:center; padding: 20px;">
+        <i class="fas fa-circle-notch fa-spin"></i> Carregando registros de auditoria...
+      </td>
+    </tr>
+  `;
+
+  const isConnected = await testSupabaseConnection();
+  let logs = [];
+
+  if (isConnected) {
+    try {
+      const user_id = await getCartomanteId();
+      const { data, error } = await supabase
+        .from("historico_acoes")
+        .select(`
+          *,
+          clientes (
+            id,
+            nome_completo
+          )
+        `)
+        .eq("cartomante_id", user_id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        logs = data.map(l => ({
+          created_at: l.created_at,
+          acao: l.acao,
+          cliente_nome: l.clientes ? l.clientes.nome_completo : "Nenhum",
+          comprovante_anexado: l.comprovante_anexado,
+          observacao_cartomante: l.observacao_cartomante,
+          detalhes: l.detalhes
+        }));
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar historico_acoes do Supabase:", e);
+    }
+  }
+
+  if (logs.length === 0) {
+    // Carregar local
+    let localLogs = JSON.parse(localStorage.getItem("cartomante_historico_acoes") || "[]");
+    
+    // Se estiver vazio, inicializa com alguns logs mockados para demonstração
+    if (localLogs.length === 0) {
+      localLogs = [
+        {
+          id: "log-1",
+          cartomante_id: "cartomante-luana",
+          cliente_id: null,
+          acao: "Abertura de Sistema",
+          detalhes: "Santuário do Fluxo Lunar foi aberto e carregado com sucesso.",
+          status_pedido: null,
+          comprovante_anexado: false,
+          observacao_cartomante: "Iniciação do Portal",
+          created_at: new Date(Date.now() - 3600000 * 24).toISOString()
+        },
+        {
+          id: "log-2",
+          cartomante_id: "cartomante-luana",
+          cliente_id: "c1-uuid-helena",
+          acao: "Aprovação de Pagamento",
+          detalhes: "Pagamento do serviço 'Tiragem de Mandala Astrológica' de R$ 180,00 foi confirmado.",
+          status_pedido: "pagamento_confirmado",
+          comprovante_anexado: true,
+          observacao_cartomante: "Comprovante válido recebido por PIX",
+          created_at: new Date(Date.now() - 3600000 * 12).toISOString()
+        }
+      ];
+      localStorage.setItem("cartomante_historico_acoes", JSON.stringify(localLogs));
+    }
+
+    // Mapear nomes de clientes locais
+    const storedClients = JSON.parse(localStorage.getItem("demo_clientes") || "[]");
+    logs = localLogs.map(l => {
+      let cNome = "Nenhum";
+      if (l.cliente_id) {
+        if (l.cliente_id === "c1-uuid-helena") cNome = "Helena de Souza";
+        else if (l.cliente_id === "c2-uuid-gabriel") cNome = "Gabriel Medeiros";
+        else if (l.cliente_id === "c3-uuid-valentina") cNome = "Valentina Rocha";
+        else {
+          const matched = storedClients.find(c => c.id === l.cliente_id);
+          cNome = matched ? matched.nome_completo : "Consulente";
+        }
+      }
+      return {
+        created_at: l.created_at,
+        acao: l.acao,
+        cliente_nome: cNome,
+        comprovante_anexado: l.comprovante_anexado,
+        observacao_cartomante: l.observacao_cartomante,
+        detalhes: l.detalhes
+      };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+
+  tbody.innerHTML = "";
+
+  if (logs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted); font-style:italic;">
+          Nenhum registro de auditoria encontrado.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  logs.forEach(l => {
+    const tr = document.createElement("tr");
+    const dateFmt = new Date(l.created_at).toLocaleString('pt-BR');
+    
+    let compHTML = `<span style="color:var(--text-muted); font-size:0.75rem;">Sem anexo</span>`;
+    if (l.comprovante_anexado) {
+      compHTML = `<span class="status-badge pago" style="font-size:0.7rem;"><i class="fas fa-paperclip"></i> Comprovante</span>`;
+    }
+    
+    if (l.observacao_cartomante) {
+      compHTML += `<div style="font-size:0.7rem; color:var(--text-secondary); margin-top:2px;">Obs: ${l.observacao_cartomante}</div>`;
+    }
+
+    tr.innerHTML = `
+      <td style="font-size:0.75rem; white-space:nowrap; color:var(--text-secondary);">${dateFmt}</td>
+      <td style="font-weight:600; color:var(--gold-color);">${l.acao}</td>
+      <td><i class="fas fa-user-circle" style="color:var(--text-muted); margin-right:4px;"></i> ${l.cliente_nome}</td>
+      <td>${compHTML}</td>
+      <td style="font-size:0.8rem; color:var(--text-primary); max-width:250px; word-wrap:break-word;">${l.detalhes}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+};
+
+window.openAjusteModal = function() {
+  const select = document.getElementById("ajusteClienteId");
+  if (select) {
+    // Preencher select de clientes a partir do estado existente
+    let optionsHTML = '<option value="">Nenhum</option>';
+    
+    // Extrair clientes das transações ou pedidos
+    const clientMap = {};
+    financeiroData.forEach(tx => {
+      if (tx.cliente_id && tx.cliente_nome && tx.cliente_nome !== "Nenhuma") {
+        clientMap[tx.cliente_id] = tx.cliente_nome;
+      }
+    });
+    pedidosData.forEach(p => {
+      if (p.cliente_id && p.cliente_nome) {
+        clientMap[p.cliente_id] = p.cliente_nome;
+      }
+    });
+
+    for (const [id, nome] of Object.entries(clientMap)) {
+      optionsHTML += `<option value="${id}">${nome}</option>`;
+    }
+    select.innerHTML = optionsHTML;
+  }
+
+  document.getElementById("ajusteForm").reset();
+  const modal = document.getElementById("ajusteModal");
+  if (modal) modal.style.display = "block";
+};
+
+window.closeAjusteModal = function() {
+  const modal = document.getElementById("ajusteModal");
+  if (modal) modal.style.display = "none";
+};
+
+window.saveAjuste = async function(event) {
+  event.preventDefault();
+
+  const clienteId = document.getElementById("ajusteClienteId").value || null;
+  const acao = document.getElementById("ajusteAcao").value.trim();
+  const detalhes = document.getElementById("ajusteDetalhes").value.trim();
+
+  if (!acao || !detalhes) return;
+
+  const isConnected = await testSupabaseConnection();
+  const user_id = isConnected ? (await getCartomanteId()) : "cartomante-luana";
+
+  window.closeAjusteModal();
+
+  if (typeof window.logSecurityAction === "function") {
+    await window.logSecurityAction(
+      user_id,
+      clienteId,
+      acao,
+      detalhes,
+      null,
+      false,
+      "Entrada de ajuste manual na auditoria"
+    );
+    alert("Entrada de ajuste registrada na auditoria imutável com sucesso!");
+    await window.loadAuditoriaTab();
+  } else {
+    alert("Erro ao acessar a função de log de segurança.");
+  }
+};

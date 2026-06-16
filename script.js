@@ -1126,3 +1126,85 @@ document.addEventListener("click", (e) => {
     }
 });
 
+// ==========================================================================
+// RITUALS FINANCEIROS E SEGURANÇA: AUXILIARES GLOBAIS (ONLINE & OFFLINE)
+// ==========================================================================
+
+// Verifica pendência ativa do cliente com outras cartomantes
+window.checkClientGlobalPendency = async function(clienteId, currentCartomanteId) {
+  if (!clienteId) return false;
+  
+  // Testar conexão Supabase
+  let isConnected = false;
+  if (window.supabase) {
+    try {
+      const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "";
+      if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_PROJECT_REF")) {
+        const { data, error } = await window.supabase.from("conversas").select("id").limit(1);
+        isConnected = !error;
+      }
+    } catch(e) {}
+  }
+
+  if (isConnected) {
+    try {
+      const { data, error } = await window.supabase
+        .from("cartomante_clientes")
+        .select("cartomante_id, status, bloqueado")
+        .eq("cliente_id", clienteId);
+      if (!error && data) {
+        return data.some(v => v.cartomante_id !== currentCartomanteId && (v.status === 'pendente' || v.bloqueado));
+      }
+    } catch (e) {
+      console.warn("Erro ao checar pendência global no Supabase:", e);
+    }
+  }
+
+  // Fallback offline
+  const vinculos = JSON.parse(localStorage.getItem("cartomante_clientes_vinculos") || "[]");
+  return vinculos.some(v => v.cliente_id === clienteId && v.cartomante_id !== currentCartomanteId && (v.status === 'pendente' || v.bloqueado));
+};
+
+// Registra uma ação no log de auditoria imutável (historico_acoes)
+window.logSecurityAction = async function(cartomanteId, clienteId, acao, detalhes, statusPedido = null, comprovanteAnexado = false, observacaoCartomante = null) {
+  // Testar conexão Supabase
+  let isConnected = false;
+  if (window.supabase) {
+    try {
+      const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "";
+      if (SUPABASE_URL && !SUPABASE_URL.includes("YOUR_PROJECT_REF")) {
+        const { data, error } = await window.supabase.from("conversas").select("id").limit(1);
+        isConnected = !error;
+      }
+    } catch(e) {}
+  }
+
+  const payload = {
+    cartomante_id: cartomanteId || "cartomante-luana",
+    cliente_id: clienteId,
+    acao: acao,
+    detalhes: detalhes,
+    status_pedido: statusPedido,
+    comprovante_anexado: comprovanteAnexado,
+    observacao_cartomante: observacaoCartomante,
+    created_at: new Date().toISOString()
+  };
+
+  if (isConnected && window.supabase) {
+    try {
+      await window.supabase.from("historico_acoes").insert([payload]);
+    } catch (e) {
+      console.warn("Erro ao registrar log no Supabase:", e);
+    }
+  }
+
+  // Gravar no LocalStorage para contingência offline
+  const localLogs = JSON.parse(localStorage.getItem("cartomante_historico_acoes") || "[]");
+  localLogs.push({
+    id: "log-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+    ...payload
+  });
+  localStorage.setItem("cartomante_historico_acoes", JSON.stringify(localLogs));
+};
+
+

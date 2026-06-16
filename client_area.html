@@ -315,6 +315,9 @@
       <button class="client-menu-item" id="menu-arquivos" onclick="switchClientTab('arquivos')">
         <i class="fas fa-photo-film"></i> Arquivos Recebidos
       </button>
+      <button class="client-menu-item" id="menu-servicos-contratados" onclick="switchClientTab('servicos-contratados')">
+        <i class="fas fa-file-invoice-dollar"></i> Serviços Contratados
+      </button>
       <button class="client-menu-item" id="menu-perfil" onclick="switchClientTab('perfil')">
         <i class="fas fa-user-cog"></i> Meu Perfil
       </button>
@@ -463,6 +466,20 @@
     </section>
 
     <!-- ==========================================
+         TAB: SERVIÇOS CONTRATADOS
+         ========================================== -->
+    <section id="tab-servicos-contratados" class="tab-section">
+      <header class="page-header" style="margin-bottom: 25px;">
+        <h1 class="decorative-title">Serviços Contratados</h1>
+        <p class="section-desc">Monitore seus pedidos de serviços espirituais e envie informações de pagamento.</p>
+      </header>
+
+      <div id="servicosContratadosList" class="chat-list-container">
+        <!-- Injetado por JS -->
+      </div>
+    </section>
+
+    <!-- ==========================================
          TAB 7: MEU PERFIL (EDIÇÃO DE FICHA CADASTRAL)
          ========================================== -->
     <section id="tab-perfil" class="tab-section">
@@ -605,6 +622,55 @@
             <i class="fas fa-magic"></i> Selar Agendamento
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BLOQUEIO TEMPORÁRIO -->
+  <div id="clientBlockedModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 450px; padding: 25px; text-align: center; border-color: rgba(230, 57, 70, 0.3);">
+      <div style="font-size: 2.8rem; color: #ff8888; margin-bottom: 15px;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 style="font-family: var(--font-decorative); color: #ff8888; font-size: 1.25rem; margin-bottom: 15px;">Acesso Restrito</h3>
+      <p style="font-size: 0.9rem; color: var(--text-primary); line-height: 1.6; margin-bottom: 25px; font-family: var(--font-classic); font-style: italic;">
+        “Existe uma pendência de pagamento com esta cartomante. Aguarde a confirmação ou entre em contato para regularizar antes de solicitar um novo serviço.”
+      </p>
+      <button onclick="closeClientBlockedModal()" class="glass-button" style="width: 100%; border-color: #ff8888; color: #ff8888; justify-content: center; padding: 12px; font-weight: 600;">
+        Entendido
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: INFORMAR PAGAMENTO DO SERVIÇO (DEFESA DO CLIENTE) -->
+  <div id="informarPagamentoModal" class="mystic-modal hidden">
+    <div class="mystic-modal-content glass-panel" style="max-width: 500px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-file-signature"></i> Confirmar Envio de Pagamento</h2>
+        <button class="close-mystic-btn" onclick="closeInformarPagamentoModal()">&times;</button>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+        <input type="hidden" id="infPagamentoPedidoId" />
+        
+        <div class="mystic-form-group">
+          <label for="infPagamentoReceiptUrl" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase;">URL/Link do Comprovante (Opcional)</label>
+          <input type="url" id="infPagamentoReceiptUrl" class="mystic-input" placeholder="https://exemplo.com/comprovante.pdf" />
+        </div>
+        
+        <div class="mystic-form-group">
+          <label for="infPagamentoTxHash" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase;">Código / Hash de Transação (Opcional)</label>
+          <input type="text" id="infPagamentoTxHash" class="mystic-input" placeholder="Ex: E1234567890..." />
+        </div>
+        
+        <div class="mystic-form-group">
+          <label for="infPagamentoClientNote" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase;">Sua Mensagem / Defesa (Opcional)</label>
+          <textarea id="infPagamentoClientNote" class="mystic-textarea" rows="3" placeholder="Se você teve algum problema ou quer adicionar observações sobre o pagamento..."></textarea>
+        </div>
+        
+        <button id="btnSubmitInfPagamento" onclick="submitInformarPagamento()" class="glass-button" style="width: 100%; border-color: var(--gold-color); justify-content: center; padding: 12px; font-weight: 600; margin-top: 10px;">
+          <i class="fas fa-paper-plane"></i> Enviar Comprovante
+        </button>
       </div>
     </div>
   </div>

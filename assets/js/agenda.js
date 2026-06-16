@@ -169,7 +169,13 @@ function loadDemonstrativeEvents() {
   if (stored) {
     agendaEventos = JSON.parse(stored);
   } else {
-    agendaEventos = [...MOCK_INITIAL_EVENTS];
+    agendaEventos = MOCK_INITIAL_EVENTS.map(evt => {
+      const match = MOCK_CLIENTS_LIST.find(c => c.nome_completo === evt.cliente_nome);
+      return {
+        ...evt,
+        cliente_id: match ? match.id : null
+      };
+    });
     localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
   }
 }
@@ -253,6 +259,7 @@ async function fetchRealEvents() {
       agendaEventos = data.map(evt => ({
         id: evt.id,
         cliente_nome: evt.clientes?.nome_completo || null,
+        cliente_id: evt.cliente_id,
         servico: evt.servico,
         inicio: evt.inicio,
         fim: evt.fim,
@@ -924,6 +931,26 @@ window.deleteEventFromDetails = async function() {
 };
 
 window.acceptSolicitation = async function(id) {
+  const evt = agendaEventos.find(x => x.id === id);
+  if (evt && evt.cliente_id) {
+    const isConnected = await testSupabaseConnection();
+    let currentCartomanteId = "cartomante-luana";
+    if (isConnected) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) currentCartomanteId = user.id;
+      } catch(e){}
+    }
+    const hasGlobalPendency = await checkClientGlobalPendency(evt.cliente_id, currentCartomanteId);
+    if (hasGlobalPendency) {
+      if (!confirm("Este cliente possui pendência financeira ativa com outro cartomante. Deseja continuar mesmo assim?")) {
+        alert("No momento, este atendimento não pôde ser iniciado. Verifique suas pendências ou tente novamente mais tarde.");
+        await rejectSolicitation(id, true);
+        return;
+      }
+    }
+  }
+
   const isConnected = await testSupabaseConnection();
   if (isConnected) {
     try {
@@ -947,8 +974,8 @@ window.acceptSolicitation = async function(id) {
   renderCalendar();
 };
 
-window.rejectSolicitation = async function(id) {
-  if (!confirm("Deseja recusar esta solicitação de atendimento?")) return;
+window.rejectSolicitation = async function(id, autoReject = false) {
+  if (!autoReject && !confirm("Deseja recusar esta solicitação de atendimento?")) return;
   const isConnected = await testSupabaseConnection();
   if (isConnected) {
     try {

@@ -395,6 +395,18 @@ async function selectConversation(conv) {
   document.getElementById("activeChatName").innerText = conv.cliente.nome_completo;
   document.getElementById("activeChatAvatar").src = conv.cliente.foto_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=150&auto=format&fit=crop";
 
+  // Alerta Global Discreto de Pendência Financeira Externa
+  try {
+    const cartomanteId = await getCartomanteId();
+    const hasGlobalPendency = await checkClientGlobalPendency(conv.cliente_id || conv.cliente.id, cartomanteId);
+    const globalAlertEl = document.getElementById("globalPendencyAlert");
+    if (globalAlertEl) {
+      globalAlertEl.style.display = hasGlobalPendency ? "flex" : "none";
+    }
+  } catch(e) {
+    console.warn("Erro ao verificar pendência global no chat:", e);
+  }
+
   // Validar limites comerciais e habilitar/desabilitar digitação
   const comerciais = checkLimitsAndCommercialHour();
   
@@ -1025,6 +1037,19 @@ async function updatePerguntaQty(perguntaId, qty) {
 // Marcar Pergunta como Paga
 async function markPerguntaAsPaid(perguntaId) {
   const isRealSupabase = await testSupabaseConnection();
+  const cartomanteId = isRealSupabase ? await getCartomanteId() : "cartomante-luana";
+  const clienteId = activeConversa ? (activeConversa.cliente_id || activeConversa.cliente.id) : null;
+
+  if (clienteId) {
+    const hasGlobalPendency = await checkClientGlobalPendency(clienteId, cartomanteId);
+    if (hasGlobalPendency) {
+      if (!confirm("Este cliente possui pendência financeira ativa com outro cartomante. Deseja continuar mesmo assim?")) {
+        alert("No momento, este atendimento não pôde ser iniciado. Verifique suas pendências ou tente novamente mais tarde.");
+        await cancelPergunta(perguntaId);
+        return;
+      }
+    }
+  }
 
   if (isRealSupabase) {
     const { error } = await supabase
