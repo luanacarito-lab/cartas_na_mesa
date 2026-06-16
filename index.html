@@ -3,13 +3,373 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Principal – Sistema Cartomante</title>
+  <title>Cartas na Mesa – Portal de Sintonização Espiritual</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/public.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+
+  <style>
+    /* Estilos Customizados da Landing Page */
+    .landing-header {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      position: relative;
+    }
+    
+    .landing-logo {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.6rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 0 10px rgba(199, 162, 122, 0.4);
+    }
+    
+    .landing-nav {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    
+    .landing-nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    
+    .landing-nav a:hover {
+      color: var(--gold-color);
+    }
+
+    .hero-section {
+      text-align: center;
+      max-width: 800px;
+      margin: 80px auto 100px auto;
+      padding: 0 20px;
+      z-index: 10;
+      position: relative;
+    }
+
+    .hero-title {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 3.2rem;
+      line-height: 1.15;
+      margin-bottom: 25px;
+      text-shadow: 0 0 15px rgba(199, 162, 122, 0.35);
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.3rem;
+      }
+    }
+
+    .hero-desc {
+      font-family: var(--font-classic);
+      font-style: italic;
+      color: var(--text-secondary);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    /* Seções da Landing Page */
+    .landing-section {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 100px auto;
+      padding: 0 20px;
+      z-index: 10;
+      position: relative;
+    }
+
+    .section-title-mystic {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px rgba(199, 162, 122, 0.3);
+    }
+
+    .section-subtitle-mystic {
+      font-family: var(--font-classic);
+      font-style: italic;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: 50px;
+      font-size: 0.95rem;
+    }
+
+    /* Como funciona cards */
+    .steps-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      margin-top: 40px;
+    }
+
+    .step-card {
+      padding: 30px 25px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      transition: transform 0.3s;
+    }
+
+    .step-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-color);
+      background: rgba(199, 162, 122, 0.08);
+      color: var(--gold-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-decorative);
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 0 10px rgba(199, 162, 122, 0.2);
+    }
+
+    .step-card h3 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.1rem;
+      margin: 5px 0 0 0;
+    }
+
+    .step-card p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Mural do dia styling na Landing */
+    .mural-empty-box {
+      text-align: center;
+      padding: 40px 30px;
+      border: 1px dashed var(--gold-color);
+      border-radius: 16px;
+      background: rgba(199, 162, 122, 0.02);
+      color: var(--text-secondary);
+      font-family: var(--font-classic);
+      font-style: italic;
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .mural-landing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 25px;
+    }
+
+    .mural-landing-card {
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .mural-landing-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mural-landing-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--gold-color);
+    }
+
+    .mural-landing-meta h4 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    .mural-landing-meta span {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .mural-landing-body {
+      font-family: var(--font-classic);
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+      flex: 1;
+    }
+
+    .mural-landing-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 12px;
+      margin-top: 5px;
+    }
+
+    /* Cartomantes Showcase */
+    .cartomantes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .cartomante-card {
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      transition: transform 0.3s, border-color 0.3s;
+    }
+
+    .cartomante-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(199, 162, 122, 0.35);
+    }
+
+    .cartomante-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .cartomante-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold-color);
+    }
+
+    .cartomante-meta h3 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .cartomante-meta span {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .cartomante-bio {
+      font-family: var(--font-classic);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: 15px;
+      flex: 1;
+    }
+
+    .cartomante-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      color: #2ecc71;
+      background: rgba(46, 204, 113, 0.1);
+      border: 1px solid rgba(46, 204, 113, 0.25);
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      align-self: flex-start;
+      font-weight: 500;
+    }
+
+    .cartomante-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 15px;
+    }
+
+    .landing-footer {
+      border-top: 1px solid rgba(199, 162, 122, 0.15);
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      z-index: 10;
+      position: relative;
+    }
+
+    .landing-footer-logo {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+    }
+
+    .landing-footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .landing-footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .landing-footer-links a:hover {
+      color: var(--gold-color);
+    }
+  </style>
 </head>
 <body class="theme-night mode-dark">
   <script>
@@ -38,12 +398,6 @@
             }
           }
           document.body.className = 'theme-' + period + ' mode-' + lighting;
-          if (state.accessibility) {
-            if (state.accessibility.highContrast) document.body.classList.add('accessibility-high-contrast');
-            if (state.accessibility.largeFont) document.body.classList.add('accessibility-large-font');
-            if (state.accessibility.reduceMotion) document.body.classList.add('accessibility-reduce-motion');
-            if (state.accessibility.anxietyMode) document.body.classList.add('accessibility-anxiety-mode');
-          }
         }
       } catch (e) {}
     })();
@@ -55,123 +409,100 @@
   <div class="ambient-glow" id="glow-2"></div>
   <div class="ambient-glow" id="glow-3"></div>
 
-  <!-- Barra de Navegação do App (Sidebar Menu Unificado) -->
-  <div class="sidebar glass-panel">
-    <div class="sidebar-header">🌙 Cartomante</div>
-    <nav class="menu">
-      <a href="index.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
-      <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
-      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
-      <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
-      <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
-      <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
-      <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
-      <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
-      <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+  <!-- Cabeçalho Público da Landing -->
+  <header class="landing-header">
+    <a href="#" class="landing-logo">🌙 Cartas na Mesa</a>
+    <nav class="landing-nav" id="landingNavLinks">
+      <a href="#cartomantes">Oraculistas</a>
+      <a href="#mural-do-dia">Mural do Dia</a>
+      <a href="#como-funciona">Como Funciona</a>
+      <a href="login.html" class="glass-button" style="padding: 6px 15px; border-color: var(--gold-color);" id="btnHeaderLogin">Entrar</a>
+      <a href="register_cliente.html" class="glass-button" style="padding: 6px 15px; background: rgba(199, 162, 122, 0.08); border-color: var(--gold-color);" id="btnHeaderRegister">Criar Conta</a>
     </nav>
-  </div>
+  </header>
 
-  <!-- Conteúdo Principal do Painel -->
-  <main class="main-content">
-    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
-      <div>
-        <h1 class="decorative-title">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
-        <p class="section-desc">Portal de sintonização espiritual, monitoramento de rituais e acompanhamento de consulentes.</p>
-      </div>
-      
-      <!-- Sino de Notificações Popover -->
-      <div style="position: relative;" id="notificationContainer">
-        <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px 15px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; position: relative;" title="Notificações">
-          <i class="fas fa-bell"></i>
-          <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
-        </button>
-        <!-- Popover Menu de Notificações -->
-        <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 55px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(199,162,122,0.15); padding-bottom: 8px;">
-            <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.9rem; margin: 0;"><i class="fas fa-bell"></i> Central de Avisos</h4>
-            <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
-          </div>
-          <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
-            <!-- Injetado por JS -->
-          </div>
-        </div>
-      </div>
-    </header>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <h1 class="hero-title">A Sabedoria dos Oráculos Sintonizada ao Seu Destino</h1>
+    <p class="hero-desc">Consulte cartomantes e tarólogas experientes, tire suas dúvidas com a Pergunta ao Baralho e revele os mistérios guardados em seus caminhos.</p>
+    <div class="hero-buttons">
+      <a href="login.html" class="glass-button" style="border-color: var(--gold-color); padding: 12px 25px; font-weight: 600;" id="btnHeroEnter">Entrar no Portal</a>
+      <a href="register_cliente.html" class="glass-button" style="background: rgba(199, 162, 122, 0.08); border-color: var(--gold-color); padding: 12px 25px;" id="btnHeroRegister">Criar Minha Conta</a>
+      <a href="#cartomantes" class="glass-button" style="padding: 12px 25px; opacity:0.85;">Conhecer Cartomantes</a>
+      <a href="#mural-do-dia" class="glass-button" style="padding: 12px 25px; opacity:0.85;">Ver Mural do Dia</a>
+    </div>
+  </section>
 
-    <!-- Banner de Onboarding (Iniciação de Templo) -->
-    <div id="onboardingBanner" class="glass-panel hidden" style="padding: 25px; margin-bottom: 30px; border-left: 4px solid var(--gold-color); display: flex; flex-direction: column; gap: 15px; position: relative;">
-      <button onclick="dismissOnboarding()" style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
-      <div style="display: flex; align-items: center; gap: 15px;">
-        <i class="fas fa-wand-magic-sparkles" style="font-size: 2.2rem; color: var(--gold-color);"></i>
-        <div>
-          <h3 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.15rem; margin: 0 0 4px 0;">Portal de Iniciação do seu Templo</h3>
-          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Siga estes passos recomendados para receber seus primeiros consulentes na vitrine pública.</p>
-        </div>
+  <!-- Seção: Como Funciona -->
+  <section class="landing-section" id="como-funciona">
+    <h2 class="section-title-mystic">Como Funciona o Portal</h2>
+    <p class="section-subtitle-mystic">Siga os passos cósmicos para obter aconselhamento espiritual</p>
+    
+    <div class="steps-container">
+      <div class="step-card glass-panel">
+        <div class="step-number">I</div>
+        <h3>Escolha uma Cartomante</h3>
+        <p>Explore nosso catálogo e encontre a oraculista que vibra na mesma frequência que suas dúvidas.</p>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 5px;" id="onboardingStepsList">
-        <!-- Injetado por JS dinamicamente -->
+      <div class="step-card glass-panel">
+        <div class="step-number">II</div>
+        <h3>Veja o Perfil Público</h3>
+        <p>Conheça a bio, especialidades, serviços, preços e sementes de sabedoria postadas no mural dela.</p>
+      </div>
+      <div class="step-card glass-panel">
+        <div class="step-number">III</div>
+        <h3>Faça Login ou Cadastre-se</h3>
+        <p>Acesse com sua chave secreta ou crie uma conta de consulente de forma rápida e segura.</p>
+      </div>
+      <div class="step-card glass-panel">
+        <div class="step-number">IV</div>
+        <h3>Inicie o Atendimento</h3>
+        <p>Abra o chat privado de acolhida para conversar ou envie uma Pergunta ao Baralho para tiragens rápidas.</p>
       </div>
     </div>
+  </section>
 
-    <!-- Grids Resumo de Atividade (Cards) -->
-    <section class="cards-grid">
-      <div class="card glass-panel" id="card-atendimentos-hoje">
-        <h2><i class="fas fa-user-check" style="color:var(--gold-color); margin-right:8px;"></i> Atendimentos de hoje</h2>
-        <p class="value" id="atendimentos-hoje">—</p>
+  <!-- Seção: Cartomantes Cadastradas -->
+  <section class="landing-section" id="cartomantes">
+    <h2 class="section-title-mystic">Nossas Oraculistas</h2>
+    <p class="section-subtitle-mystic">Sacerdotisas e canalizadoras de energias prontas para orientar sua jornada</p>
+    
+    <div class="cartomantes-grid" id="landingCartomantesGrid">
+      <div class="chat-empty-state" style="grid-column: 1/-1;">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <p>Sintonizando as oraculistas do templo espiritual...</p>
       </div>
-      
-      <div class="card glass-panel" id="card-proximos-atendimentos">
-        <h2><i class="fas fa-calendar-days" style="color:var(--gold-color); margin-right:8px;"></i> Próximos atendimentos</h2>
-        <ul class="list" id="proximos-atendimentos" style="list-style:none; padding:0; margin:10px 0 0 0;">
-          <!-- Injetado via JS -->
-        </ul>
-      </div>
-      
-      <div class="card glass-panel" id="card-perguntas-pendentes">
-        <h2><i class="fas fa-hand-sparkles" style="color:var(--gold-color); margin-right:8px;"></i> Perguntas pendentes</h2>
-        <p class="value" id="perguntas-pendentes">—</p>
-      </div>
-      
-      <div class="card glass-panel" id="card-pagamentos-pendentes">
-        <h2><i class="fas fa-wallet" style="color:var(--gold-color); margin-right:8px;"></i> Pagamentos pendentes</h2>
-        <p class="value" id="pagamentos-pendentes">—</p>
-      </div>
-      
-      <div class="card glass-panel" id="card-clientes-recentes">
-        <h2><i class="fas fa-history" style="color:var(--gold-color); margin-right:8px;"></i> Clientes recentes</h2>
-        <ul class="list" id="clientes-recentes" style="list-style:none; padding:0; margin:10px 0 0 0;">
-          <!-- Injetado via JS -->
-        </ul>
-      </div>
-    </section>
-
-    <!-- Seções de Agenda Detalhada e Alertas -->
-    <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 25px; margin-top: 30px;" class="extra-sections-row">
-      
-      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
-        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-calendar-alt" style="color:var(--gold-color);"></i> Agenda do Dia
-        </h2>
-        <ul class="list" id="agenda-do-dia" style="list-style:none; padding:0;">
-          <!-- Injetado via JS -->
-        </ul>
-      </section>
-
-      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
-        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-bell" style="color:var(--gold-color);"></i> Alertas Importantes
-        </h2>
-        <ul class="list" id="alertas-importantes" style="list-style:none; padding:0;">
-          <!-- Injetado via JS -->
-        </ul>
-      </section>
-      
     </div>
-  </main>
+  </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <!-- Seção: Mural do Dia -->
+  <section class="landing-section" id="mural-do-dia">
+    <h2 class="section-title-mystic">Mural do Dia</h2>
+    <p class="section-subtitle-mystic">Reflexões e conselhos diários semeados pelas nossas cartomantes</p>
+    
+    <div id="landingMuralContainer">
+      <div class="chat-empty-state">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <p>Colhendo as reflexões cósmicas de hoje...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rodapé -->
+  <footer class="landing-footer">
+    <div class="landing-footer-logo">🌙 Cartas na Mesa</div>
+    <div class="landing-footer-links">
+      <a href="#cartomantes">Cartomantes</a>
+      <a href="#mural-do-dia">Mural do Dia</a>
+      <a href="#como-funciona">Como Funciona</a>
+      <a href="login.html">Login</a>
+      <a href="register_cartomante.html">Quero ser Oraculista</a>
+    </div>
+    <p>&copy; 2026 Cartas na Mesa. O portal místico para sua jornada de iluminação.</p>
+  </footer>
+
   <script src="script.js"></script>
-  <script src="dashboard.js"></script>
+  <!-- Script específico para popular a Landing Page pública -->
+  <script src="assets/js/landing.js"></script>
 </body>
 </html>

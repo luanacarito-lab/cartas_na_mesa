@@ -63,7 +63,7 @@ const MOCK_CLIENTS = [
   }
 ];
 
-const MOCK_INITIAL_MESSAGES = {
+let MOCK_INITIAL_MESSAGES = {
   "c1-uuid-helena": [
     { id: "m1", sender_type: "cliente", texto: "Olá, boa tarde! Gostaria de tirar uma dúvida.", created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
     { id: "m2", sender_type: "cartomante", texto: "Olá, Helena. Seja muito bem-vinda ao nosso templo virtual. Sinta-se acolhida. Qual é a sua questão hoje?", created_at: new Date(Date.now() - 3600000 * 1.9).toISOString() },
@@ -75,8 +75,45 @@ const MOCK_INITIAL_MESSAGES = {
   "c3-uuid-valentina": []
 };
 
+function initMockMessagesDb() {
+  const localMsgs = localStorage.getItem("cartomante_messages_db");
+  if (localMsgs) {
+    try {
+      MOCK_INITIAL_MESSAGES = JSON.parse(localMsgs);
+    } catch (e) {
+      console.warn("Falha ao parsear mensagens do localStorage");
+    }
+  } else {
+    localStorage.setItem("cartomante_messages_db", JSON.stringify(MOCK_INITIAL_MESSAGES));
+  }
+}
+initMockMessagesDb();
+
+function saveMockMessagesDb() {
+  localStorage.setItem("cartomante_messages_db", JSON.stringify(MOCK_INITIAL_MESSAGES));
+}
+
 // Simulação de Banco de Dados Local para Perguntas ao Baralho
 let localPerguntasDb = {};
+
+function initMockQuestionsDb() {
+  const localQ = localStorage.getItem("cartomante_perguntas_db");
+  if (localQ) {
+    try {
+      localPerguntasDb = JSON.parse(localQ);
+    } catch (e) {
+      localPerguntasDb = {};
+    }
+  } else {
+    localPerguntasDb = {};
+    localStorage.setItem("cartomante_perguntas_db", JSON.stringify(localPerguntasDb));
+  }
+}
+initMockQuestionsDb();
+
+function saveMockQuestionsDb() {
+  localStorage.setItem("cartomante_perguntas_db", JSON.stringify(localPerguntasDb));
+}
 
 // ==========================================================================
 // INICIALIZAÇÃO DA PÁGINA
@@ -408,6 +445,8 @@ async function loadMessagesForActiveConversation() {
     // Carregar dos dados mockados
     const key = activeConversa.cliente.id;
     mensagens = MOCK_INITIAL_MESSAGES[key] || [];
+    saveMockMessagesDb();
+    saveMockQuestionsDb();
   }
 
   if (mensagens.length === 0) {

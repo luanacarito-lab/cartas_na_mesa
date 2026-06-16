@@ -14,6 +14,11 @@
   <!-- Font Awesome Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+
   <style>
     /* Specific styles for Client listing matching Dashboard theme */
     .client-list {
@@ -203,7 +208,7 @@
   <div class="sidebar glass-panel">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item active"><i class="fas fa-user-friends"></i> Clientes</a>
       <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
@@ -240,7 +245,7 @@
           </div>
         </div>
 
-        <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <a href="dashboard.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
         <button id="newClientBtn" class="glass-button" style="border-color: var(--gold-color);"><i class="fas fa-plus"></i> Novo Cliente</button>
       </div>
     </header>
@@ -426,8 +431,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="assets/js/clients.js"></script>
   <script src="assets/js/backButton.js"></script>

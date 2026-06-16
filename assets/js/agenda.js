@@ -1,4 +1,4 @@
-// agenda.js – Motor Cronológico e Gerenciador de Consultas
+// assets/js/agenda.js – Motor Cronológico e Gerenciador de Consultas Real
 // --------------------------------------------------------------------------
 
 // Credenciais do Supabase (Lidas de config.js / window.ENV)
@@ -21,37 +21,39 @@ try {
 // ESTADO INTERNO E MOCK DE CONTINGÊNCIA
 // ==========================================================================
 let agendaEventos = [];
-let currentDate = new Date(2026, 4, 30); // 30 de Maio de 2026 (Data padrão do sistema)
+let currentDate = new Date(2026, 4, 30); // 30 de Maio de 2026 (Data inicial padrão)
 let selectedDate = new Date(2026, 4, 30);
-let activeTab = "diaria";
+let currentView = "month"; // month, week, day
+let clientesList = [];
 
 const MOCK_INITIAL_EVENTS = [
-  // Passadas
   {
     id: "evt-past-1",
     cliente_nome: "Helena de Souza",
     servico: "Tiragem de Mandala Astrológica",
-    data: "2026-05-20",
-    hora: "10:00",
+    inicio: "2026-05-20T10:00:00",
+    fim: "2026-05-20T11:00:00",
+    tipo: "atendimento",
     notas: "Mandala anual de aniversário.",
-    status: "concluido"
+    status: "confirmado"
   },
   {
     id: "evt-past-2",
     cliente_nome: "Gabriel Medeiros",
     servico: "Limpeza Energética de Aura",
-    data: "2026-05-28",
-    hora: "15:00",
+    inicio: "2026-05-28T15:00:00",
+    fim: "2026-05-28T16:00:00",
+    tipo: "atendimento",
     notas: "Sentia cansaço e bloqueios nos chakras.",
-    status: "concluido"
+    status: "confirmado"
   },
-  // Hoje
   {
     id: "evt-today-1",
     cliente_nome: "Helena de Souza",
     servico: "Leitura de Tarô Terapêutico",
-    data: "2026-05-30",
-    hora: "14:00",
+    inicio: "2026-05-30T14:00:00",
+    fim: "2026-05-30T15:00:00",
+    tipo: "atendimento",
     notas: "Questões afetivas profundas.",
     status: "confirmado"
   },
@@ -59,8 +61,9 @@ const MOCK_INITIAL_EVENTS = [
     id: "evt-today-2",
     cliente_nome: "Gabriel Medeiros",
     servico: "Alinhamento de Chakras & Cristais",
-    data: "2026-05-30",
-    hora: "16:30",
+    inicio: "2026-05-30T16:30:00",
+    fim: "2026-05-30T17:30:00",
+    tipo: "atendimento",
     notas: "Alinhamento geral trimestral.",
     status: "confirmado"
   },
@@ -68,18 +71,19 @@ const MOCK_INITIAL_EVENTS = [
     id: "evt-today-3",
     cliente_nome: "Valentina Rocha",
     servico: "Consulta Geral com Baralho Cigano",
-    data: "2026-05-30",
-    hora: "18:00",
+    inicio: "2026-05-30T18:00:00",
+    fim: "2026-05-30T19:00:00",
+    tipo: "atendimento",
     notas: "Foco em dúvidas sobre carreira material.",
     status: "confirmado"
   },
-  // Marcadas para Depois (Futuras)
   {
     id: "evt-future-1",
     cliente_nome: "Helena de Souza",
     servico: "Leitura de Tarô Terapêutico",
-    data: "2026-06-02",
-    hora: "15:00",
+    inicio: "2026-06-02T15:00:00",
+    fim: "2026-06-02T16:00:00",
+    tipo: "atendimento",
     notas: "Acompanhamento da tiragem anterior.",
     status: "confirmado"
   },
@@ -87,9 +91,20 @@ const MOCK_INITIAL_EVENTS = [
     id: "evt-future-2",
     cliente_nome: "Valentina Rocha",
     servico: "Ritual de Abertura de Caminhos",
-    data: "2026-06-05",
-    hora: "14:00",
+    inicio: "2026-06-05T14:00:00",
+    fim: "2026-06-05T15:00:00",
+    tipo: "atendimento",
     notas: "Conexão especial com cristais de ametista.",
+    status: "confirmado"
+  },
+  {
+    id: "evt-folga-1",
+    cliente_nome: null,
+    servico: null,
+    inicio: "2026-05-31T09:00:00",
+    fim: "2026-05-31T12:00:00",
+    tipo: "folga",
+    notas: "Folga de descanso matinal",
     status: "confirmado"
   }
 ];
@@ -100,16 +115,31 @@ const MOCK_CLIENTS_LIST = [
   { id: "c3-uuid-valentina", nome_completo: "Valentina Rocha" }
 ];
 
+// Nomes de meses traduzidos
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+const WEEK_DAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
 // ==========================================================================
 // INICIALIZAÇÃO DA PÁGINA
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  // Inicializa estrelas cintilantes do design system
   if (typeof generateStars === "function") {
     generateStars();
   }
 
-  // Carrega eventos do Supabase ou locais
+  // Verificar parâmetros da URL para filtrar views
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramView = urlParams.get("view");
+  if (paramView === "day") {
+    currentView = "day";
+  } else if (paramView === "week") {
+    currentView = "week";
+  }
+
   const isConnected = await testSupabaseConnection();
   if (isConnected) {
     await fetchRealEvents();
@@ -119,23 +149,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     populateClientsDropdownMock();
   }
 
-  // Renderiza Calendário e Painéis
+  initViewTabs();
   renderCalendar();
-  updateEventsDisplay();
 });
 
 // Verifica se a conexão com o Supabase está respondendo
 async function testSupabaseConnection() {
   if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
   try {
-    const { data, error } = await supabase.from("financeiro").select("id").limit(1);
+    const { data, error } = await supabase.from("clientes").select("id").limit(1);
     return error ? false : true;
   } catch (e) {
     return false;
   }
 }
 
-// Carrega eventos mockados (com persistência em LocalStorage)
 function loadDemonstrativeEvents() {
   const stored = localStorage.getItem("cartomante_agenda_eventos");
   if (stored) {
@@ -146,14 +174,10 @@ function loadDemonstrativeEvents() {
   }
 }
 
-// Preenche seletor de clientes na modal em modo Mock
 function populateClientsDropdownMock() {
   const select = document.getElementById("agendaCliente");
   if (!select) return;
-
-  // Preserva a opção padrão
   select.innerHTML = '<option value="">Selecione a consulente...</option>';
-  
   MOCK_CLIENTS_LIST.forEach(cli => {
     const opt = document.createElement("option");
     opt.value = cli.nome_completo;
@@ -162,36 +186,42 @@ function populateClientsDropdownMock() {
   });
 }
 
-// Preenche seletor de clientes na modal em modo Real
 async function populateClientsDropdownReal() {
   const select = document.getElementById("agendaCliente");
   if (!select) return;
-
   select.innerHTML = '<option value="">Selecione a consulente...</option>';
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: clients } = await supabase
-      .from("clientes")
-      .select("id, nome_completo")
+    // Buscar clientes vinculados a essa cartomante
+    const { data: links } = await supabase
+      .from("cartomante_clientes")
+      .select("cliente_id")
       .eq("cartomante_id", user.id);
 
-    if (clients) {
-      clients.forEach(cli => {
-        const opt = document.createElement("option");
-        opt.value = cli.nome_completo; // Pode associar ID se preferir, usamos nome_completo para consistência do mock
-        opt.innerText = cli.nome_completo;
-        select.appendChild(opt);
-      });
+    if (links && links.length > 0) {
+      const clientIds = links.map(l => l.cliente_id);
+      const { data: clients } = await supabase
+        .from("clientes")
+        .select("id, nome_completo")
+        .in("id", clientIds);
+
+      if (clients) {
+        clients.forEach(cli => {
+          const opt = document.createElement("option");
+          opt.value = cli.nome_completo;
+          opt.innerText = cli.nome_completo;
+          select.appendChild(opt);
+        });
+      }
     }
   } catch (e) {
-    console.error("Erro ao carregar lista de clientes para a agenda:", e);
+    console.error("Erro ao carregar lista de clientes real:", e);
     populateClientsDropdownMock();
   }
 }
 
-// Carregar eventos reais do Supabase
 async function fetchRealEvents() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -204,11 +234,13 @@ async function fetchRealEvents() {
       .from("agenda_eventos")
       .select(`
         id,
-        data_inicio,
-        data_fim,
+        inicio,
+        fim,
+        tipo,
         servico,
         status,
         notas,
+        cliente_id,
         clientes (
           nome_completo
         )
@@ -218,384 +250,654 @@ async function fetchRealEvents() {
     if (error) throw error;
 
     if (data) {
-      agendaEventos = data.map(evt => {
-        const start = new Date(evt.data_inicio);
-        const formatData = start.toISOString().split("T")[0];
-        const formatHora = start.toTimeString().substring(0, 5);
-        return {
-          id: evt.id,
-          cliente_nome: evt.clientes?.nome_completo || "Reservado",
-          servico: evt.servico,
-          data: formatData,
-          hora: formatHora,
-          notas: evt.notas || "",
-          status: evt.status
-        };
-      });
+      agendaEventos = data.map(evt => ({
+        id: evt.id,
+        cliente_nome: evt.clientes?.nome_completo || null,
+        servico: evt.servico,
+        inicio: evt.inicio,
+        fim: evt.fim,
+        tipo: evt.tipo || "atendimento",
+        notas: evt.notas || "",
+        status: evt.status
+      }));
     }
   } catch (e) {
-    console.warn("Erro ao buscar eventos do Supabase. Usando LocalStorage backup.", e);
+    console.warn("Erro ao buscar eventos Supabase. Usando LocalStorage backup.", e);
     loadDemonstrativeEvents();
   }
 }
 
-// ==========================================================================
-// RENDERIZAÇÃO DO CALENDÁRIO MENSAL
-// ==========================================================================
-const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-];
+function initViewTabs() {
+  const views = ["month", "week", "day"];
+  views.forEach(v => {
+    const btn = document.getElementById(`btnView${v.charAt(0).toUpperCase() + v.slice(1)}`);
+    if (btn) {
+      btn.onclick = () => switchCalendarView(v);
+    }
+  });
+}
 
+window.switchCalendarView = function(view) {
+  currentView = view;
+  
+  // Atualiza botões
+  document.querySelectorAll(".tab-view-btn").forEach(btn => btn.classList.remove("active"));
+  const activeBtn = document.getElementById(`btnView${view.charAt(0).toUpperCase() + view.slice(1)}`);
+  if (activeBtn) activeBtn.classList.add("active");
+
+  // Ocultar visões
+  document.getElementById("calendarMonthView").style.display = view === "month" ? "block" : "none";
+  document.getElementById("calendarWeekView").style.display = view === "week" ? "block" : "none";
+  document.getElementById("calendarDayView").style.display = view === "day" ? "block" : "none";
+
+  renderCalendar();
+};
+
+window.navigateCalendar = function(direction) {
+  if (currentView === "month") {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+  } else if (currentView === "week") {
+    currentDate.setDate(currentDate.getDate() + (direction * 7));
+  } else if (currentView === "day") {
+    currentDate.setDate(currentDate.getDate() + direction);
+    selectedDate = new Date(currentDate);
+  }
+  renderCalendar();
+};
+
+window.goToToday = function() {
+  currentDate = new Date(2026, 4, 30); // Vai para a data padrão do sistema
+  selectedDate = new Date(2026, 4, 30);
+  renderCalendar();
+};
+
+// ==========================================================================
+// RENDERIZAÇÃO DO CALENDÁRIO
+// ==========================================================================
 function renderCalendar() {
-  const activeMonthYearLabel = document.getElementById("activeMonthYear");
-  const calendarGrid = document.getElementById("calendarGrid");
-  if (!calendarGrid || !activeMonthYearLabel) return;
+  const periodLabel = document.getElementById("calendarPeriodLabel");
+  if (!periodLabel) return;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  activeMonthYearLabel.innerText = `${MONTH_NAMES[month]} ${year}`;
-  calendarGrid.innerHTML = "";
+  if (currentView === "month") {
+    periodLabel.innerText = `${MONTH_NAMES[month]} de ${year}`;
+    renderMonthView();
+  } else if (currentView === "week") {
+    const startOfWeek = getStartOfWeek(currentDate);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    periodLabel.innerText = `${startOfWeek.getDate()} a ${endOfWeek.getDate()} de ${MONTH_NAMES[endOfWeek.getMonth()]} de ${endOfWeek.getFullYear()}`;
+    renderWeekView();
+  } else if (currentView === "day") {
+    const day = currentDate.getDate();
+    periodLabel.innerText = `${WEEK_DAYS[currentDate.getDay()]}, ${day} de ${MONTH_NAMES[month]} de ${year}`;
+    renderDayView();
+  }
+}
 
-  // Dias da semana headers
-  const daysOfWeek = ["D", "S", "T", "Q", "Q", "S", "S"];
-  daysOfWeek.forEach(day => {
+// 1. RENDER MONTH VIEW
+function renderMonthView() {
+  const grid = document.getElementById("calendarMonthGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  // Cabeçalhos dos dias da semana
+  WEEK_DAYS.forEach(day => {
     const header = document.createElement("div");
-    header.className = "cal-day-name";
-    header.innerText = day;
-    calendarGrid.appendChild(header);
+    header.className = "calendar-day-header-cell";
+    header.innerText = day.substring(0, 3);
+    grid.appendChild(header);
   });
 
-  // Primeiro dia do mês e número de dias
-  const firstDay = new Date(year, month, 1).getDay();
-  const totalDays = new Date(year, month + 1, 0).getDate();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-  // Preenche células vazias antes do primeiro dia
-  for (let i = 0; i < firstDay; i++) {
-    const emptyCell = document.createElement("div");
-    emptyCell.className = "cal-day empty";
-    calendarGrid.appendChild(emptyCell);
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  // Dias do mês anterior para preenchimento
+  const prevLastDay = new Date(year, month, 0).getDate();
+  for (let i = firstDayIndex; i > 0; i--) {
+    const cell = document.createElement("div");
+    cell.className = "calendar-month-cell other-month";
+    const dayNum = prevLastDay - i + 1;
+    cell.innerHTML = `<div class="calendar-month-cell-num">${dayNum}</div>`;
+    grid.appendChild(cell);
   }
 
-  // Preenche dias do mês
-  for (let day = 1; day <= totalDays; day++) {
+  // Dias do mês atual
+  for (let day = 1; day <= lastDay; day++) {
     const cell = document.createElement("div");
-    cell.className = "cal-day";
-    cell.innerText = day;
+    const cellDate = new Date(year, month, day);
+    const isToday = cellDate.toDateString() === new Date(2026, 4, 30).toDateString(); // Simula "hoje" na data do sistema
 
-    const thisDate = new Date(year, month, day);
+    cell.className = `calendar-month-cell ${isToday ? 'today-cell' : ''}`;
     
-    // Verifica se é a data selecionada
-    if (thisDate.toDateString() === selectedDate.toDateString()) {
-      cell.classList.add("active");
-    }
-
-    // Verifica se possui atendimentos nesta data
-    const dateStr = thisDate.toISOString().split("T")[0];
-    const hasEvents = agendaEventos.some(evt => evt.data === dateStr && evt.status !== 'cancelado');
-    if (hasEvents && !cell.classList.contains("active")) {
-      cell.style.boxShadow = "inset 0 0 5px rgba(199, 162, 122, 0.4)";
-      cell.style.color = "var(--gold-color)";
-      cell.style.fontWeight = "600";
-    }
-
-    cell.onclick = () => {
-      selectedDate = thisDate;
-      renderCalendar();
-      
-      // Atualiza aba ativa para "diária" ao clicar em um dia específico
-      switchAgendaTab("diaria");
-      updateEventsDisplay();
+    // Ação ao clicar na célula
+    cell.onclick = (e) => {
+      // Se clicou em um badge de evento, não abre o modal de criação
+      if (e.target.classList.contains("calendar-event-badge")) return;
+      selectedDate = cellDate;
+      openAgendaModalWithDate(cellDate);
     };
 
-    calendarGrid.appendChild(cell);
+    // Número do dia
+    const numDiv = document.createElement("div");
+    numDiv.className = "calendar-month-cell-num";
+    numDiv.innerText = day;
+    cell.appendChild(numDiv);
+
+    // Filtrar eventos deste dia
+    const dateStr = cellDate.toISOString().split("T")[0];
+    const dayEvents = agendaEventos.filter(evt => {
+      if (evt.status === "cancelado") return false;
+      const evtDateStr = new Date(evt.inicio).toISOString().split("T")[0];
+      return evtDateStr === dateStr;
+    });
+
+    // Inserir badges dos eventos
+    dayEvents.forEach(evt => {
+      const badge = document.createElement("span");
+      badge.className = `calendar-event-badge evt-${evt.tipo}`;
+      const title = evt.tipo === "atendimento" ? evt.cliente_nome : (evt.notas || evt.tipo);
+      const timeStr = new Date(evt.inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      badge.innerText = `[${timeStr}] ${title}`;
+      badge.onclick = (e) => {
+        e.stopPropagation();
+        openAgendaDetailsModal(evt);
+      };
+      cell.appendChild(badge);
+    });
+
+    grid.appendChild(cell);
   }
 }
 
-function prevMonth() {
-  currentDate.setMonth(currentDate.getMonth() - 1);
-  renderCalendar();
+// Helper para pegar início da semana (Domingo)
+function getStartOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day;
+  return new Date(d.setDate(diff));
 }
 
-function nextMonth() {
-  currentDate.setMonth(currentDate.getMonth() + 1);
-  renderCalendar();
-}
+// 2. RENDER WEEK VIEW
+function renderWeekView() {
+  const grid = document.getElementById("calendarWeekGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
 
-// ==========================================================================
-// RENDERIZAÇÃO DA LISTAGEM DE COMPROMISSOS (TABS)
-// ==========================================================================
-function switchAgendaTab(tab) {
-  activeTab = tab;
-  
-  // Atualiza classes ativas dos botões
-  document.getElementById("tabDaily").classList.remove("active");
-  document.getElementById("tabFuture").classList.remove("active");
-  document.getElementById("tabPast").classList.remove("active");
+  // Célula vazia no canto superior esquerdo (cruzamento do cabeçalho de horas e dias)
+  const emptyCorner = document.createElement("div");
+  emptyCorner.className = "calendar-day-header-cell";
+  emptyCorner.innerText = "Hora";
+  grid.appendChild(emptyCorner);
 
-  document.getElementById("contentDiaria").style.display = "none";
-  document.getElementById("contentFuturas").style.display = "none";
-  document.getElementById("contentPassadas").style.display = "none";
+  const startOfWeek = getStartOfWeek(currentDate);
 
-  if (tab === "diaria") {
-    document.getElementById("tabDaily").classList.add("active");
-    document.getElementById("contentDiaria").style.display = "block";
-  } else if (tab === "futuras") {
-    document.getElementById("tabFuture").classList.add("active");
-    document.getElementById("contentFuturas").style.display = "block";
-  } else if (tab === "passadas") {
-    document.getElementById("tabPast").classList.add("active");
-    document.getElementById("contentPassadas").style.display = "block";
+  // Cabeçalhos dos dias da semana com data
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(startOfWeek);
+    dayDate.setDate(dayDate.getDate() + i);
+    weekDates.push(dayDate);
+
+    const header = document.createElement("div");
+    header.className = "calendar-day-header-cell";
+    header.innerHTML = `${WEEK_DAYS[i].substring(0, 3)} ${dayDate.getDate()}/${dayDate.getMonth() + 1}`;
+    grid.appendChild(header);
   }
 
-  updateEventsDisplay();
-}
-
-function updateEventsDisplay() {
-  const selectedDateStr = selectedDate.toISOString().split("T")[0];
-  
-  // Atualiza data exibida na aba do dia
-  const activeDateDisplay = document.getElementById("activeDateDisplay");
-  if (activeDateDisplay) {
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    activeDateDisplay.innerText = `${day}/${month}`;
+  // Coluna de horas à esquerda
+  const timeCol = document.createElement("div");
+  timeCol.className = "calendar-time-col";
+  for (let hour = 8; hour <= 21; hour++) {
+    const hourCell = document.createElement("div");
+    hourCell.className = "calendar-time-cell";
+    hourCell.innerText = `${String(hour).padStart(2, '0')}:00`;
+    timeCol.appendChild(hourCell);
   }
+  grid.appendChild(timeCol);
 
-  // Conta consultas futuras e passadas
-  const systemDate = new Date(2026, 4, 30); // 30 de Maio de 2026
-  
-  const futureCount = agendaEventos.filter(evt => new Date(evt.data) > systemDate && evt.status !== 'cancelado').length;
-  const pastCount = agendaEventos.filter(evt => new Date(evt.data) < systemDate && evt.status !== 'cancelado').length;
-
-  document.getElementById("futureCount").innerText = futureCount;
-  document.getElementById("pastCount").innerText = pastCount;
-
-  // 1. Renderiza aba DIÁRIA
-  const dailyTimeline = document.getElementById("dailyTimeline");
-  if (dailyTimeline) {
-    dailyTimeline.innerHTML = "";
+  // Colunas de dias da semana contendo eventos posicionados
+  weekDates.forEach(dayDate => {
+    const dayCol = document.createElement("div");
+    dayCol.className = "calendar-week-day-col";
     
-    // Filtra compromissos do dia selecionado
-    const todayEvents = agendaEventos
-      .filter(evt => evt.data === selectedDateStr && evt.status !== 'cancelado')
-      .sort((a, b) => a.hora.localeCompare(b.hora));
-
-    if (todayEvents.length === 0) {
-      dailyTimeline.innerHTML = `
-        <div class="empty-agenda-state">
-          <i class="fas fa-calendar-times" style="font-size:1.8rem; margin-bottom:10px; display:block; color:var(--text-muted);"></i>
-          Nenhum agendamento sintonizado para esta data mística.
-        </div>
-      `;
-    } else {
-      todayEvents.forEach(evt => {
-        const item = document.createElement("div");
-        item.className = "agenda-event-item";
-        item.innerHTML = `
-          <div class="agenda-event-left">
-            <div class="agenda-event-time-badge">${evt.hora}</div>
-            <div class="agenda-event-info">
-              <span class="agenda-event-title">
-                <a href="chat.html?client=${encodeURIComponent(evt.cliente_nome)}" style="color: var(--gold-color); text-decoration: none; font-weight: 600;" title="Iniciar chat com ${evt.cliente_nome}">
-                  <i class="fas fa-comments"></i> ${evt.cliente_nome}
-                </a>
-              </span>
-              <span class="agenda-event-service">${evt.servico} ${evt.notas ? `<em>(${evt.notas})</em>` : ''}</span>
-            </div>
-          </div>
-          <div class="agenda-event-actions">
-            <button class="btn-trans-del" onclick="deleteAppointment('${evt.id}')" title="Cancelar agendamento"><i class="fas fa-trash"></i></button>
-          </div>
-        `;
-        dailyTimeline.appendChild(item);
-      });
+    // Inserir linhas de hora horizontais de background
+    for (let hour = 8; hour <= 21; hour++) {
+      const line = document.createElement("div");
+      line.className = "calendar-hour-line";
+      line.style.top = `${(hour - 8) * 60}px`;
+      dayCol.appendChild(line);
     }
+
+    // Clique na coluna para adicionar evento
+    dayCol.onclick = (e) => {
+      if (e.target !== dayCol) return;
+      const rect = dayCol.getBoundingClientRect();
+      const clickY = e.clientY - rect.top;
+      const clickedHour = 8 + Math.floor(clickY / 60);
+      const clickedDate = new Date(dayDate);
+      clickedDate.setHours(clickedHour, 0, 0, 0);
+      selectedDate = clickedDate;
+      openAgendaModalWithDateTime(clickedDate);
+    };
+
+    // Filtrar e renderizar eventos deste dia
+    const dateStr = dayDate.toISOString().split("T")[0];
+    const dayEvents = agendaEventos.filter(evt => {
+      if (evt.status === "cancelado") return false;
+      const evtDateStr = new Date(evt.inicio).toISOString().split("T")[0];
+      return evtDateStr === dateStr;
+    });
+
+    dayEvents.forEach(evt => {
+      const start = new Date(evt.inicio);
+      const end = new Date(evt.fim);
+      
+      const startHour = start.getHours() + (start.getMinutes() / 60);
+      const endHour = end.getHours() + (end.getMinutes() / 60);
+
+      // Limitar entre 08:00 e 22:00
+      const visibleStart = Math.max(8, startHour);
+      const visibleEnd = Math.min(22, endHour);
+
+      if (visibleStart < visibleEnd) {
+        const topPx = (visibleStart - 8) * 60;
+        const heightPx = (visibleEnd - visibleStart) * 60;
+
+        const eventBlock = document.createElement("div");
+        eventBlock.className = `calendar-grid-event-block evt-${evt.tipo}`;
+        eventBlock.style.top = `${topPx}px`;
+        eventBlock.style.height = `${heightPx}px`;
+
+        const title = evt.tipo === "atendimento" ? evt.cliente_nome : (evt.notas || evt.tipo);
+        const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+        eventBlock.innerHTML = `
+          <span class="event-time">${timeStr}</span>
+          <span style="font-weight:700;">${title}</span>
+        `;
+        eventBlock.onclick = (e) => {
+          e.stopPropagation();
+          openAgendaDetailsModal(evt);
+        };
+        dayCol.appendChild(eventBlock);
+      }
+    });
+
+    grid.appendChild(dayCol);
+  });
+}
+
+// 3. RENDER DAY VIEW
+function renderDayView() {
+  const grid = document.getElementById("calendarDayGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  // Coluna de horas à esquerda
+  const timeCol = document.createElement("div");
+  timeCol.className = "calendar-time-col";
+  for (let hour = 8; hour <= 21; hour++) {
+    const hourCell = document.createElement("div");
+    hourCell.className = "calendar-time-cell";
+    hourCell.innerText = `${String(hour).padStart(2, '0')}:00`;
+    timeCol.appendChild(hourCell);
+  }
+  grid.appendChild(timeCol);
+
+  // Coluna do dia selecionado
+  const dayCol = document.createElement("div");
+  dayCol.className = "calendar-week-day-col";
+  
+  // Inserir linhas de hora horizontais
+  for (let hour = 8; hour <= 21; hour++) {
+    const line = document.createElement("div");
+    line.className = "calendar-hour-line";
+    line.style.top = `${(hour - 8) * 60}px`;
+    dayCol.appendChild(line);
   }
 
-  // 2. Renderiza aba FUTURAS
-  const futureList = document.getElementById("futureEventsList");
-  if (futureList) {
-    futureList.innerHTML = "";
-    const futureEvents = agendaEventos
-      .filter(evt => new Date(evt.data) > systemDate && evt.status !== 'cancelado')
-      .sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
+  dayCol.onclick = (e) => {
+    if (e.target !== dayCol) return;
+    const rect = dayCol.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const clickedHour = 8 + Math.floor(clickY / 60);
+    const clickedDate = new Date(currentDate);
+    clickedDate.setHours(clickedHour, 0, 0, 0);
+    selectedDate = clickedDate;
+    openAgendaModalWithDateTime(clickedDate);
+  };
 
-    if (futureEvents.length === 0) {
-      futureList.innerHTML = `
-        <div class="empty-agenda-state">
-          Nenhuma consulta marcada para depois no livro cósmico.
-        </div>
+  // Filtrar eventos deste dia
+  const dateStr = currentDate.toISOString().split("T")[0];
+  const dayEvents = agendaEventos.filter(evt => {
+    if (evt.status === "cancelado") return false;
+    const evtDateStr = new Date(evt.inicio).toISOString().split("T")[0];
+    return evtDateStr === dateStr;
+  });
+
+  dayEvents.forEach(evt => {
+    const start = new Date(evt.inicio);
+    const end = new Date(evt.fim);
+    
+    const startHour = start.getHours() + (start.getMinutes() / 60);
+    const endHour = end.getHours() + (end.getMinutes() / 60);
+
+    const visibleStart = Math.max(8, startHour);
+    const visibleEnd = Math.min(22, endHour);
+
+    if (visibleStart < visibleEnd) {
+      const topPx = (visibleStart - 8) * 60;
+      const heightPx = (visibleEnd - visibleStart) * 60;
+
+      const eventBlock = document.createElement("div");
+      eventBlock.className = `calendar-grid-event-block evt-${evt.tipo}`;
+      eventBlock.style.top = `${topPx}px`;
+      eventBlock.style.height = `${heightPx}px`;
+
+      const title = evt.tipo === "atendimento" ? `${evt.cliente_nome} (${evt.servico})` : (evt.notas || evt.tipo);
+      const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+      eventBlock.innerHTML = `
+        <span class="event-time" style="font-size:0.75rem;">${timeStr}</span>
+        <span style="font-weight:700; font-size:0.85rem;">${title}</span>
+        ${evt.notas ? `<span style="font-size:0.7rem; font-weight:normal; opacity:0.85;">Obs: ${evt.notas}</span>` : ''}
       `;
-    } else {
-      futureEvents.forEach(evt => {
-        const item = document.createElement("div");
-        item.className = "agenda-event-item";
-        
-        const dataArr = evt.data.split("-");
-        const formattedData = `${dataArr[2]}/${dataArr[1]}/${dataArr[0]}`;
-
-        item.innerHTML = `
-          <div class="agenda-event-left">
-            <div class="agenda-event-time-badge" style="font-size:0.75rem; text-align:center; padding: 4px 8px;">
-              ${formattedData}<br/>${evt.hora}
-            </div>
-            <div class="agenda-event-info">
-              <span class="agenda-event-title">
-                <a href="chat.html?client=${encodeURIComponent(evt.cliente_nome)}" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">
-                  <i class="fas fa-comments"></i> ${evt.cliente_nome}
-                </a>
-              </span>
-              <span class="agenda-event-service">${evt.servico} ${evt.notas ? `<em>(${evt.notas})</em>` : ''}</span>
-            </div>
-          </div>
-          <div class="agenda-event-actions">
-            <button class="btn-trans-del" onclick="deleteAppointment('${evt.id}')" title="Cancelar"><i class="fas fa-trash"></i></button>
-          </div>
-        `;
-        futureList.appendChild(item);
-      });
+      eventBlock.onclick = (e) => {
+        e.stopPropagation();
+        openAgendaDetailsModal(evt);
+      };
+      dayCol.appendChild(eventBlock);
     }
-  }
+  });
 
-  // 3. Renderiza aba PASSADAS
-  const pastList = document.getElementById("pastEventsList");
-  if (pastList) {
-    pastList.innerHTML = "";
-    const pastEvents = agendaEventos
-      .filter(evt => new Date(evt.data) < systemDate && evt.status !== 'cancelado')
-      .sort((a, b) => b.data.localeCompare(a.data) || b.hora.localeCompare(a.hora)); // Mais recentes primeiro
-
-    if (pastEvents.length === 0) {
-      pastList.innerHTML = `
-        <div class="empty-agenda-state">
-          Nenhum registro de consultas passadas encontrado.
-        </div>
-      `;
-    } else {
-      pastEvents.forEach(evt => {
-        const item = document.createElement("div");
-        item.className = "agenda-event-item";
-        item.style.opacity = "0.75"; // Efeito esmaecido para passadas
-
-        const dataArr = evt.data.split("-");
-        const formattedData = `${dataArr[2]}/${dataArr[1]}/${dataArr[0]}`;
-
-        item.innerHTML = `
-          <div class="agenda-event-left">
-            <div class="agenda-event-time-badge" style="font-size:0.75rem; text-align:center; padding: 4px 8px; background: rgba(255,255,255,0.05); color: var(--text-secondary);">
-              ${formattedData}<br/>${evt.hora}
-            </div>
-            <div class="agenda-event-info">
-              <span class="agenda-event-title">
-                <a href="chat.html?client=${encodeURIComponent(evt.cliente_nome)}" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">
-                  <i class="fas fa-comments"></i> ${evt.cliente_nome}
-                </a>
-              </span>
-              <span class="agenda-event-service">${evt.servico} ${evt.notas ? `<em>(${evt.notas})</em>` : ''}</span>
-            </div>
-          </div>
-          <div class="agenda-event-actions">
-            <span class="status-badge pago" style="font-size: 0.6rem; padding: 1px 6px;">Concluída</span>
-          </div>
-        `;
-        pastList.appendChild(item);
-      });
-    }
-  }
+  grid.appendChild(dayCol);
 }
 
 // ==========================================================================
-// MODAL & CADASTRO DE AGENDAMENTOS MANUAL
+// MODAL DE NOVO/EDITAR AGENDAMENTO
 // ==========================================================================
-function openAgendaModal() {
+window.openAgendaModal = function() {
+  document.getElementById("agendaEventoId").value = "";
+  document.getElementById("agendaModalTitle").innerHTML = '<i class="fas fa-calendar-plus"></i> Sintonizar Agendamento';
   document.getElementById("frmAgenda").reset();
   
-  // Seta a data selecionada como padrão na modal
-  const selectedDateStr = selectedDate.toISOString().split("T")[0];
-  document.getElementById("agendaData").value = selectedDateStr;
+  // Data selecionada como padrão
+  const dateStr = selectedDate.toISOString().split("T")[0];
+  document.getElementById("agendaData").value = dateStr;
   
+  // Hora de início aproximada
+  const startHourStr = String(selectedDate.getHours() || 14).padStart(2, '0') + ":00";
+  const endHourStr = String((selectedDate.getHours() || 14) + 1).padStart(2, '0') + ":00";
+  document.getElementById("agendaHoraInicio").value = startHourStr;
+  document.getElementById("agendaHoraFim").value = endHourStr;
+
+  toggleAgendaTipoFields("atendimento");
   document.getElementById("agendaModal").classList.add("active");
+};
+
+function openAgendaModalWithDate(date) {
+  selectedDate = new Date(date);
+  window.openAgendaModal();
 }
 
-function closeAgendaModal() {
+function openAgendaModalWithDateTime(dateTime) {
+  selectedDate = new Date(dateTime);
+  window.openAgendaModal();
+}
+
+window.closeAgendaModal = function() {
   document.getElementById("agendaModal").classList.remove("active");
-}
+};
 
-// Trata submissão do agendamento
-async function handleAgendaSubmit(event) {
+window.toggleAgendaTipoFields = function(tipo) {
+  const atFields = document.getElementById("atendimentoFields");
+  const titleGroup = document.getElementById("tituloCustomGroup");
+  
+  if (tipo === "atendimento") {
+    atFields.classList.remove("hidden");
+    titleGroup.classList.add("hidden");
+    document.getElementById("agendaCliente").required = true;
+  } else {
+    atFields.classList.add("hidden");
+    titleGroup.classList.remove("hidden");
+    document.getElementById("agendaCliente").required = false;
+  }
+};
+
+// ==========================================================================
+// SUBMISSÃO DO AGENDAMENTO (CRIAR E EDITAR)
+// ==========================================================================
+window.handleAgendaSubmit = async function(event) {
   event.preventDefault();
 
-  const clienteNome = document.getElementById("agendaCliente").value;
-  const servico = document.getElementById("agendaServico").value;
-  const data = document.getElementById("agendaData").value;
-  const hora = document.getElementById("agendaHora").value;
+  const id = document.getElementById("agendaEventoId").value;
+  const tipo = document.getElementById("agendaTipo").value;
+  const dateStr = document.getElementById("agendaData").value;
+  const startStr = document.getElementById("agendaHoraInicio").value;
+  const endStr = document.getElementById("agendaHoraFim").value;
   const notas = document.getElementById("agendaNotas").value.trim();
 
-  if (!clienteNome || !servico || !data || !hora) return;
+  let clienteNome = null;
+  let servico = null;
+  let customTitle = null;
 
-  const newEvent = {
-    id: "evt-man-" + Date.now(),
-    cliente_nome: clienteNome,
-    servico: servico,
-    data: data,
-    hora: hora,
-    notas: notas,
-    status: "confirmado"
-  };
+  if (tipo === "atendimento") {
+    clienteNome = document.getElementById("agendaCliente").value;
+    servico = document.getElementById("agendaServico").value;
+    if (!clienteNome || !servico) return alert("Favor selecionar cliente e serviço.");
+  } else {
+    customTitle = document.getElementById("agendaTituloCustom").value.trim() || tipo;
+  }
+
+  const startISO = new Date(`${dateStr}T${startStr}:00`).toISOString();
+  const endISO = new Date(`${dateStr}T${endStr}:00`).toISOString();
 
   const isConnected = await testSupabaseConnection();
   if (isConnected) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // Busca ID da cliente pelo nome
-      const { data: clientObj } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("nome_completo", clienteNome)
-        .limit(1)
-        .single();
+      if (!user) return;
 
-      if (user && clientObj) {
-        const startISO = new Date(`${data}T${hora}:00`).toISOString();
-        const endISO = new Date(new Date(`${data}T${hora}:00`).getTime() + 3600000).toISOString(); // 1 hora de consulta
-        
+      let clientObj = null;
+      if (tipo === "atendimento") {
+        const { data: c } = await supabase
+          .from("clientes")
+          .select("id")
+          .eq("nome_completo", clienteNome)
+          .limit(1)
+          .single();
+        clientObj = c;
+      }
+
+      if (id) {
+        // UPDATE
+        const { error } = await supabase
+          .from("agenda_eventos")
+          .update({
+            tipo,
+            cliente_id: clientObj ? clientObj.id : null,
+            servico: tipo === "atendimento" ? servico : customTitle,
+            inicio: startISO,
+            fim: endISO,
+            notas
+          })
+          .eq("id", id);
+        if (error) throw error;
+      } else {
+        // INSERT
         const { error } = await supabase
           .from("agenda_eventos")
           .insert({
             cartomante_id: user.id,
-            cliente_id: clientObj.id,
-            data_inicio: startISO,
-            data_fim: endISO,
-            servico: servico,
+            tipo,
+            cliente_id: clientObj ? clientObj.id : null,
+            servico: tipo === "atendimento" ? servico : customTitle,
+            inicio: startISO,
+            fim: endISO,
             status: "confirmado",
-            notas: notas
+            notas
           });
-
         if (error) throw error;
-        await fetchRealEvents();
       }
+      await fetchRealEvents();
     } catch (e) {
-      console.error("Erro ao gravar agendamento real no Supabase:", e);
-      // Fallback local
-      agendaEventos.push(newEvent);
-      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+      console.error("Erro ao sincronizar evento real com Supabase:", e);
+      saveLocalEvent(id, tipo, clienteNome, servico, customTitle, startISO, endISO, notas);
     }
   } else {
-    // Modo local mockado
-    agendaEventos.push(newEvent);
-    localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+    // Modo Offline local
+    saveLocalEvent(id, tipo, clienteNome, servico, customTitle, startISO, endISO, notas);
   }
 
   closeAgendaModal();
   renderCalendar();
-  updateEventsDisplay();
+};
+
+function saveLocalEvent(id, tipo, clienteNome, servico, customTitle, startISO, endISO, notas) {
+  if (id) {
+    // UPDATE local
+    agendaEventos = agendaEventos.map(evt => {
+      if (evt.id === id) {
+        return {
+          ...evt,
+          tipo,
+          cliente_nome: tipo === "atendimento" ? clienteNome : null,
+          servico: tipo === "atendimento" ? servico : customTitle,
+          inicio: startISO,
+          fim: endISO,
+          notas
+        };
+      }
+      return evt;
+    });
+  } else {
+    // INSERT local
+    const newEvent = {
+      id: "evt-man-" + Date.now(),
+      cliente_nome: tipo === "atendimento" ? clienteNome : null,
+      servico: tipo === "atendimento" ? servico : customTitle,
+      inicio: startISO,
+      fim: endISO,
+      tipo,
+      notas,
+      status: "confirmado"
+    };
+    agendaEventos.push(newEvent);
+  }
+  localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
 }
 
-// Deleta agendamento
-async function deleteAppointment(id) {
+// ==========================================================================
+// MODAL DE DETALHES E AÇÕES DE EVENTO
+// ==========================================================================
+let activeEventInDetails = null;
+
+window.openAgendaDetailsModal = function(evt) {
+  activeEventInDetails = evt;
+  
+  const titleEl = document.getElementById("detailsTitle");
+  const badgeEl = document.getElementById("detailsBadge");
+  const consulenteRow = document.getElementById("detailsConsulenteRow");
+  const servicoRow = document.getElementById("detailsServicoRow");
+  const timeRangeEl = document.getElementById("detailsTimeRange");
+  const notasEl = document.getElementById("detailsNotas");
+  const actionsContainer = document.getElementById("detailsActions");
+
+  const title = evt.tipo === "atendimento" ? evt.cliente_nome : (evt.servico || evt.tipo);
+  titleEl.innerText = title;
+  
+  badgeEl.className = `calendar-event-badge evt-${evt.tipo}`;
+  badgeEl.innerText = evt.tipo.toUpperCase().replace("_", " ");
+
+  if (evt.tipo === "atendimento") {
+    consulenteRow.style.display = "block";
+    document.getElementById("detailsConsulente").innerText = evt.cliente_nome;
+    
+    servicoRow.style.display = "block";
+    document.getElementById("detailsServico").innerText = evt.servico;
+  } else {
+    consulenteRow.style.display = "none";
+    servicoRow.style.display = "none";
+  }
+
+  const start = new Date(evt.inicio);
+  const end = new Date(evt.fim);
+  const dateStr = start.toLocaleDateString();
+  const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} às ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  timeRangeEl.innerHTML = `<i class="fas fa-clock" style="color:var(--gold-color); margin-right:5px;"></i> ${dateStr} das ${timeStr}`;
+
+  notasEl.innerText = evt.notes || evt.notas || "Nenhuma observação cadastrada.";
+
+  // Renderizar botões de ação dinamicamente
+  actionsContainer.innerHTML = "";
+  
+  if (evt.status === "pendente") {
+    actionsContainer.innerHTML = `
+      <button class="glass-button" style="border-color:#2ec4b6; color:#2ec4b6;" onclick="acceptSolicitation('${evt.id}')">
+        <i class="fas fa-check"></i> Aceitar
+      </button>
+      <button class="glass-button" style="border-color:#e63946; color:#e63946;" onclick="rejectSolicitation('${evt.id}')">
+        <i class="fas fa-times"></i> Recusar
+      </button>
+    `;
+  } else {
+    actionsContainer.innerHTML = `
+      <button class="glass-button" style="border-color:var(--gold-color); flex:1;" onclick="editEventFromDetails()">
+        <i class="fas fa-edit"></i> Editar
+      </button>
+      <button class="glass-button" style="border-color:#e63946; color:#e63946; flex:1;" onclick="deleteEventFromDetails()">
+        <i class="fas fa-trash"></i> Cancelar
+      </button>
+    `;
+  }
+
+  document.getElementById("agendaDetailsModal").classList.add("active");
+};
+
+window.closeAgendaDetailsModal = function() {
+  document.getElementById("agendaDetailsModal").classList.remove("active");
+};
+
+window.editEventFromDetails = function() {
+  if (!activeEventInDetails) return;
+  const evt = activeEventInDetails;
+  closeAgendaDetailsModal();
+
+  document.getElementById("agendaEventoId").value = evt.id;
+  document.getElementById("agendaModalTitle").innerHTML = '<i class="fas fa-edit"></i> Sintonizar Agendamento';
+  
+  document.getElementById("agendaTipo").value = evt.tipo;
+  toggleAgendaTipoFields(evt.tipo);
+
+  if (evt.tipo === "atendimento") {
+    document.getElementById("agendaCliente").value = evt.cliente_nome || "";
+    document.getElementById("agendaServico").value = evt.servico || "";
+  } else {
+    document.getElementById("agendaTituloCustom").value = evt.servico || "";
+  }
+
+  const start = new Date(evt.inicio);
+  const end = new Date(evt.fim);
+
+  document.getElementById("agendaData").value = start.toISOString().split("T")[0];
+  document.getElementById("agendaHoraInicio").value = start.toTimeString().substring(0, 5);
+  document.getElementById("agendaHoraFim").value = end.toTimeString().substring(0, 5);
+  
+  document.getElementById("agendaNotas").value = evt.notes || evt.notas || "";
+
+  document.getElementById("agendaModal").classList.add("active");
+};
+
+window.deleteEventFromDetails = async function() {
+  if (!activeEventInDetails) return;
+  const id = activeEventInDetails.id;
+  
   if (!confirm("Deseja realmente cancelar este agendamento espiritual?")) return;
 
   const isConnected = await testSupabaseConnection();
@@ -605,21 +907,67 @@ async function deleteAppointment(id) {
         .from("agenda_eventos")
         .update({ status: "cancelado" })
         .eq("id", id);
-
       if (error) throw error;
       await fetchRealEvents();
     } catch (e) {
       console.error("Erro ao cancelar no Supabase:", e);
-      // Fallback local
       agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "cancelado" } : evt);
       localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
     }
   } else {
-    // Local mock
     agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "cancelado" } : evt);
     localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
   }
 
+  closeAgendaDetailsModal();
   renderCalendar();
-  updateEventsDisplay();
-}
+};
+
+window.acceptSolicitation = async function(id) {
+  const isConnected = await testSupabaseConnection();
+  if (isConnected) {
+    try {
+      const { error } = await supabase
+        .from("agenda_eventos")
+        .update({ status: "confirmado" })
+        .eq("id", id);
+      if (error) throw error;
+      await fetchRealEvents();
+    } catch (e) {
+      console.error("Erro ao aceitar solicitação no Supabase:", e);
+      agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "confirmado" } : evt);
+      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+    }
+  } else {
+    agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "confirmado" } : evt);
+    localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+  }
+
+  closeAgendaDetailsModal();
+  renderCalendar();
+};
+
+window.rejectSolicitation = async function(id) {
+  if (!confirm("Deseja recusar esta solicitação de atendimento?")) return;
+  const isConnected = await testSupabaseConnection();
+  if (isConnected) {
+    try {
+      const { error } = await supabase
+        .from("agenda_eventos")
+        .update({ status: "recusado" })
+        .eq("id", id);
+      if (error) throw error;
+      await fetchRealEvents();
+    } catch (e) {
+      console.error("Erro ao recusar no Supabase:", e);
+      agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "recusado" } : evt);
+      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+    }
+  } else {
+    agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "recusado" } : evt);
+    localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+  }
+
+  closeAgendaDetailsModal();
+  renderCalendar();
+};

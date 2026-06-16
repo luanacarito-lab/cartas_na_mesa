@@ -82,7 +82,7 @@ function loadDemonstrativeDashboardStats() {
     listEl.innerHTML = MOCK_DASHBOARD_DATA.proximos_atendimentos.map(at => `
       <li>
         <i class="fas fa-clock" style="color: var(--gold-color); margin-right: 8px;"></i>
-        <strong>${at.hora}</strong> – <a href="chat.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;"><i class="fas fa-comments"></i> ${at.nome}</a> (${at.servico})
+        <strong>${at.hora}</strong> – <a href="agenda.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;"><i class="fas fa-comments"></i> ${at.nome}</a> (${at.servico})
       </li>
     `).join("");
   }
@@ -98,7 +98,7 @@ function loadDemonstrativeDashboardStats() {
     clientsEl.innerHTML = MOCK_DASHBOARD_DATA.clientes_recentes.map(cli => `
       <li>
         <i class="fas fa-user-circle" style="margin-right: 8px;"></i>
-        <a href="chat.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;"><i class="fas fa-comments"></i> ${cli.nome}</a> – Sintonizada em ${cli.data} (${cli.status})
+        <a href="clients.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;"><i class="fas fa-comments"></i> ${cli.nome}</a> – Sintonizada em ${cli.data} (${cli.status})
       </li>
     `).join("");
   }
@@ -108,7 +108,7 @@ function loadDemonstrativeDashboardStats() {
     agendaEl.innerHTML = MOCK_DASHBOARD_DATA.proximos_atendimentos.map(at => `
       <li>
         <span style="font-weight: 600; color: var(--gold-color); margin-right:15px;">${at.hora}</span>
-        <span>Leitura para <a href="chat.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${at.nome}</a></span>
+        <span>Leitura para <a href="agenda.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${at.nome}</a></span>
       </li>
     `).join("");
   }
@@ -180,7 +180,7 @@ async function loadRealDashboardStats(user) {
           const li = document.createElement("li");
           li.innerHTML = `
             <span style="font-weight: 600; color: var(--gold-color); margin-right:15px;">${horaStr}</span>
-            <span>Leitura para <a href="chat.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${cli?.nome_completo || "Consulente"}</a></span>
+            <span>Leitura para <a href="agenda.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${cli?.nome_completo || "Consulente"}</a></span>
           `;
           agendaEl.appendChild(li);
         }
@@ -235,7 +235,7 @@ async function loadRealDashboardStats(user) {
           const li = document.createElement("li");
           li.innerHTML = `
             <i class="fas fa-clock" style="color: var(--gold-color); margin-right: 8px;"></i>
-            <strong>${dataStr} às ${horaStr}</strong> – <a href="chat.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${cli?.nome_completo || "Consulente"}</a>
+            <strong>${dataStr} às ${horaStr}</strong> – <a href="agenda.html" style="color: var(--gold-color); text-decoration: none; font-weight: 600;">${cli?.nome_completo || "Consulente"}</a>
           `;
           upcomingListEl.appendChild(li);
         }

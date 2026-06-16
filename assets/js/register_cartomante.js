@@ -171,7 +171,7 @@ if (form) {
       }
 
       alert("Cadastro de Cartomante realizado com sucesso!");
-      window.location.href = "index.html";
+      window.location.href = "dashboard.html";
 
     } catch (err) {
       console.error("Erro geral de cadastro:", err);

@@ -14,6 +14,11 @@
   <!-- Font Awesome Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+
   <style>
     .profile-grid {
       display: grid;
@@ -210,7 +215,7 @@
   <div class="sidebar glass-panel">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item active"><i class="fas fa-user-friends"></i> Clientes</a>
       <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
@@ -301,8 +306,6 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <script src="assets/js/backButton.js"></script>
   <script>
     // Tab switching inside profile

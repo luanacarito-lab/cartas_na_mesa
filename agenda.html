@@ -14,6 +14,11 @@
   
   <!-- Font Awesome Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
   
   <style>
     /* Estilos específicos complementares para a agenda */
@@ -187,7 +192,7 @@
   <div class="sidebar glass-panel">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
       <a href="agenda.html" class="menu-item active"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
@@ -225,145 +230,348 @@
           </div>
         </div>
 
-        <a href="index.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <a href="dashboard.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
         <button type="button" class="glass-button" style="border-color:var(--gold-color);" onclick="openAgendaModal()">
           <i class="fas fa-plus"></i> Novo Agendamento
         </button>
       </div>
     </header>
 
-    <div class="agenda-grid-layout">
+    <style>
+      /* Estilos do Calendário Real de Alta Fidelidade */
+      .calendar-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .calendar-controls-row {
+        background: rgba(11, 14, 27, 0.45);
+        border: 1px solid var(--card-border);
+        padding: 15px 25px;
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      .calendar-view-container {
+        background: rgba(11, 14, 27, 0.35);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        min-height: 550px;
+        overflow-x: auto;
+      }
+      .calendar-month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        min-width: 700px;
+      }
+      .calendar-day-header-cell {
+        text-align: center;
+        padding: 12px 5px;
+        font-family: var(--font-decorative);
+        color: var(--gold-color);
+        font-size: 0.85rem;
+        font-weight: 700;
+        border-bottom: 2px solid rgba(199, 162, 122, 0.25);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .calendar-month-cell {
+        background: rgba(255, 255, 255, 0.01);
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        min-height: 110px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        transition: background var(--transition-fast);
+        position: relative;
+        cursor: pointer;
+      }
+      .calendar-month-cell:hover:not(.other-month) {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .calendar-month-cell.other-month {
+        opacity: 0.25;
+      }
+      .calendar-month-cell.today-cell {
+        border: 2px solid var(--gold-color) !important;
+        background: rgba(199, 162, 122, 0.08);
+      }
+      .calendar-month-cell-num {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .calendar-event-badge {
+        font-size: 0.68rem;
+        padding: 3px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+        transition: filter 0.2s;
+        display: block;
+        border: 1px solid transparent;
+      }
+      .calendar-event-badge:hover {
+        filter: brightness(1.2);
+      }
       
-      <!-- Lado Esquerdo: Widget de Calendário Mensal e Filtros -->
-      <div class="glass-panel calendar-container-panel">
-        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--public-primary); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-circle-nodes" style="color:var(--public-primary);"></i> Ciclo Lunar das Datas
-        </h2>
-        
-        <!-- Widget do Calendário -->
-        <div class="calendar-widget">
-          <div class="calendar-month-header">
-            <span id="activeMonthYear">Maio 2026</span>
-            <div class="calendar-arrows">
-              <button class="btn-cal-arrow" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
-              <button class="btn-cal-arrow" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
-            </div>
-          </div>
-          <div class="calendar-grid" id="calendarGrid">
-            <!-- Injetado dinamicamente -->
-          </div>
-        </div>
+      /* Cores por tipo de evento */
+      .evt-atendimento { background: rgba(46, 196, 182, 0.15); border-color: rgba(46, 196, 182, 0.4); color: #2ec4b6; }
+      .evt-folga { background: rgba(224, 146, 75, 0.15); border-color: rgba(224, 146, 75, 0.4); color: #e0924b; }
+      .evt-pausa { background: rgba(224, 146, 75, 0.12); border-color: rgba(224, 146, 75, 0.3); color: #e0924b; }
+      .evt-imprevisto { background: rgba(230, 57, 70, 0.15); border-color: rgba(230, 57, 70, 0.4); color: #e63946; }
+      .evt-pessoal { background: rgba(162, 155, 254, 0.15); border-color: rgba(162, 155, 254, 0.4); color: #a29bfe; }
+      .evt-consulta_medica { background: rgba(162, 155, 254, 0.12); border-color: rgba(162, 155, 254, 0.3); color: #a29bfe; }
+      .evt-indisponivel { background: rgba(100, 100, 100, 0.15); border-color: rgba(100, 100, 100, 0.4); color: #aaa; }
+      .evt-outro { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.2); color: #ccc; }
 
-        <div class="lunar-phase-status">
-          <i class="fas fa-moon" style="color: var(--gold-color); font-size: 1.1rem;"></i>
-          <div class="lunar-text">
-            Fase Lunar: <strong>Crescente Sintonizada</strong><br/>
-            Ideal para rituais de prosperidade, abertura de caminhos e leituras de foco profissional.
-          </div>
+      /* Visão Semanal e Diária */
+      .calendar-week-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 5px;
+        min-width: 800px;
+      }
+      .calendar-time-col {
+        display: flex;
+        flex-direction: column;
+        padding-top: 45px;
+        gap: 0px;
+      }
+      .calendar-time-cell {
+        height: 60px;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-align: right;
+        padding-right: 8px;
+        line-height: 1;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+      }
+      .calendar-week-day-col {
+        background: rgba(255, 255, 255, 0.005);
+        border-right: 1px solid var(--card-border);
+        border-left: 1px solid var(--card-border);
+        position: relative;
+        height: 840px; /* 14 horas * 60px */
+      }
+      .calendar-hour-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.03);
+        pointer-events: none;
+      }
+      .calendar-grid-event-block {
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        border: 1px solid transparent;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        line-height: 1.2;
+      }
+      .calendar-grid-event-block .event-time {
+        font-size: 0.65rem;
+        opacity: 0.8;
+      }
+      
+      .calendar-day-view-container {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 10px;
+      }
+    </style>
+
+    <!-- Cabeçalho de Controles do Calendário -->
+    <div class="calendar-controls-row">
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="glass-button" onclick="navigateCalendar(-1)" style="padding: 8px 12px;"><i class="fas fa-chevron-left"></i></button>
+        <button class="glass-button" onclick="navigateCalendar(1)" style="padding: 8px 12px;"><i class="fas fa-chevron-right"></i></button>
+        <button class="glass-button" style="border-color: var(--gold-color); padding: 8px 15px;" onclick="goToToday()">Hoje</button>
+        <h2 id="calendarPeriodLabel" style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.2rem; margin: 0; margin-left: 15px; font-weight: 700;">Junho de 2026</h2>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="glass-button tab-view-btn active" id="btnViewMonth" onclick="switchCalendarView('month')">Mês</button>
+        <button class="glass-button tab-view-btn" id="btnViewWeek" onclick="switchCalendarView('week')">Semana</button>
+        <button class="glass-button tab-view-btn" id="btnViewDay" onclick="switchCalendarView('day')">Dia</button>
+      </div>
+    </div>
+
+    <!-- Visões do Calendário -->
+    <div class="calendar-view-container">
+      <!-- Visão Mensal -->
+      <div id="calendarMonthView">
+        <div class="calendar-month-grid" id="calendarMonthGrid">
+          <!-- Injetado por JS -->
         </div>
       </div>
-      
-      <!-- Lado Direito: Timeline Diária, Futuras e Passadas -->
-      <div class="glass-panel agenda-events-panel">
-        <div class="agenda-list-tabs">
-          <button class="tab-agenda-btn active" id="tabDaily" onclick="switchAgendaTab('diaria')">
-            <i class="fas fa-calendar-day"></i> Agenda do Dia (<span id="activeDateDisplay">30/05</span>)
-          </button>
-          <button class="tab-agenda-btn" id="tabFuture" onclick="switchAgendaTab('futuras')">
-            <i class="fas fa-hourglass-half"></i> Marcadas para Depois (<span id="futureCount">0</span>)
-          </button>
-          <button class="tab-agenda-btn" id="tabPast" onclick="switchAgendaTab('passadas')">
-            <i class="fas fa-history"></i> Consultas Passadas (<span id="pastCount">0</span>)
-          </button>
+      <!-- Visão Semanal -->
+      <div id="calendarWeekView" style="display: none;">
+        <div class="calendar-week-grid" id="calendarWeekGrid">
+          <!-- Injetado por JS -->
         </div>
-
-        <!-- Seções das Abas -->
-        
-        <!-- 1. Aba: Agenda do Dia -->
-        <div class="tab-agenda-content" id="contentDiaria">
-          <div class="agenda-timeline" id="dailyTimeline">
-            <!-- Injetado dinamicamente via JS -->
-          </div>
-        </div>
-
-        <!-- 2. Aba: Marcadas para Depois -->
-        <div class="tab-agenda-content" id="contentFuturas" style="display:none;">
-          <div id="futureEventsList">
-            <!-- Injetado dinamicamente -->
-          </div>
-        </div>
-
-        <!-- 3. Aba: Consultas Passadas -->
-        <div class="tab-agenda-content" id="contentPassadas" style="display:none;">
-          <div id="pastEventsList">
-            <!-- Injetado dinamicamente -->
-          </div>
-        </div>
-
       </div>
-
+      <!-- Visão Diária -->
+      <div id="calendarDayView" style="display: none;">
+        <div class="calendar-day-view-container" id="calendarDayGrid">
+          <!-- Injetado por JS -->
+        </div>
+      </div>
     </div>
   </main>
 
   <!-- ==========================================================================
-     MODAL: NOVO AGENDAMENTO RITUALÍSTICO
+     MODAL: NOVO / EDITAR AGENDAMENTO
      ========================================================================== -->
   <div class="mystic-modal" id="agendaModal">
     <div class="mystic-modal-content glass-panel" style="max-width:480px;">
       <div class="modal-header-mystic">
-        <h2><i class="fas fa-calendar-plus"></i> Sintonizar Agendamento</h2>
+        <h2 id="agendaModalTitle"><i class="fas fa-calendar-plus"></i> Sintonizar Agendamento</h2>
         <button class="close-mystic-btn" onclick="closeAgendaModal()">&times;</button>
       </div>
       <form class="mystic-form" id="frmAgenda" onsubmit="handleAgendaSubmit(event)">
+        <input type="hidden" id="agendaEventoId" />
         
         <div class="mystic-form-group">
-          <label for="agendaCliente">Consulente</label>
-          <select id="agendaCliente" class="mystic-select" required>
-            <option value="">Selecione a consulente...</option>
-            <!-- Injetado via JS -->
+          <label for="agendaTipo">Tipo de Evento</label>
+          <select id="agendaTipo" class="mystic-select" onchange="toggleAgendaTipoFields(this.value)" required>
+            <option value="atendimento">Atendimento / Consulta</option>
+            <option value="folga">Folga</option>
+            <option value="pausa">Pausa / Intervalo</option>
+            <option value="imprevisto">Imprevisto</option>
+            <option value="pessoal">Pessoal</option>
+            <option value="consulta_medica">Consulta Médica</option>
+            <option value="indisponivel">Indisponível</option>
+            <option value="outro">Outro / Notas</option>
           </select>
         </div>
 
-        <div class="mystic-form-group">
-          <label for="agendaServico">Serviço Espiritual / Leitura</label>
-          <select id="agendaServico" class="mystic-select" required>
-            <option value="Leitura de Tarô Terapêutico">Leitura de Tarô Terapêutico</option>
-            <option value="Alinhamento de Chakras & Cristais">Alinhamento de Chakras & Cristais</option>
-            <option value="Consulta Geral com Baralho Cigano">Consulta Geral com Baralho Cigano</option>
-            <option value="Tiragem de Mandala Astrológica">Tiragem de Mandala Astrológica</option>
-            <option value="Ritual de Abertura de Caminhos">Ritual de Abertura de Caminhos</option>
-            <option value="Limpeza Energética de Aura">Limpeza Energética de Aura</option>
-          </select>
+        <div id="atendimentoFields">
+          <div class="mystic-form-group">
+            <label for="agendaCliente">Consulente</label>
+            <select id="agendaCliente" class="mystic-select">
+              <option value="">Selecione a consulente...</option>
+              <!-- Injetado via JS -->
+            </select>
+          </div>
+
+          <div class="mystic-form-group">
+            <label for="agendaServico">Serviço Espiritual / Leitura</label>
+            <select id="agendaServico" class="mystic-select">
+              <option value="Leitura de Tarô Terapêutico">Leitura de Tarô Terapêutico</option>
+              <option value="Alinhamento de Chakras & Cristais">Alinhamento de Chakras & Cristais</option>
+              <option value="Consulta Geral com Baralho Cigano">Consulta Geral com Baralho Cigano</option>
+              <option value="Tiragem de Mandala Astrológica">Tiragem de Mandala Astrológica</option>
+              <option value="Ritual de Abertura de Caminhos">Ritual de Abertura de Caminhos</option>
+              <option value="Limpeza Energética de Aura">Limpeza Energética de Aura</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="tituloCustomGroup" class="mystic-form-group hidden">
+          <label for="agendaTituloCustom">Título / Descrição Curta</label>
+          <input type="text" id="agendaTituloCustom" class="mystic-input" placeholder="Ex: Folga da Tarde, Exames, Viagem..." />
         </div>
 
-        <div class="mystic-form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="mystic-form-group" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:10px;">
           <div>
             <label for="agendaData">Data</label>
             <input type="date" id="agendaData" class="mystic-input" required />
           </div>
           <div>
-            <label for="agendaHora">Hora</label>
-            <input type="time" id="agendaHora" class="mystic-input" required />
+            <label for="agendaHoraInicio">Início</label>
+            <input type="time" id="agendaHoraInicio" class="mystic-input" required />
+          </div>
+          <div>
+            <label for="agendaHoraFim">Fim</label>
+            <input type="time" id="agendaHoraFim" class="mystic-input" required />
           </div>
         </div>
 
         <div class="mystic-form-group">
           <label for="agendaNotas">Notas de Sintonia / Conexão</label>
-          <input type="text" id="agendaNotas" class="mystic-input" placeholder="Ex: Focar em questões de carreira e caminhos materiais." />
+          <input type="text" id="agendaNotas" class="mystic-input" placeholder="Ex: Focar em questões de carreira." />
         </div>
 
         <button type="submit" class="glass-button" style="width:100%; margin-top:10px; padding:12px;">
-          <i class="fas fa-calendar-check"></i> Fixar Agendamento no Livro do Tempo
+          <i class="fas fa-calendar-check"></i> Fixar no Livro do Tempo
         </button>
 
       </form>
     </div>
   </div>
 
-  <!-- Supabase CDN Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
-  <!-- Central Config -->
-  <script src="config.js"></script>
+  <!-- ==========================================================================
+     MODAL: DETALHES DO AGENDAMENTO
+     ========================================================================== -->
+  <div class="mystic-modal" id="agendaDetailsModal">
+    <div class="mystic-modal-content glass-panel" style="max-width:480px; padding: 25px;">
+      <div class="modal-header-mystic">
+        <h2><i class="fas fa-scroll"></i> Detalhes do Evento</h2>
+        <button class="close-mystic-btn" onclick="closeAgendaDetailsModal()">&times;</button>
+      </div>
+      <div class="mystic-form" style="display:flex; flex-direction:column; gap:15px; margin-top:10px;">
+        <div id="detailsHeader" style="border-bottom:1px solid rgba(199,162,122,0.2); padding-bottom:12px;">
+          <h3 id="detailsTitle" style="color:var(--gold-color); font-family:var(--font-decorative); margin:0 0 5px 0; font-size:1.2rem;">Título</h3>
+          <span id="detailsBadge" class="calendar-event-badge" style="display:inline-block; width:auto;">Tipo</span>
+        </div>
+        
+        <div id="detailsConsulenteRow" style="display:none;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Consulente</div>
+          <div id="detailsConsulente" style="font-weight:600; color:var(--text-primary);">Nome do Cliente</div>
+        </div>
+
+        <div id="detailsServicoRow" style="display:none;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Serviço</div>
+          <div id="detailsServico" style="font-weight:600; color:var(--text-primary);">Nome do Serviço</div>
+        </div>
+
+        <div>
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Horário</div>
+          <div id="detailsTimeRange" style="font-weight:600; color:var(--text-primary);"><i class="fas fa-clock" style="color:var(--gold-color); margin-right:5px;"></i> 30/05/2026 das 14:00 às 15:00</div>
+        </div>
+
+        <div id="detailsNotasRow">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Observações</div>
+          <div id="detailsNotas" style="font-style:italic; color:var(--text-secondary);">Notas adicionais do atendimento.</div>
+        </div>
+
+        <div id="detailsActions" style="display:flex; gap:10px; margin-top:15px; border-top:1px dashed rgba(199,162,122,0.15); padding-top:15px;">
+          <!-- Ações Dinâmicas (Aceitar/Recusar, Editar, Excluir) -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Atmosphere Particle System and accessibility sync -->
   <script src="script.js"></script>
   <!-- Dedicated Agenda Engine -->

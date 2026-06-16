@@ -1,4 +1,4 @@
-// login.js - Lógica de Login Inteligente e Roteamento Avançado
+// assets/js/login.js - Lógica de Login Simplificada, Mística e Roteamento Avançado
 // -----------------------------------------------------------------
 const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
@@ -19,124 +19,22 @@ function supabaseCreateClient(url, key) {
   return null;
 }
 
-// Forms and Steps Elements
-const emailForm = document.getElementById("emailForm");
-const loginPasswordForm = document.getElementById("loginPasswordForm");
-const registerClienteForm = document.getElementById("registerClienteForm");
-const btnNextStep = document.getElementById("btnNextStep");
+// Form Elements
+const loginForm = document.getElementById("loginForm");
+const loginBtn = document.getElementById("loginBtn");
 
-// Displays
-const loginEmailDisplay = document.getElementById("login_email_display");
-const registerEmailDisplay = document.getElementById("register_email_display");
-
-let userEmail = "";
-
-// STEP 1: Verify Email
-if (emailForm) {
-  emailForm.addEventListener("submit", async (e) => {
+if (loginForm) {
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const emailInput = document.getElementById("check_email").value.trim().toLowerCase();
-    if (!emailInput) return;
+    const email = document.getElementById("login_email").value.trim().toLowerCase();
+    const password = document.getElementById("login_password").value;
 
-    userEmail = emailInput;
-
-    if (btnNextStep) {
-      btnNextStep.disabled = true;
-      btnNextStep.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando Oráculos...';
-    }
-
-    const isConnected = await testSupabaseConnection();
-
-    if (!isConnected) {
-      // Login offline/mock
-      setTimeout(async () => {
-        const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
-        const userExists = userEmail === "admin@templo.com" || 
-                           userEmail === "cartomante@templo.com" || 
-                           userEmail === "cliente@templo.com" || 
-                           registeredUsers.some(u => u.email === userEmail);
-        
-        if (btnNextStep) {
-          btnNextStep.disabled = false;
-          btnNextStep.innerHTML = 'Avançar <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>';
-        }
-
-        if (userExists) {
-          emailForm.classList.add("hidden");
-          loginPasswordForm.classList.remove("hidden");
-          if (loginEmailDisplay) loginEmailDisplay.value = userEmail;
-          document.getElementById("password").focus();
-        } else {
-          emailForm.classList.add("hidden");
-          registerClienteForm.classList.remove("hidden");
-          if (registerEmailDisplay) registerEmailDisplay.value = userEmail;
-          document.getElementById("register_nome").focus();
-        }
-      }, 800);
-      return;
-    }
-
-    try {
-      // Verificar se e-mail existe em clientes
-      const { data: client, error: clientErr } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("email", userEmail)
-        .maybeSingle();
-
-      // Verificar se e-mail existe em cartomantes
-      const { data: cartomante, error: cartErr } = await supabase
-        .from("cartomantes")
-        .select("id")
-        .eq("email", userEmail)
-        .maybeSingle();
-
-      // Se existir em qualquer uma das duas tabelas
-      if (client || cartomante) {
-        // Exibir formulário de login por senha
-        emailForm.classList.add("hidden");
-        loginPasswordForm.classList.remove("hidden");
-        if (loginEmailDisplay) loginEmailDisplay.value = userEmail;
-        document.getElementById("password").focus();
-      } else {
-        // Exibir formulário de cadastro de cliente
-        emailForm.classList.add("hidden");
-        registerClienteForm.classList.remove("hidden");
-        if (registerEmailDisplay) registerEmailDisplay.value = userEmail;
-        document.getElementById("register_nome").focus();
-      }
-    } catch (err) {
-      console.error("Erro ao verificar e-mail:", err);
-      alert("Ocorreu um erro ao verificar sua sintonia espiritual.");
-    } finally {
-      if (btnNextStep) {
-        btnNextStep.disabled = false;
-        btnNextStep.innerHTML = 'Avançar <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>';
-      }
-    }
-  });
-}
-
-// Reset steps
-window.resetToEmailStep = function() {
-  loginPasswordForm.classList.add("hidden");
-  registerClienteForm.classList.add("hidden");
-  emailForm.classList.remove("hidden");
-  document.getElementById("check_email").focus();
-};
-
-// STEP 2A: Handle Login with Password
-if (loginPasswordForm) {
-  loginPasswordForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const password = document.getElementById("password").value;
-    const loginBtn = document.getElementById("loginBtn");
+    if (!email || !password) return;
 
     if (loginBtn) {
       loginBtn.disabled = true;
-      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Abrindo Portais...';
     }
 
     const isConnected = await testSupabaseConnection();
@@ -144,12 +42,12 @@ if (loginPasswordForm) {
     if (!isConnected) {
       // Login offline/mock
       setTimeout(async () => {
-        const isCartomante = userEmail === "admin@templo.com" || userEmail === "cartomante@templo.com";
+        const isCartomante = email === "admin@templo.com" || email === "cartomante@templo.com";
         
         if (isCartomante) {
           const demoUser = {
             id: "demo-admin-id",
-            email: userEmail,
+            email: email,
             role: "cartomante",
             nome_completo: "Taróloga Administradora",
             user_metadata: {
@@ -158,15 +56,17 @@ if (loginPasswordForm) {
             }
           };
           localStorage.setItem("demo_logged_user", JSON.stringify(demoUser));
+          localStorage.removeItem("demo_logged_client"); // Garantir exclusividade
           
           if (loginBtn) {
             loginBtn.disabled = false;
-            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Entrar no Portal';
           }
-          window.location.href = "index.html";
+          window.location.href = "dashboard.html";
         } else {
+          // Consulente/Cliente
           const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
-          const localUser = registeredUsers.find(u => u.email === userEmail) || {
+          const localUser = registeredUsers.find(u => u.email === email) || {
             nome: "Cliente Demonstrativo",
             celular: "(11) 99999-9999",
             religiao: "Espiritualista"
@@ -175,27 +75,44 @@ if (loginPasswordForm) {
           const demoClient = {
             id: localUser.id || "demo-client-1",
             nome_completo: localUser.nome || "Cliente Demonstrativo",
-            email: userEmail,
+            email: email,
             celular: localUser.celular,
             foto_url: "assets/img/default-avatar.png",
             religiao: localUser.religiao,
             role: "cliente"
           };
           localStorage.setItem("demo_logged_client", JSON.stringify(demoClient));
+          localStorage.removeItem("demo_logged_user"); // Garantir exclusividade
           
           if (loginBtn) {
             loginBtn.disabled = false;
-            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Entrar no Portal';
           }
+
+          // Se houver intenção de chat pendente no offline (fallback simples)
+          const pendingIntentStr = sessionStorage.getItem("pending_intent");
+          if (pendingIntentStr) {
+            try {
+              const intent = JSON.parse(pendingIntentStr);
+              sessionStorage.removeItem("pending_intent");
+              // Redireciona para o chat de cliente mockado
+              window.location.href = `client_chat.html?cid=demo-chat-id`;
+              return;
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          
           window.location.href = "client_area.html";
         }
       }, 800);
       return;
     }
 
+    // Fluxo Online via Supabase
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: userEmail,
+        email,
         password
       });
 
@@ -203,10 +120,14 @@ if (loginPasswordForm) {
         alert("Chave incorreta ou erro de acesso: " + translateAuthError(error.message));
         if (loginBtn) {
           loginBtn.disabled = false;
-          loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+          loginBtn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Entrar no Portal';
         }
         return;
       }
+
+      // Limpar estados locais anteriores
+      localStorage.removeItem("demo_logged_user");
+      localStorage.removeItem("demo_logged_client");
 
       await handleRedirectAfterLogin(data.user);
     } catch (err) {
@@ -214,160 +135,10 @@ if (loginPasswordForm) {
       alert("Erro ao processar sua entrada.");
       if (loginBtn) {
         loginBtn.disabled = false;
-        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Portal';
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Entrar no Portal';
       }
     }
   });
-}
-
-// STEP 2B: Handle Cliente Registration
-if (registerClienteForm) {
-  registerClienteForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const nome = document.getElementById("register_nome").value.trim();
-    const senha = document.getElementById("register_senha").value;
-    const confirma = document.getElementById("register_confirma").value;
-
-    if (senha !== confirma) {
-      alert("As chaves secretas não coincidem.");
-      return;
-    }
-
-    if (senha.length < 6) {
-      alert("A senha precisa ter no mínimo 6 caracteres.");
-      return;
-    }
-
-    const registerBtn = document.getElementById("registerBtn");
-    if (registerBtn) {
-      registerBtn.disabled = true;
-      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Firmando Acordo...';
-    }
-
-    // Coleta dos campos opcionais
-    const celular = document.getElementById("register_celular").value.trim() || null;
-    const nascimento = document.getElementById("register_nascimento").value || null;
-    const religiao = document.getElementById("register_religiao").value || null;
-    const sexo = document.getElementById("register_sexo").value || null;
-    const pronome = document.getElementById("register_pronome").value.trim() || null;
-    const estadoCivil = document.getElementById("register_estado_civil").value.trim() || null;
-
-    // Campos religiosos opcionais
-    const isMistic = ["Umbanda", "Candomblé", "Quimbanda", "Wicca", "Xamanismo", "Espiritualista"].includes(religiao);
-    const guia = isMistic ? (document.getElementById("register_guia").value.trim() || null) : null;
-    const paiMae = isMistic ? (document.getElementById("register_pai_mae").value.trim() || null) : null;
-    const tradicao = isMistic ? (document.getElementById("register_tradicao").value.trim() || null) : null;
-
-    const isConnected = await testSupabaseConnection();
-
-    if (!isConnected) {
-      // Registro offline/mock
-      setTimeout(() => {
-        const registeredUsers = JSON.parse(localStorage.getItem("demo_registered_users") || "[]");
-        const newUser = {
-          id: "demo-client-" + (registeredUsers.length + 2),
-          nome,
-          email: userEmail,
-          celular,
-          nascimento,
-          religiao,
-          sexo,
-          pronome,
-          estadoCivil,
-          guia,
-          paiMae,
-          tradicao
-        };
-        registeredUsers.push(newUser);
-        localStorage.setItem("demo_registered_users", JSON.stringify(registeredUsers));
-
-        // Define a sessão mockada para o cliente atual
-        const demoClient = {
-          id: newUser.id,
-          nome_completo: nome,
-          email: userEmail,
-          celular,
-          foto_url: "assets/img/default-avatar.png",
-          religiao,
-          role: "cliente"
-        };
-        localStorage.setItem("demo_logged_client", JSON.stringify(demoClient));
-
-        resetRegisterBtn();
-        window.location.href = "client_area.html";
-      }, 1000);
-      return;
-    }
-
-    try {
-      // 1. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userEmail,
-        password: senha,
-        options: {
-          data: {
-            nome_completo: nome,
-            role: "cliente"
-          }
-        }
-      });
-
-      if (authError) {
-        alert("Erro ao registrar: " + authError.message);
-        resetRegisterBtn();
-        return;
-      }
-
-      const user = authData.user;
-      if (!user) {
-        alert("Não foi possível carregar os dados de iniciação.");
-        resetRegisterBtn();
-        return;
-      }
-
-      // 2. Inserir na tabela clientes do banco de dados
-      const clientRecord = {
-        user_id: user.id,
-        nome_completo: nome,
-        email: userEmail,
-        celular,
-        data_nascimento: nascimento,
-        religiao,
-        sexo,
-        pronome,
-        estado_civil: estadoCivil,
-        guia_espiritual: guia,
-        pai_mae_cabeca: paiMae,
-        tradicao_espiritual: tradicao,
-        foto_url: "assets/img/default-avatar.png"
-      };
-
-      const { error: dbError } = await supabase
-        .from("clientes")
-        .insert([clientRecord]);
-
-      if (dbError) {
-        console.error("Erro ao salvar cliente no DB:", dbError);
-        alert("Cadastro na egrégora mística concluído com avisos: " + dbError.message);
-      }
-
-      await handleRedirectAfterLogin(user);
-
-    } catch (err) {
-      console.error("Erro geral no cadastro:", err);
-      alert("Erro ao firmar cadastro.");
-      resetRegisterBtn();
-    }
-  });
-}
-
-function resetRegisterBtn() {
-  const registerBtn = document.getElementById("registerBtn");
-  if (registerBtn) {
-    registerBtn.disabled = false;
-    registerBtn.innerHTML = '<i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar';
-  }
 }
 
 // Global Routing logic with pending intents support
@@ -424,17 +195,6 @@ async function handleRedirectAfterLogin(user) {
         cid = newConv?.id;
       }
 
-      // Adicionar link na tabela cartomante_clientes para associar na listagem de clientes dela
-      await supabase
-        .from("cartomante_clientes")
-        .insert({
-          cartomante_id: intent.cartomante_id,
-          cliente_id: clientDbId,
-          status: "ativo"
-        })
-        .select()
-        .maybeSingle();
-
       // Redirecionar
       if (intent.action === "ask_baralho") {
         window.location.href = `client_chat.html?cid=${cid}&action=ask_baralho`;
@@ -451,7 +211,7 @@ async function handleRedirectAfterLogin(user) {
   if (isClient) {
     window.location.href = "client_area.html";
   } else {
-    window.location.href = "index.html";
+    window.location.href = "dashboard.html";
   }
 }
 

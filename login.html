@@ -10,6 +10,11 @@
   
   <link rel="stylesheet" href="style.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
   
   <style>
     body {
@@ -20,25 +25,30 @@
       margin: 0;
       padding: 20px;
       box-sizing: border-box;
+      background: radial-gradient(circle at center, #130f26 0%, #080612 100%);
+      overflow-x: hidden;
     }
     
     .login-wrapper {
       width: 100%;
-      max-width: 460px;
+      max-width: 440px;
       z-index: 10;
+      perspective: 1000px;
     }
     
     .login-header {
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 30px;
+      animation: fadeInDown 1s ease-out;
     }
     
     .login-header h1 {
       font-family: var(--font-decorative);
       color: var(--gold-color);
-      font-size: 2.2rem;
+      font-size: 2.5rem;
       margin: 0 0 10px 0;
-      text-shadow: 0 0 10px rgba(199, 162, 122, 0.3);
+      text-shadow: 0 0 15px rgba(199, 162, 122, 0.4), 0 0 30px rgba(110, 90, 171, 0.3);
+      letter-spacing: 1px;
     }
     
     .login-header p {
@@ -47,15 +57,22 @@
       font-style: italic;
       font-size: 0.95rem;
       margin: 0;
+      opacity: 0.8;
     }
     
     .login-card {
-      padding: 35px 30px;
-      transition: all var(--transition-normal);
+      padding: 40px 35px;
+      border: 1px solid rgba(199, 162, 122, 0.18);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(110, 90, 171, 0.15);
+      border-radius: 16px;
+      background: rgba(20, 16, 38, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
     
     .form-group label {
@@ -63,70 +80,130 @@
       margin-bottom: 8px;
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: rgba(255, 255, 255, 0.7);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+    }
+
+    .mystic-input {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(199, 162, 122, 0.2);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 12px 16px;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: var(--font-modern);
+      font-size: 0.95rem;
+      transition: all var(--transition-normal);
+    }
+
+    .mystic-input:focus {
+      outline: none;
+      border-color: var(--gold-color);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 12px rgba(199, 162, 122, 0.25);
     }
     
-    .register-links {
-      margin-top: 25px;
-      padding-top: 20px;
+    .register-section {
+      margin-top: 30px;
+      padding-top: 25px;
       border-top: 1px solid rgba(199, 162, 122, 0.15);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
       text-align: center;
     }
     
-    .register-links a {
+    .register-intro {
+      font-family: var(--font-classic);
       color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-family: var(--font-modern);
-      transition: color var(--transition-fast);
-      display: inline-flex;
+      font-size: 0.88rem;
+      font-style: italic;
+      margin: 0 0 18px 0;
+    }
+    
+    .register-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 400px) {
+      .register-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .register-btn {
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      padding: 14px 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all var(--transition-normal);
+      border: 1px solid rgba(199, 162, 122, 0.15);
+      cursor: pointer;
+    }
+
+    .register-btn i {
+      font-size: 1.2rem;
+    }
+
+    .register-btn span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: var(--font-modern);
     }
     
-    .register-links a:hover {
-      color: var(--gold-color);
+    .consulente-btn {
+      background: rgba(110, 90, 171, 0.1);
+      color: #b7a9f2;
+      border-color: rgba(110, 90, 171, 0.25);
     }
-
-    .hidden {
-      display: none !important;
+    
+    .consulente-btn:hover {
+      background: rgba(110, 90, 171, 0.25);
+      border-color: #9f8cf2;
+      box-shadow: 0 0 15px rgba(110, 90, 171, 0.35);
+      transform: translateY(-2px);
     }
-
-    /* Details Accordion for Optional Fields */
-    .optional-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(199, 162, 122, 0.15);
-      color: var(--text-secondary);
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-family: var(--font-modern);
-      cursor: pointer;
-      margin-top: 15px;
-      margin-bottom: 15px;
-      transition: all var(--transition-fast);
-    }
-
-    .optional-trigger:hover {
+    
+    .cartomante-btn {
       background: rgba(199, 162, 122, 0.05);
       color: var(--gold-color);
+      border-color: rgba(199, 162, 122, 0.25);
+    }
+    
+    .cartomante-btn:hover {
+      background: rgba(199, 162, 122, 0.15);
+      border-color: var(--gold-color);
+      box-shadow: 0 0 15px rgba(199, 162, 122, 0.3);
+      transform: translateY(-2px);
     }
 
-    .optional-content {
-      border-left: 2px solid var(--gold-color);
-      padding-left: 15px;
-      background: rgba(199, 162, 122, 0.01);
-      margin-bottom: 20px;
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
@@ -157,12 +234,6 @@
             }
           }
           document.body.className = 'theme-' + period + ' mode-' + lighting;
-          if (state.accessibility) {
-            if (state.accessibility.highContrast) document.body.classList.add('accessibility-high-contrast');
-            if (state.accessibility.largeFont) document.body.classList.add('accessibility-large-font');
-            if (state.accessibility.reduceMotion) document.body.classList.add('accessibility-reduce-motion');
-            if (state.accessibility.anxietyMode) document.body.classList.add('accessibility-anxiety-mode');
-          }
         }
       } catch (e) {}
     })();
@@ -170,9 +241,8 @@
 
   <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
   <div id="stars-container" class="starry-sky"></div>
-  <div class="ambient-glow" id="glow-1"></div>
-  <div class="ambient-glow" id="glow-2"></div>
-  <div class="ambient-glow" id="glow-3"></div>
+  <div class="ambient-glow" id="glow-1" style="background: radial-gradient(circle, rgba(110, 90, 171, 0.15) 0%, transparent 70%);"></div>
+  <div class="ambient-glow" id="glow-2" style="background: radial-gradient(circle, rgba(199, 162, 122, 0.08) 0%, transparent 70%);"></div>
 
   <div class="login-wrapper">
     <div class="login-header">
@@ -181,177 +251,41 @@
     </div>
     
     <div class="login-card glass-panel">
-      <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin-top: 0; margin-bottom: 25px; text-align: center;">Portal de Sintonia</h2>
+      <h2 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.4rem; margin-top: 0; margin-bottom: 25px; text-align: center; letter-spacing: 0.5px;">Portal de Sintonia</h2>
       
-      <!-- ETAPA 1: VERIFICAÇÃO DE E-MAIL -->
-      <form id="emailForm">
+      <!-- FORMULÁRIO DE LOGIN UNIFICADO -->
+      <form id="loginForm">
         <div class="form-group">
-          <label for="check_email">E-mail sagrado</label>
-          <input type="email" id="check_email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
+          <label for="login_email">E-mail sagrado</label>
+          <input type="email" id="login_email" class="mystic-input" placeholder="seuemail@exemplo.com" required />
         </div>
-        <button type="submit" id="btnNextStep" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
-          Avançar <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+        <div class="form-group">
+          <label for="login_password">Chave Secreta (Senha)</label>
+          <input type="password" id="login_password" class="mystic-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" id="loginBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 13px; justify-content: center; font-weight: 600; margin-top: 10px;">
+          <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Entrar no Portal
         </button>
       </form>
 
-      <!-- ETAPA 2A: LOGIN COM SENHA -->
-      <form id="loginPasswordForm" class="hidden">
-        <div class="form-group">
-          <label>E-mail</label>
-          <input type="email" id="login_email_display" class="mystic-input" style="opacity: 0.7;" readonly />
+      <!-- CAMINHO DE CADASTRO -->
+      <div class="register-section">
+        <p class="register-intro">Ainda não iniciou sua jornada?</p>
+        <div class="register-actions">
+          <a href="register_cliente.html" class="register-btn consulente-btn">
+            <i class="fas fa-user-sparkles"></i>
+            <span>Sou Consulente</span>
+          </a>
+          <a href="register_cartomante.html" class="register-btn cartomante-btn">
+            <i class="fas fa-magic"></i>
+            <span>Sou Cartomante</span>
+          </a>
         </div>
-        <div class="form-group">
-          <label for="password">Sua Chave Secreta (Senha)</label>
-          <input type="password" id="password" class="mystic-input" placeholder="••••••••" required />
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 25px;">
-          <button type="button" class="glass-button" style="padding: 12px;" onclick="resetToEmailStep()"><i class="fas fa-chevron-left"></i></button>
-          <button type="submit" id="loginBtn" class="glass-button" style="flex: 1; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
-            <i class="fas fa-sign-in-alt"></i> Entrar no Portal
-          </button>
-        </div>
-      </form>
-
-      <!-- ETAPA 2B: CADASTRO DE NOVO CLIENTE -->
-      <form id="registerClienteForm" class="hidden">
-        <div class="form-group">
-          <label>E-mail Sagrado</label>
-          <input type="email" id="register_email_display" class="mystic-input" style="opacity: 0.7;" readonly />
-        </div>
-
-        <div class="form-group">
-          <label for="register_nome">Nome Completo</label>
-          <input type="text" id="register_nome" class="mystic-input" placeholder="Seu nome completo" required />
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-          <div class="form-group">
-            <label for="register_senha">Criar Senha</label>
-            <input type="password" id="register_senha" class="mystic-input" placeholder="Min. 6 carac." required />
-          </div>
-          <div class="form-group">
-            <label for="register_confirma">Confirmar Senha</label>
-            <input type="password" id="register_confirma" class="mystic-input" placeholder="••••••••" required />
-          </div>
-        </div>
-
-        <!-- Sanfona para campos opcionais de cliente -->
-        <button type="button" class="optional-trigger" id="optionalTriggerBtn" onclick="toggleOptionalSection()">
-          <span>Completar Ficha Espiritual (Opcional)</span>
-          <i class="fas fa-chevron-down" id="optionalArrow"></i>
-        </button>
-
-        <div id="optionalSection" class="optional-content hidden">
-          <div class="form-group">
-            <label for="register_celular">Celular / WhatsApp</label>
-            <input type="tel" id="register_celular" class="mystic-input" placeholder="(00) 99999-9999" />
-          </div>
-          <div class="form-group">
-            <label for="register_nascimento">Data de Nascimento</label>
-            <input type="date" id="register_nascimento" class="mystic-input" />
-          </div>
-          <div class="form-group">
-            <label for="register_religiao">Sua Religião / Fé</label>
-            <select id="register_religiao" class="mystic-select">
-              <option value="">Selecione</option>
-              <option value="Umbanda">Umbanda</option>
-              <option value="Candomblé">Candomblé</option>
-              <option value="Quimbanda">Quimbanda</option>
-              <option value="Wicca">Wicca</option>
-              <option value="Xamanismo">Xamanismo</option>
-              <option value="Espiritualista">Espiritualista</option>
-              <option value="Católica">Católica</option>
-              <option value="Evangélica">Evangélica</option>
-              <option value="Espírita">Espírita Kardecista</option>
-              <option value="Nenhuma">Nenhuma / Outra</option>
-            </select>
-          </div>
-          
-          <!-- Campos Opcionais Condicionais de Religião -->
-          <div id="optionalReligiaoExtras" class="hidden" style="display: grid; grid-template-columns: 1fr; gap: 15px; border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(199, 162, 122, 0.02); padding-top: 10px; padding-bottom: 10px; margin-bottom: 15px;">
-            <div class="form-group">
-              <label for="register_guia">Guia Espiritual principal</label>
-              <input type="text" id="register_guia" class="mystic-input" placeholder="Ex: Caboclo" />
-            </div>
-            <div class="form-group">
-              <label for="register_pai_mae">Pai/Mãe de Cabeça (Orixás)</label>
-              <input type="text" id="register_pai_mae" class="mystic-input" placeholder="Ex: Oxum e Ogum" />
-            </div>
-            <div class="form-group">
-              <label for="register_tradicao">Tradição Espiritual</label>
-              <input type="text" id="register_tradicao" class="mystic-input" placeholder="Ex: Wicca" />
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div class="form-group">
-              <label for="register_sexo">Sexo</label>
-              <select id="register_sexo" class="mystic-select">
-                <option value=""></option>
-                <option value="Masculino">Masculino</option>
-                <option value="Feminino">Feminino</option>
-                <option value="Outro">Outro</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="register_pronome">Pronome</label>
-              <input type="text" id="register_pronome" class="mystic-input" placeholder="Ex: ela/dela" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="register_estado_civil">Estado Civil</label>
-            <input type="text" id="register_estado_civil" class="mystic-input" placeholder="Ex: Solteiro(a)" />
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 25px;">
-          <button type="button" class="glass-button" style="padding: 12px;" onclick="resetToEmailStep()"><i class="fas fa-chevron-left"></i></button>
-          <button type="submit" id="registerBtn" class="glass-button" style="flex: 1; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600;">
-            <i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar
-          </button>
-        </div>
-      </form>
-      
-      <div class="register-links">
-        <a href="register_cartomante.html" id="cartomanteRegLink"><i class="fas fa-magic"></i> Sou Cartomante / Oraculista</a>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="assets/js/login.js"></script>
-  <script>
-    // Toggle optional fields section
-    function toggleOptionalSection() {
-      const section = document.getElementById("optionalSection");
-      const arrow = document.getElementById("optionalArrow");
-      const triggerBtn = document.getElementById("optionalTriggerBtn");
-      
-      if (section.classList.contains("hidden")) {
-        section.classList.remove("hidden");
-        arrow.className = "fas fa-chevron-up";
-      } else {
-        section.classList.add("hidden");
-        arrow.className = "fas fa-chevron-down";
-      }
-    }
-
-    // Toggle religious options reactively in real-time
-    const religiaoSelect = document.getElementById("register_religiao");
-    const extrasDiv = document.getElementById("optionalReligiaoExtras");
-    if (religiaoSelect && extrasDiv) {
-      religiaoSelect.addEventListener("change", () => {
-        const val = religiaoSelect.value;
-        const show = ["Umbanda", "Candomblé", "Quimbanda", "Wicca", "Xamanismo", "Espiritualista"].includes(val);
-        if (show) {
-          extrasDiv.classList.remove("hidden");
-        } else {
-          extrasDiv.classList.add("hidden");
-        }
-      });
-    }
-  </script>
 </body>
 </html>

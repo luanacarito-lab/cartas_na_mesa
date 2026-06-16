@@ -736,15 +736,71 @@ async function testGlobalSupabaseConnection() {
     }
 }
 
+function getLocalNotifications() {
+    const list = localStorage.getItem("cartomante_notificacoes");
+    if (!list) {
+        const demos = [
+            { id: "demo-1", titulo: "Pergunta pendente", mensagem: "Valentina Rocha enviou uma Pergunta ao Baralho.", tipo: "pergunta", lida: false, created_at: new Date().toISOString() },
+            { id: "demo-2", titulo: "Consulta Agendada", mensagem: "Novo atendimento agendado para amanhã às 14:00.", tipo: "atendimento", lida: false, created_at: new Date().toISOString() }
+        ];
+        localStorage.setItem("cartomante_notificacoes", JSON.stringify(demos));
+        return demos;
+    }
+    try {
+        return JSON.parse(list);
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveLocalNotifications(list) {
+    localStorage.setItem("cartomante_notificacoes", JSON.stringify(list));
+}
+
+// Expõe globalmente para criar notificações em modo contingência
+window.addLocalNotification = function(titulo, mensagem, tipo, metadata = {}) {
+    const list = getLocalNotifications();
+    const newNotif = {
+        id: "local-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+        titulo,
+        mensagem,
+        tipo,
+        lida: false,
+        created_at: new Date().toISOString(),
+        ...metadata
+    };
+    list.unshift(newNotif);
+    saveLocalNotifications(list);
+    
+    // Disparar o toast na tela
+    const isClient = window.location.pathname.includes("client_") || document.getElementById("clientActionsWidget") !== null;
+    let linkChat = null;
+    if (tipo === "mensagem" || tipo === "pergunta") {
+        linkChat = isClient ? "client_chat.html" : "chat.html";
+        if (newNotif.conversa_id) linkChat += `?cid=${newNotif.conversa_id}`;
+        if (tipo === "pergunta") linkChat += (linkChat.includes("?") ? "&" : "?") + "tab=perguntas";
+    }
+    if (typeof window.showToastNotification === "function") {
+        window.showToastNotification(titulo, mensagem, tipo, linkChat);
+    }
+    
+    if (globalLoggedUser) {
+        loadGlobalNotifications(globalLoggedUser);
+    }
+    return newNotif;
+};
+
 async function initGlobalNotifications() {
     const s = getGlobalSupabase();
     if (!s) {
-        loadGlobalDemoNotifications();
+        globalLoggedUser = { id: "demo_user", email: "demo@cartasnamesa.com" };
+        await loadGlobalNotifications(globalLoggedUser);
         return;
     }
     const isConnected = await testGlobalSupabaseConnection();
     if (!isConnected) {
-        loadGlobalDemoNotifications();
+        globalLoggedUser = { id: "demo_user", email: "demo@cartasnamesa.com" };
+        await loadGlobalNotifications(globalLoggedUser);
         return;
     }
 
@@ -755,30 +811,36 @@ async function initGlobalNotifications() {
             await loadGlobalNotifications(user);
             subscribeGlobalNotifications(user);
         } else {
-            loadGlobalDemoNotifications();
+            globalLoggedUser = { id: "demo_user", email: "demo@cartasnamesa.com" };
+            await loadGlobalNotifications(globalLoggedUser);
         }
     } catch (e) {
-        loadGlobalDemoNotifications();
+        globalLoggedUser = { id: "demo_user", email: "demo@cartasnamesa.com" };
+        await loadGlobalNotifications(globalLoggedUser);
     }
 }
 
 async function loadGlobalNotifications(user) {
     const s = getGlobalSupabase();
-    if (!s) return;
+    const isSupabaseOnline = s && !s.supabaseUrl.includes("YOUR_PROJECT_REF") && await testGlobalSupabaseConnection();
+    
+    if (isSupabaseOnline && user && !user.id.startsWith("demo")) {
+        const { data: list, error } = await s
+            .from("notificacoes")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(10);
 
-    const { data: list, error } = await s
-        .from("notificacoes")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-    if (error) {
-        console.error("Erro ao carregar notificações globais:", error);
-        return;
+        if (error) {
+            console.error("Erro ao carregar notificações globais:", error);
+            renderGlobalNotifications(getLocalNotifications());
+            return;
+        }
+        renderGlobalNotifications(list || []);
+    } else {
+        renderGlobalNotifications(getLocalNotifications());
     }
-
-    renderGlobalNotifications(list || []);
 }
 
 function renderGlobalNotifications(list) {
@@ -805,14 +867,27 @@ function renderGlobalNotifications(list) {
 
     list.forEach(n => {
         const item = document.createElement("div");
+        item.className = "notif-item";
         item.style.padding = "10px";
         item.style.borderRadius = "8px";
-        item.style.background = n.lida ? "rgba(255, 255, 255, 0.01)" : "rgba(199, 162, 122, 0.08)";
+        item.style.background = n.lida ? "rgba(255, 255, 255, 0.02)" : "rgba(199, 162, 122, 0.08)";
         item.style.border = "1px solid rgba(255, 255, 255, 0.03)";
         item.style.fontSize = "0.78rem";
         item.style.display = "flex";
         item.style.flexDirection = "column";
         item.style.gap = "4px";
+        item.style.cursor = "pointer";
+        item.style.transition = "background 0.2s, transform 0.1s";
+        
+        // Efeito de hover dinâmico
+        item.onmouseenter = () => {
+            item.style.background = "rgba(199, 162, 122, 0.15)";
+            item.style.transform = "translateY(-1px)";
+        };
+        item.onmouseleave = () => {
+            item.style.background = n.lida ? "rgba(255, 255, 255, 0.02)" : "rgba(199, 162, 122, 0.08)";
+            item.style.transform = "translateY(0)";
+        };
 
         let icon = "fa-bell";
         if (n.tipo === "mensagem") icon = "fa-comments";
@@ -820,10 +895,19 @@ function renderGlobalNotifications(list) {
         else if (n.tipo === "pagamento") icon = "fa-wallet";
         else if (n.tipo === "atendimento") icon = "fa-calendar-check";
 
+        item.onclick = (e) => {
+            // Se clicar nos botões internos de ação, previne o clique no card
+            if (e.target.closest("button") || e.target.closest("i.fa-trash") || e.target.closest("i.fa-check")) return;
+            window.handleNotificationClick(n.id, n.tipo, n.conversa_id || (n.metadata && n.metadata.conversa_id));
+        };
+
         item.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; color:var(--gold-color);">
                 <span><i class="fas ${icon}" style="margin-right:5px;"></i> ${n.titulo}</span>
-                ${!n.lida ? `<button onclick="markGlobalAsRead('${n.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.65rem;" title="Marcar como lida"><i class="fas fa-check"></i></button>` : ''}
+                <div style="display:flex; gap:6px;">
+                    ${!n.lida ? `<button onclick="event.stopPropagation(); window.markGlobalAsRead('${n.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;" title="Marcar como lida"><i class="fas fa-check"></i></button>` : ''}
+                    <button onclick="event.stopPropagation(); window.deleteGlobalNotification('${n.id}', event)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;" title="Excluir"><i class="fas fa-trash" style="color: rgba(230, 57, 70, 0.65);"></i></button>
+                </div>
             </div>
             <div style="color:var(--text-secondary); line-height:1.3;">${n.mensagem}</div>
             <div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px;">${new Date(n.created_at).toLocaleDateString()} ${new Date(n.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
@@ -832,15 +916,71 @@ function renderGlobalNotifications(list) {
     });
 }
 
+window.handleNotificationClick = function(id, tipo, conversa_id) {
+    window.markGlobalAsRead(id);
+    
+    // Fechar menu de notificações
+    const menu = document.getElementById("notificationsMenu");
+    if (menu) menu.classList.add("hidden");
+
+    const isClient = window.location.pathname.includes("client_") || document.getElementById("clientActionsWidget") !== null;
+    let url = "";
+    
+    if (tipo === "mensagem") {
+        url = isClient ? "client_chat.html" : "chat.html";
+        if (conversa_id) url += `?cid=${conversa_id}`;
+    } else if (tipo === "pergunta") {
+        url = isClient ? "client_chat.html" : "chat.html";
+        if (conversa_id) {
+            url += `?cid=${conversa_id}&tab=perguntas`;
+        } else {
+            url += `?tab=perguntas`;
+        }
+    } else if (tipo === "pagamento") {
+        url = isClient ? "client_area.html#financeiro" : "finance.html?status=pendente";
+    } else if (tipo === "atendimento") {
+        url = isClient ? "client_area.html#agenda" : "agenda.html";
+    } else {
+        url = isClient ? "client_area.html" : "dashboard.html";
+    }
+    
+    window.location.href = url;
+};
+
 window.toggleNotificationsMenu = function() {
     const menu = document.getElementById("notificationsMenu");
     if (menu) menu.classList.toggle("hidden");
 };
 
+window.deleteGlobalNotification = async function(id, e) {
+    if (e) e.stopPropagation();
+    const s = getGlobalSupabase();
+    const isSupabaseOnline = s && !s.supabaseUrl.includes("YOUR_PROJECT_REF") && await testGlobalSupabaseConnection();
+    
+    if (isSupabaseOnline && globalLoggedUser && !globalLoggedUser.id.startsWith("demo")) {
+        await s.from("notificacoes").delete().eq("id", id);
+    } else {
+        let list = getLocalNotifications();
+        list = list.filter(n => n.id !== id);
+        saveLocalNotifications(list);
+    }
+    await loadGlobalNotifications(globalLoggedUser);
+};
+
 window.markGlobalAsRead = async function(id) {
     const s = getGlobalSupabase();
-    if (!s || !globalLoggedUser) return;
-    await s.from("notificacoes").update({ lida: true }).eq("id", id);
+    const isSupabaseOnline = s && !s.supabaseUrl.includes("YOUR_PROJECT_REF") && await testGlobalSupabaseConnection();
+    
+    if (isSupabaseOnline && globalLoggedUser && !globalLoggedUser.id.startsWith("demo")) {
+        await s.from("notificacoes").update({ lida: true }).eq("id", id);
+    } else {
+        const list = getLocalNotifications();
+        const item = list.find(n => n.id === id);
+        if (item) {
+            item.lida = true;
+            saveLocalNotifications(list);
+        }
+    }
     await loadGlobalNotifications(globalLoggedUser);
 };
 
@@ -848,8 +988,13 @@ window.markAsRead = window.markGlobalAsRead; // Alias para compatibilidade
 
 window.markAllNotificationsAsRead = async function() {
     const s = getGlobalSupabase();
-    if (!s || !globalLoggedUser) return;
-    await s.from("notificacoes").update({ lida: true }).eq("user_id", globalLoggedUser.id);
+    const isSupabaseOnline = s && !s.supabaseUrl.includes("YOUR_PROJECT_REF") && await testGlobalSupabaseConnection();
+    
+    if (isSupabaseOnline && globalLoggedUser && !globalLoggedUser.id.startsWith("demo")) {
+        await s.from("notificacoes").delete().eq("user_id", globalLoggedUser.id);
+    } else {
+        saveLocalNotifications([]);
+    }
     await loadGlobalNotifications(globalLoggedUser);
 };
 

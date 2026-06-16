@@ -11,6 +11,11 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="assets/css/public.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
   
   <style>
     /* Styling sheets details overrides */
@@ -349,7 +354,7 @@
   <div class="sidebar glass-panel" id="adminSidebar" style="display:none;">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
       <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
@@ -366,7 +371,7 @@
     
     <!-- Botão de Retorno ao Menu Principal -->
     <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;" id="publicProfileTopBar">
-      <a href="index.html" class="glass-button" style="font-size: 0.8rem; padding: 8px 15px; border-color: rgba(199, 162, 122, 0.25);"><i class="fas fa-arrow-left"></i> Voltar ao Menu Principal</a>
+      <a href="dashboard.html" class="glass-button" style="font-size: 0.8rem; padding: 8px 15px; border-color: rgba(199, 162, 122, 0.25);"><i class="fas fa-arrow-left"></i> Voltar ao Menu Principal</a>
     </div>
 
     <!-- 1. HEADER ARTÍSTICO (BANNER & AVATAR PÚBLICO) -->
@@ -627,8 +632,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="assets/js/public.js"></script>
 </body>

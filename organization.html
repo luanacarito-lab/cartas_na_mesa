@@ -15,6 +15,11 @@
   
   <!-- Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
 </head>
 <body class="theme-night mode-dark">
   <script>
@@ -64,9 +69,9 @@
   <div class="sidebar glass-panel">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
-      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
       <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
       <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
@@ -78,9 +83,31 @@
 
   <!-- Conteúdo Principal do Organizador -->
   <main class="main-content">
-    <header class="page-header">
-      <h1 class="decorative-title">Santuário da Mente</h1>
-      <p class="section-desc">Área de organização espiritual e anotações rituais para canalizar a paz interna e catalogar ideias.</p>
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+      <div>
+        <h1 class="decorative-title">Santuário da Mente</h1>
+        <p class="section-desc">Área de organização espiritual e anotações rituais para canalizar a paz interna e catalogar ideias.</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <!-- Sino de Notificações Popover -->
+        <div style="position: relative;" id="notificationContainer">
+          <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px 15px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; position: relative;" title="Notificações">
+            <i class="fas fa-bell"></i>
+            <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
+          </button>
+          <!-- Popover Menu de Notificações -->
+          <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 55px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px;">
+              <strong style="font-size: 0.85rem; color: var(--gold-color);">Avisos Celestiais</strong>
+              <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
+            </div>
+            <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
+              <!-- Injetado via JS -->
+            </div>
+          </div>
+        </div>
+        <a href="dashboard.html" class="glass-button back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+      </div>
     </header>
 
     <!-- Barra Superior de Controle e Filtros -->
@@ -197,9 +224,6 @@
     </div>
   </div>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
   <!-- Base script (sintonizador) -->
   <script src="script.js"></script>
   <!-- JS da Organização -->

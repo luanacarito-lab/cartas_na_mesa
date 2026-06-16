@@ -3,12 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – Cartomante</title>
+  <title>Painel Principal – Sistema Cartomante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
   <link rel="stylesheet" href="style.css" />
-  <!-- Font Awesome for simple icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
 </head>
-<body>
+<body class="theme-night mode-dark">
+  <script>
+    (function() {
+      try {
+        var s = localStorage.getItem('cartomante_app_state');
+        if (s) {
+          var state = JSON.parse(s);
+          var period = state.currentPeriod || 'night';
+          var lighting = state.lightingMode || 'dark';
+          if (state.themeChoice === 'auto') {
+            var hours = new Date().getHours();
+            if (hours >= 6 && hours < 12) { period = 'morning'; lighting = 'light'; }
+            else if (hours >= 12 && hours < 18) { period = 'afternoon'; lighting = 'light'; }
+            else { period = 'night'; lighting = 'dark'; }
+          } else if (state.themeChoice) {
+            if (['morning', 'afternoon', 'night'].indexOf(state.themeChoice) !== -1) {
+              period = state.themeChoice;
+              lighting = (state.themeChoice === 'night') ? 'dark' : 'light';
+            } else if (state.themeChoice === 'light') {
+              lighting = 'light';
+              if (period === 'night' || period === 'sunset') period = 'morning';
+            } else if (state.themeChoice === 'dark') {
+              lighting = 'dark';
+              if (period === 'morning' || period === 'afternoon') period = 'night';
+            }
+          }
+          document.body.className = 'theme-' + period + ' mode-' + lighting;
+          if (state.accessibility) {
+            if (state.accessibility.highContrast) document.body.classList.add('accessibility-high-contrast');
+            if (state.accessibility.largeFont) document.body.classList.add('accessibility-large-font');
+            if (state.accessibility.reduceMotion) document.body.classList.add('accessibility-reduce-motion');
+            if (state.accessibility.anxietyMode) document.body.classList.add('accessibility-anxiety-mode');
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- Místicas Estrelas no Fundo (Background atmosphere) -->
   <div id="stars-container" class="starry-sky"></div>
@@ -16,15 +60,15 @@
   <div class="ambient-glow" id="glow-2"></div>
   <div class="ambient-glow" id="glow-3"></div>
 
+  <!-- Barra de Navegação do App (Sidebar Menu Unificado) -->
   <div class="sidebar glass-panel">
     <div class="sidebar-header">🌙 Cartomante</div>
     <nav class="menu">
-      <a href="index.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="dashboard.html" class="menu-item active"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html" class="menu-item"><i class="fas fa-user-friends"></i> Clientes</a>
-      <a href="#" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+      <a href="agenda.html" class="menu-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
       <a href="chat.html" class="menu-item"><i class="fas fa-comments"></i> Chat</a>
       <a href="chat.html?tab=perguntas" class="menu-item"><i class="fas fa-question-circle"></i> Perguntas ao Baralho</a>
-      <a href="#" class="menu-item"><i class="fas fa-concierge-bell"></i> Serviços</a>
       <a href="finance.html" class="menu-item"><i class="fas fa-wallet"></i> Financeiro</a>
       <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
       <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
@@ -32,47 +76,104 @@
     </nav>
   </div>
 
+  <!-- Conteúdo Principal do Painel -->
   <main class="main-content">
-    <header class="page-header">
-      <h1>Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+    <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+      <div>
+        <h1 class="decorative-title">Bem‑vinda, <span id="cartomante-name">Cartomante</span></h1>
+        <p class="section-desc">Portal de sintonização espiritual, monitoramento de rituais e acompanhamento de consulentes.</p>
+      </div>
+      
+      <!-- Sino de Notificações Popover -->
+      <div style="position: relative;" id="notificationContainer">
+        <button onclick="toggleNotificationsMenu()" class="glass-button" style="padding: 10px 15px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; position: relative;" title="Notificações">
+          <i class="fas fa-bell"></i>
+          <span id="notifBadge" class="hidden" style="position: absolute; top: -3px; right: -3px; background: #e63946; color: #fff; font-size: 0.65rem; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #1a0f2e;">0</span>
+        </button>
+        <!-- Popover Menu de Notificações -->
+        <div id="notificationsMenu" class="glass-panel hidden" style="position: absolute; top: 55px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 200; padding: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(199,162,122,0.15); padding-bottom: 8px;">
+            <h4 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 0.9rem; margin: 0;"><i class="fas fa-bell"></i> Central de Avisos</h4>
+            <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--gold-color); font-size: 0.72rem; cursor: pointer; font-weight: 600;">Limpar</button>
+          </div>
+          <div id="notifListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 50px;">
+            <!-- Injetado por JS -->
+          </div>
+        </div>
+      </div>
     </header>
 
+    <!-- Banner de Onboarding (Iniciação de Templo) -->
+    <div id="onboardingBanner" class="glass-panel hidden" style="padding: 25px; margin-bottom: 30px; border-left: 4px solid var(--gold-color); display: flex; flex-direction: column; gap: 15px; position: relative;">
+      <button onclick="dismissOnboarding()" style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <i class="fas fa-wand-magic-sparkles" style="font-size: 2.2rem; color: var(--gold-color);"></i>
+        <div>
+          <h3 style="font-family: var(--font-decorative); color: var(--gold-color); font-size: 1.15rem; margin: 0 0 4px 0;">Portal de Iniciação do seu Templo</h3>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Siga estes passos recomendados para receber seus primeiros consulentes na vitrine pública.</p>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 5px;" id="onboardingStepsList">
+        <!-- Injetado por JS dinamicamente -->
+      </div>
+    </div>
+
+    <!-- Grids Resumo de Atividade (Cards) -->
     <section class="cards-grid">
-      <div class="card" id="card-atendimentos-hoje">
-        <h2>Atendimentos de hoje</h2>
+      <div class="card glass-panel" id="card-atendimentos-hoje" onclick="window.location.href='agenda.html?view=day'" style="cursor: pointer;">
+        <h2><i class="fas fa-user-check" style="color:var(--gold-color); margin-right:8px;"></i> Atendimentos de hoje</h2>
         <p class="value" id="atendimentos-hoje">—</p>
       </div>
-      <div class="card" id="card-proximos-atendimentos">
-        <h2>Próximos atendimentos</h2>
-        <ul class="list" id="proximos-atendimentos"></ul>
+      
+      <div class="card glass-panel" id="card-proximos-atendimentos" onclick="window.location.href='agenda.html'" style="cursor: pointer;">
+        <h2><i class="fas fa-calendar-days" style="color:var(--gold-color); margin-right:8px;"></i> Próximos atendimentos</h2>
+        <ul class="list" id="proximos-atendimentos" style="list-style:none; padding:0; margin:10px 0 0 0;">
+          <!-- Injetado via JS -->
+        </ul>
       </div>
-      <div class="card" id="card-perguntas-pendentes">
-        <h2>Perguntas ao Baralho pendentes</h2>
+      
+      <div class="card glass-panel" id="card-perguntas-pendentes" onclick="window.location.href='chat.html?tab=perguntas'" style="cursor: pointer;">
+        <h2><i class="fas fa-hand-sparkles" style="color:var(--gold-color); margin-right:8px;"></i> Perguntas pendentes</h2>
         <p class="value" id="perguntas-pendentes">—</p>
       </div>
-      <div class="card" id="card-pagamentos-pendentes">
-        <h2>Pagamentos pendentes</h2>
+      
+      <div class="card glass-panel" id="card-pagamentos-pendentes" onclick="window.location.href='finance.html?status=pendente'" style="cursor: pointer;">
+        <h2><i class="fas fa-wallet" style="color:var(--gold-color); margin-right:8px;"></i> Pagamentos pendentes</h2>
         <p class="value" id="pagamentos-pendentes">—</p>
       </div>
-      <div class="card" id="card-clientes-recentes">
-        <h2>Clientes recentes</h2>
-        <ul class="list" id="clientes-recentes"></ul>
+      
+      <div class="card glass-panel" id="card-clientes-recentes" onclick="window.location.href='clients.html'" style="cursor: pointer;">
+        <h2><i class="fas fa-history" style="color:var(--gold-color); margin-right:8px;"></i> Clientes recentes</h2>
+        <ul class="list" id="clientes-recentes" style="list-style:none; padding:0; margin:10px 0 0 0;">
+          <!-- Injetado via JS -->
+        </ul>
       </div>
     </section>
 
-    <section class="extra-section">
-      <h2>Agenda do dia</h2>
-      <ul class="list" id="agenda-do-dia"></ul>
-    </section>
+    <!-- Seções de Agenda Detalhada e Alertas -->
+    <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 25px; margin-top: 30px;" class="extra-sections-row">
+      
+      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-calendar-alt" style="color:var(--gold-color);"></i> Agenda do Dia
+        </h2>
+        <ul class="list" id="agenda-do-dia" style="list-style:none; padding:0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </section>
 
-    <section class="extra-section">
-      <h2>Alertas importantes</h2>
-      <ul class="list" id="alertas-importantes"></ul>
-    </section>
+      <section class="extra-section glass-panel" style="padding:20px; border: 1px solid var(--card-border);">
+        <h2 style="font-size:0.95rem; color:var(--gold-color); margin-bottom:15px; font-family:var(--font-decorative); border-bottom:1.5px solid var(--gold-color); padding-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-bell" style="color:var(--gold-color);"></i> Alertas Importantes
+        </h2>
+        <ul class="list" id="alertas-importantes" style="list-style:none; padding:0;">
+          <!-- Injetado via JS -->
+        </ul>
+      </section>
+      
+    </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
   <script src="script.js"></script>
   <script src="dashboard.js"></script>
 </body>

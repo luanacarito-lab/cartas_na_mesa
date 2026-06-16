@@ -105,15 +105,69 @@ if (form) {
         foto_url: "assets/img/default-avatar.png"
       };
 
-      const { error: dbError } = await supabase
+      const { data: clientData, error: dbError } = await supabase
         .from("clientes")
-        .insert([clientRecord]);
+        .insert([clientRecord])
+        .select()
+        .maybeSingle();
 
       if (dbError) {
         console.error("Erro ao inserir na tabela clientes:", dbError);
         alert("Erro ao salvar perfil de consulente: " + dbError.message);
         resetButton();
         return;
+      }
+
+      const clientDbId = clientData ? clientData.id : null;
+      const pendingIntentStr = sessionStorage.getItem("pending_intent");
+
+      if (pendingIntentStr && clientDbId) {
+        try {
+          const intent = JSON.parse(pendingIntentStr);
+          sessionStorage.removeItem("pending_intent");
+
+          // Vincular cliente à cartomante
+          await supabase
+            .from("cartomante_clientes")
+            .insert({
+              cartomante_id: intent.cartomante_id,
+              cliente_id: clientDbId,
+              status: "ativo"
+            })
+            .select()
+            .maybeSingle();
+
+          // Buscar conversa ou criar nova
+          const { data: conversa } = await supabase
+            .from("conversas")
+            .select("id")
+            .eq("cartomante_id", intent.cartomante_id)
+            .eq("cliente_id", clientDbId)
+            .maybeSingle();
+
+          let cid = conversa?.id;
+          if (!cid) {
+            const { data: newConv } = await supabase
+              .from("conversas")
+              .insert({
+                cartomante_id: intent.cartomante_id,
+                cliente_id: clientDbId
+              })
+              .select()
+              .single();
+            cid = newConv?.id;
+          }
+
+          alert("Cadastro de Consulente realizado com sucesso! Conectando com seu oraculista...");
+          if (intent.action === "ask_baralho") {
+            window.location.href = `client_chat.html?cid=${cid}&action=ask_baralho`;
+          } else {
+            window.location.href = `client_chat.html?cid=${cid}`;
+          }
+          return;
+        } catch (err) {
+          console.error("Erro ao resolver intenção pendente pós-registro:", err);
+        }
       }
 
       alert("Cadastro de Consulente realizado com sucesso!");
