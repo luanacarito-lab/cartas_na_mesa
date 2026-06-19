@@ -895,12 +895,6 @@ window.startConversa = async function(cartomanteUserId) {
   }
 };
 
-window.handleLogout = async function() {
-  if (!supabase) return;
-  await supabase.auth.signOut();
-  window.location.href = "login.html";
-};
-
 // Init
 window.addEventListener("load", async () => {
   initBookingSystem();

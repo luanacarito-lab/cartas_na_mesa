@@ -1,33 +1,21 @@
 // register_cliente.js - Cadastro de Consulentes (Clientes) no Supabase Auth e Banco
+// Usa window._supabaseClient (singleton criado em supabase-client.js)
 // ---------------------------------------------------------------------------------
-const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
-// Initialize Supabase client
-let supabase = null;
-try {
-  supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (e) {
-  console.warn("Erro ao inicializar Supabase no register_cliente.js", e);
-}
+let registerBtn = null;
 
-// Helper to create Supabase client via CDN
-function supabaseCreateClient(url, key) {
-  if (typeof window.supabase !== "undefined") {
-    return window.supabase.createClient(url, key);
-  }
-  return null;
-}
+function initRegister() {
+  const form = document.getElementById("registerClienteForm");
+  registerBtn = document.getElementById("registerBtn");
 
-const form = document.getElementById("registerClienteForm");
-const registerBtn = document.getElementById("registerBtn");
+  if (!form) return;
 
-if (form) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    
+
+    const supabase = window._supabaseClient;
     if (!supabase) {
-      alert("Conexão com o Supabase indisponível.");
+      alert("Conexão com o Supabase indisponível. Verifique sua internet e tente novamente.");
       return;
     }
 
@@ -41,8 +29,6 @@ if (form) {
     const sexo = document.getElementById("sexo").value;
     const pronome = document.getElementById("pronome").value.trim();
     const estadoCivil = document.getElementById("estado_civil").value.trim();
-
-    // Campos adicionais
     const guiaEspiritual = document.getElementById("guia_espiritual").value.trim() || null;
     const paiMaeCabeca = document.getElementById("pai_mae_cabeca").value.trim() || null;
     const tradicaoEspiritual = document.getElementById("tradicao_espiritual").value.trim() || null;
@@ -57,22 +43,27 @@ if (form) {
       return;
     }
 
-    if (registerBtn) {
-      registerBtn.disabled = true;
-      registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...';
-    }
+    setLoading(true, '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...');
 
     try {
-      // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
         options: {
           data: {
             nome_completo: nomeCompleto,
-            role: "cliente"
-          }
-        }
+            role: "cliente",
+            celular: celular,
+            data_nascimento: dataNascimento || null,
+            religiao: religiao || null,
+            sexo: sexo || null,
+            pronome: pronome || null,
+            estado_civil: estadoCivil || null,
+            guia_espiritual: guiaEspiritual,
+            pai_mae_cabeca: paiMaeCabeca,
+            tradicao_espiritual: tradicaoEspiritual,
+          },
+        },
       });
 
       if (authError) {
@@ -88,37 +79,28 @@ if (form) {
         return;
       }
 
-      // 2. Criar registro correspondente na tabela 'clientes'
-      const clientRecord = {
-        user_id: user.id,
-        nome_completo: nomeCompleto,
-        email: email,
-        celular: celular,
-        data_nascimento: dataNascimento || null,
-        religiao: religiao || null,
-        sexo: sexo || null,
-        pronome: pronome || null,
-        estado_civil: estadoCivil || null,
-        guia_espiritual: guiaEspiritual,
-        pai_mae_cabeca: paiMaeCabeca,
-        tradicao_espiritual: tradicaoEspiritual,
-        foto_url: "assets/img/default-avatar.png"
-      };
-
-      const { data: clientData, error: dbError } = await supabase
-        .from("clientes")
-        .insert([clientRecord])
-        .select()
-        .maybeSingle();
-
-      if (dbError) {
-        console.error("Erro ao inserir na tabela clientes:", dbError);
-        alert("Erro ao salvar perfil de consulente: " + dbError.message);
-        resetButton();
+      // Confirmação de e-mail ativa → sessão nula
+      if (!authData.session) {
+        alert(
+          "Cadastro de Consulente realizado! Enviamos um e-mail de ativação para o seu endereço. Por favor, confirme seu e-mail para acessar o portal."
+        );
+        window.location.href = "login.html?pending_confirmation=true";
         return;
       }
 
-      const clientDbId = clientData ? clientData.id : null;
+      // Confirmação desativada → sessão imediata
+      if (window.syncUserProfile) {
+        await window.syncUserProfile(user, supabase);
+      }
+
+      // Verificar intenção pendente
+      const { data: clientData } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const clientDbId = clientData?.id;
       const pendingIntentStr = sessionStorage.getItem("pending_intent");
 
       if (pendingIntentStr && clientDbId) {
@@ -126,19 +108,13 @@ if (form) {
           const intent = JSON.parse(pendingIntentStr);
           sessionStorage.removeItem("pending_intent");
 
-          // Vincular cliente à cartomante
-          await supabase
-            .from("cartomante_clientes")
-            .insert({
-              cartomante_id: intent.cartomante_id,
-              cliente_id: clientDbId,
-              status: "ativo"
-            })
-            .select()
-            .maybeSingle();
+          await supabase.from("cartomante_clientes").insert({
+            cartomante_id: intent.cartomante_id,
+            cliente_id: clientDbId,
+            status: "ativo",
+          }).select().maybeSingle();
 
-          // Buscar conversa ou criar nova
-          const { data: conversa } = await supabase
+          let { data: conversa } = await supabase
             .from("conversas")
             .select("id")
             .eq("cartomante_id", intent.cartomante_id)
@@ -149,30 +125,23 @@ if (form) {
           if (!cid) {
             const { data: newConv } = await supabase
               .from("conversas")
-              .insert({
-                cartomante_id: intent.cartomante_id,
-                cliente_id: clientDbId
-              })
+              .insert({ cartomante_id: intent.cartomante_id, cliente_id: clientDbId })
               .select()
               .single();
             cid = newConv?.id;
           }
 
           alert("Cadastro de Consulente realizado com sucesso! Conectando com seu oraculista...");
-          if (intent.action === "ask_baralho") {
-            window.location.href = `client_chat.html?cid=${cid}&action=ask_baralho`;
-          } else {
-            window.location.href = `client_chat.html?cid=${cid}`;
-          }
+          const suffix = intent.action === "ask_baralho" ? `&action=ask_baralho` : "";
+          window.location.href = `client_chat.html?cid=${cid}${suffix}`;
           return;
         } catch (err) {
-          console.error("Erro ao resolver intenção pendente pós-registro:", err);
+          console.error("Erro ao resolver intenção pendente:", err);
         }
       }
 
       alert("Cadastro de Consulente realizado com sucesso!");
       window.location.href = "client_area.html";
-
     } catch (err) {
       console.error("Erro geral de cadastro:", err);
       alert("Ocorreu um erro ao processar o cadastro.");
@@ -181,9 +150,18 @@ if (form) {
   });
 }
 
+function setLoading(loading, html) {
+  if (!registerBtn) return;
+  registerBtn.disabled = loading;
+  if (html) registerBtn.innerHTML = html;
+}
+
 function resetButton() {
-  if (registerBtn) {
-    registerBtn.disabled = false;
-    registerBtn.innerHTML = '<i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar';
-  }
+  setLoading(false, '<i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar');
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initRegister);
+} else {
+  initRegister();
 }

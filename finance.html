@@ -19,6 +19,7 @@
   <!-- Dependências do Supabase e Proteção de Rotas -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="assets/js/supabase-client.js"></script>
   <script src="assets/js/auth-guard.js"></script>
 </head>
 <body class="theme-night mode-dark">
@@ -107,6 +108,7 @@
       <a href="public_profile.html" class="menu-item"><i class="fas fa-bullhorn"></i> Mural Público</a>
       <a href="organization.html" class="menu-item"><i class="fas fa-feather"></i> Organização</a>
       <a href="settings.html" class="menu-item"><i class="fas fa-cog"></i> Configurações</a>
+      <a href="#" onclick="handleLogout(event)" class="menu-item" style="color: #ff8888; border-top: 1px solid rgba(255, 100, 100, 0.15); margin-top: 15px;"><i class="fas fa-sign-out-alt"></i> Sair do Portal</a>
     </nav>
   </div>
 

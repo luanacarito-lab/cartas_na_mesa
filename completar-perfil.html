@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Completar Perfil – Cartas na Mesa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  
+  <!-- Dependências do Supabase e Proteção de Rotas -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/supabase-client.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      background: radial-gradient(circle at center, #130f26 0%, #080612 100%);
+    }
+    
+    .profile-wrapper {
+      width: 100%;
+      max-width: 650px;
+      z-index: 10;
+    }
+    
+    .profile-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    
+    .profile-header h1 {
+      font-family: var(--font-decorative);
+      color: var(--gold-color);
+      font-size: 2rem;
+      margin: 0 0 10px 0;
+      text-shadow: 0 0 10px rgba(199, 162, 122, 0.3);
+    }
+    
+    .profile-header p {
+      font-family: var(--font-classic);
+      color: var(--text-secondary);
+      font-style: italic;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    
+    .profile-card {
+      padding: 35px 30px;
+      border: 1px solid rgba(199, 162, 122, 0.18);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(110, 90, 171, 0.15);
+      border-radius: 16px;
+      background: rgba(20, 16, 38, 0.65);
+      backdrop-filter: blur(16px);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+    
+    @media (max-width: 600px) {
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(199, 162, 122, 0.15);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .category-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--gold-color);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="theme-night mode-dark">
+  <div id="stars-container" class="starry-sky"></div>
+  <div class="ambient-glow" id="glow-1"></div>
+  <div class="ambient-glow" id="glow-2"></div>
+
+  <div class="profile-wrapper">
+    <div class="profile-header">
+      <h1>Assinatura Espiritual</h1>
+      <p>Escolha seu caminho e sintonize seus dados no portal</p>
+    </div>
+    
+    <div class="profile-card glass-panel">
+      <form id="completarPerfilForm">
+        <div class="form-row">
+          
+          <!-- Seleção de Tipo de Conta -->
+          <div class="form-group full-width">
+            <label for="tipo_conta">Selecione seu Caminho</label>
+            <select id="tipo_conta" class="mystic-select" required>
+              <option value="">Selecione...</option>
+              <option value="cliente">Sou Consulente (Quero fazer consultas)</option>
+              <option value="cartomante">Sou Oraculista / Cartomante (Quero atender no templo)</option>
+            </select>
+          </div>
+
+          <!-- Campos Comuns -->
+          <div class="form-group">
+            <label for="nome_completo">Nome Completo</label>
+            <input type="text" id="nome_completo" class="mystic-input" placeholder="Seu nome real" required />
+          </div>
+
+          <div class="form-group">
+            <label for="telefone">WhatsApp / Celular</label>
+            <input type="tel" id="telefone" class="mystic-input" placeholder="(00) 99999-9999" required />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="foto_url">Link da Foto de Perfil (Opcional)</label>
+            <input type="url" id="foto_url" class="mystic-input" placeholder="https://exemplo.com/sua-foto.jpg" />
+          </div>
+
+          <!-- SEÇÃO: CARTOMANTE EXTRA (SÓ EXIBIDA SE SELECIONAR CARTOMANTE) -->
+          <div id="secaoCartomante" class="form-group full-width hidden" style="border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(199, 162, 122, 0.02); padding-top: 15px; padding-bottom: 10px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nome_profissional">Nome Artístico / Profissional</label>
+                <input type="text" id="nome_profissional" class="mystic-input" placeholder="Ex: Morgana Cigana" />
+              </div>
+              <div class="form-group">
+                <label for="funcao">Oráculo Principal</label>
+                <select id="funcao" class="mystic-select">
+                  <option value="">Selecione</option>
+                  <option value="Cartomante">Cartomante</option>
+                  <option value="Taróloga">Taróloga</option>
+                  <option value="Oraculista Cigana">Oraculista Cigana</option>
+                  <option value="Runóloga">Runóloga</option>
+                  <option value="Astróloga">Astróloga</option>
+                  <option value="Espiritualista">Espiritualista Geral</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Categorias de Atendimento</label>
+              <div class="categories-grid" id="categoriesContainer">
+                <label class="category-item"><input type="checkbox" name="categorias" value="Tarot" /> Tarot</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Baralho Cigano" /> Baralho Cigano</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Mesa Radiônica" /> Mesa Radiônica</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Astrologia" /> Astrologia</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Numerologia" /> Numerologia</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Espiritualidade" /> Espiritualidade</label>
+                <label class="category-item"><input type="checkbox" name="categorias" value="Outros" /> Outros</label>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="especialidades">Especialidades (Separe por vírgulas)</label>
+              <input type="text" id="especialidades" class="mystic-input" placeholder="Ex: Amor, Trabalho, Limpeza energética" />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="bio">Sua Jornada & Apresentação (Bio)</label>
+              <textarea id="bio" class="mystic-textarea" rows="3" placeholder="Fale brevemente sobre sua experiência com os oráculos..."></textarea>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: CLIENTE EXTRA (SÓ EXIBIDA SE SELECIONAR CLIENTE) -->
+          <div id="secaoCliente" class="form-group full-width hidden" style="border-left: 2px solid var(--gold-color); padding-left: 15px; background: rgba(110, 90, 171, 0.02); padding-top: 15px; padding-bottom: 10px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="data_nascimento">Data de Nascimento</label>
+                <input type="date" id="data_nascimento" class="mystic-input" />
+              </div>
+              <div class="form-group">
+                <label for="religiao">Religião / Fé</label>
+                <select id="religiao" class="mystic-select">
+                  <option value="">Selecione...</option>
+                  <option value="Umbanda">Umbanda</option>
+                  <option value="Candomblé">Candomblé</option>
+                  <option value="Espiritualista">Espiritualista</option>
+                  <option value="Wicca">Wicca</option>
+                  <option value="Católica">Católica</option>
+                  <option value="Espírita">Espírita</option>
+                  <option value="Nenhuma">Nenhuma / Outra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="saveProfileBtn" class="glass-button" style="width: 100%; border-color: var(--gold-color); padding: 12px; justify-content: center; font-weight: 600; margin-top: 15px;">
+          <i class="fas fa-magic"></i> Firmar Pacto & Salvar Perfil
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="assets/js/completar-perfil.js"></script>
+  <script>
+    // Toggle fields based on selected account type
+    const tipoContaSelect = document.getElementById("tipo_conta");
+    const secaoCartomante = document.getElementById("secaoCartomante");
+    const secaoCliente = document.getElementById("secaoCliente");
+
+    if (tipoContaSelect) {
+      tipoContaSelect.addEventListener("change", () => {
+        const val = tipoContaSelect.value;
+        if (val === "cartomante") {
+          secaoCartomante.classList.remove("hidden");
+          secaoCliente.classList.add("hidden");
+          // Tornar campos requeridos
+          document.getElementById("nome_profissional").required = true;
+          document.getElementById("funcao").required = true;
+          document.getElementById("bio").required = true;
+          document.getElementById("especialidades").required = true;
+          document.getElementById("data_nascimento").required = false;
+        } else if (val === "cliente") {
+          secaoCliente.classList.remove("hidden");
+          secaoCartomante.classList.add("hidden");
+          // Tornar campos requeridos
+          document.getElementById("nome_profissional").required = false;
+          document.getElementById("funcao").required = false;
+          document.getElementById("bio").required = false;
+          document.getElementById("especialidades").required = false;
+          document.getElementById("data_nascimento").required = true;
+        } else {
+          secaoCartomante.classList.add("hidden");
+          secaoCliente.classList.add("hidden");
+        }
+      });
+    }
+  </script>
+</body>
+</html>
