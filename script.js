@@ -78,176 +78,221 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. GERAÇÃO DE ESTRELAS (AMBIENTE MÍSTICO)
+   1. SISTEMA DE PARTÍCULAS (ESTRELAS MODO ESCURO / FLOCOS DOURADOS MODO CLARO)
    ========================================================================== */
 let starCanvasAnimFrame = null;
+let particleMode = null; // 'stars' | 'flakes'
 
 function generateStars() {
     const container = document.getElementById('stars-container');
     if (!container) return;
-    
-    // Evitar múltiplas inicializações se já estiver rodando
-    if (document.getElementById('interactive-stars-canvas')) {
-        return; 
+
+    // Cancelar animação anterior
+    if (starCanvasAnimFrame) {
+        cancelAnimationFrame(starCanvasAnimFrame);
+        starCanvasAnimFrame = null;
     }
-    
+
     container.innerHTML = '';
     const canvas = document.createElement('canvas');
     canvas.id = 'interactive-stars-canvas';
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '1';
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;';
     container.appendChild(canvas);
-    
+
     const ctx = canvas.getContext('2d');
-    
-    let width = canvas.width = container.offsetWidth || window.innerWidth;
-    let height = canvas.height = container.offsetHeight || window.innerHeight;
-    
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
     window.addEventListener('resize', () => {
-        if (!canvas) return;
-        width = canvas.width = container.offsetWidth || window.innerWidth;
-        height = canvas.height = container.offsetHeight || window.innerHeight;
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        rebuildParticles();
     });
-    
-    const stars = [];
-    const starCount = 100;
-    
-    for (let i = 0; i < starCount; i++) {
-        stars.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            size: Math.random() * 2 + 0.5,
-            speedX: (Math.random() - 0.5) * 0.1,
-            speedY: (Math.random() - 0.5) * 0.1,
-            twinklePhase: Math.random() * Math.PI * 2,
-            twinkleSpeed: 0.01 + Math.random() * 0.02
-        });
-    }
-    
-    const sparkles = [];
+
+    let particles = [];
+    let sparkles = [];
     let mouse = { x: null, y: null, active: false };
-    
+    let isDark = document.body.classList.contains('mode-dark');
+
+    function rebuildParticles() {
+        isDark = document.body.classList.contains('mode-dark');
+        particles = [];
+
+        if (isDark) {
+            // Modo escuro: 280 estrelas (mais que antes)
+            const starCount = 280;
+            for (let i = 0; i < starCount; i++) {
+                particles.push({
+                    type: 'star',
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 2.2 + 0.4,
+                    speedX: (Math.random() - 0.5) * 0.08,
+                    speedY: (Math.random() - 0.5) * 0.08,
+                    twinklePhase: Math.random() * Math.PI * 2,
+                    twinkleSpeed: 0.008 + Math.random() * 0.025,
+                    gold: Math.random() < 0.12 // 12% são estrelas douradas
+                });
+            }
+        } else {
+            // Modo claro: 160 flocos dourados flutuantes
+            const flakeCount = 160;
+            for (let i = 0; i < flakeCount; i++) {
+                particles.push({
+                    type: 'flake',
+                    x: Math.random() * width,
+                    y: Math.random() * height + height, // começa abaixo
+                    size: Math.random() * 2.8 + 0.6,
+                    speedX: (Math.random() - 0.5) * 0.3,
+                    speedY: -(Math.random() * 0.4 + 0.15), // sobe levemente
+                    twinklePhase: Math.random() * Math.PI * 2,
+                    twinkleSpeed: 0.015 + Math.random() * 0.02,
+                    // Variações: ouro, champanhe, pérola
+                    hue: [199, 162, 122, 220, 215, 245][Math.floor(Math.random() * 6)]
+                });
+            }
+        }
+    }
+
+    rebuildParticles();
+
+    // Recriar ao mudar de tema
+    const themeObserver = new MutationObserver(() => {
+        const nowDark = document.body.classList.contains('mode-dark');
+        if (nowDark !== isDark) rebuildParticles();
+    });
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     window.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouse.x = e.clientX - rect.left;
-        mouse.y = e.clientY - rect.top;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
         mouse.active = true;
-        
-        if (state.accessibility && !state.accessibility.reduceMotion && Math.random() < 0.35) {
+
+        if (isDark && state.accessibility && !state.accessibility.reduceMotion && Math.random() < 0.25) {
             sparkles.push({
-                x: mouse.x,
-                y: mouse.y,
-                size: Math.random() * 2 + 0.8,
-                speedX: (Math.random() - 0.5) * 1.5,
-                speedY: (Math.random() - 0.5) * 1.5,
+                x: mouse.x, y: mouse.y,
+                size: Math.random() * 2.2 + 0.8,
+                speedX: (Math.random() - 0.5) * 1.8,
+                speedY: (Math.random() - 0.5) * 1.8,
                 alpha: 1.0,
-                decay: 0.015 + Math.random() * 0.02,
-                color: Math.random() < 0.5 ? '#C7A27A' : '#ECEFF5'
+                decay: 0.018 + Math.random() * 0.02,
+                gold: Math.random() < 0.6
             });
         }
     });
-    
-    window.addEventListener('mouseleave', () => {
-        mouse.x = null;
-        mouse.y = null;
-        mouse.active = false;
-    });
-    
+
+    window.addEventListener('mouseleave', () => { mouse.active = false; });
+
     function animate() {
-        if (state.accessibility && state.accessibility.reduceMotion) {
-            ctx.clearRect(0, 0, width, height);
-            stars.forEach(star => {
-                ctx.fillStyle = `rgba(255, 255, 255, 0.75)`;
+        ctx.clearRect(0, 0, width, height);
+
+        if (isDark) {
+            // === ESTRELAS (modo escuro) ===
+            particles.forEach(star => {
+                star.x += star.speedX;
+                star.y += star.speedY;
+
+                // Interação com mouse
+                if (mouse.active && mouse.x !== null) {
+                    const dx = mouse.x - star.x;
+                    const dy = mouse.y - star.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 160) {
+                        const force = (160 - dist) / 160;
+                        star.x += (dx / dist) * force * 0.7 + (-dy / dist) * force * 0.4;
+                        star.y += (dy / dist) * force * 0.7 + (dx / dist) * force * 0.4;
+                    }
+                }
+
+                if (star.x < 0) star.x = width;
+                if (star.x > width) star.x = 0;
+                if (star.y < 0) star.y = height;
+                if (star.y > height) star.y = 0;
+
+                star.twinklePhase += star.twinkleSpeed;
+                const opacity = Math.sin(star.twinklePhase) * 0.42 + 0.55;
+
+                if (star.gold) {
+                    ctx.fillStyle = `rgba(199, 162, 122, ${opacity})`;
+                } else {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                }
                 ctx.beginPath();
                 ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
                 ctx.fill();
-            });
-            starCanvasAnimFrame = requestAnimationFrame(animate);
-            return;
-        }
-        
-        ctx.clearRect(0, 0, width, height);
-        
-        // Desenhar Estrelas
-        stars.forEach(star => {
-            star.x += star.speedX;
-            star.y += star.speedY;
-            
-            if (mouse.active && mouse.x !== null && mouse.y !== null) {
-                const dx = mouse.x - star.x;
-                const dy = mouse.y - star.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist < 180) {
-                    const force = (180 - dist) / 180;
-                    const pullX = (dx / dist) * force * 0.8;
-                    const pullY = (dy / dist) * force * 0.8;
-                    const perpX = (-dy / dist) * force * 0.5;
-                    const perpY = (dx / dist) * force * 0.5;
-                    
-                    star.x += pullX + perpX;
-                    star.y += pullY + perpY;
+
+                // Cruz de brilho nas estrelas maiores
+                if (star.size > 1.6 && opacity > 0.7) {
+                    const crossColor = star.gold
+                        ? `rgba(199, 162, 122, ${opacity * 0.5})`
+                        : `rgba(255, 255, 255, ${opacity * 0.35})`;
+                    ctx.strokeStyle = crossColor;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(star.x - star.size * 3.5, star.y);
+                    ctx.lineTo(star.x + star.size * 3.5, star.y);
+                    ctx.moveTo(star.x, star.y - star.size * 3.5);
+                    ctx.lineTo(star.x, star.y + star.size * 3.5);
+                    ctx.stroke();
                 }
-            }
-            
-            if (star.x < 0) star.x = width;
-            if (star.x > width) star.x = 0;
-            if (star.y < 0) star.y = height;
-            if (star.y > height) star.y = 0;
-            
-            star.twinklePhase += star.twinkleSpeed;
-            const opacity = Math.sin(star.twinklePhase) * 0.4 + 0.6;
-            
-            ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            ctx.fill();
-            
-            if (star.size > 1.8 && opacity > 0.8) {
-                ctx.strokeStyle = `rgba(199, 162, 122, ${opacity * 0.4})`;
-                ctx.lineWidth = 0.5;
+            });
+
+            // Poeira estelar do mouse
+            for (let i = sparkles.length - 1; i >= 0; i--) {
+                const sp = sparkles[i];
+                sp.x += sp.speedX;
+                sp.y += sp.speedY;
+                sp.alpha -= sp.decay;
+                if (sp.alpha <= 0) { sparkles.splice(i, 1); continue; }
+
+                ctx.fillStyle = sp.gold
+                    ? `rgba(199, 162, 122, ${sp.alpha})`
+                    : `rgba(236, 239, 245, ${sp.alpha})`;
                 ctx.beginPath();
-                ctx.moveTo(star.x - star.size * 3, star.y);
-                ctx.lineTo(star.x + star.size * 3, star.y);
-                ctx.moveTo(star.x, star.y - star.size * 3);
-                ctx.lineTo(star.x, star.y + star.size * 3);
-                ctx.stroke();
-            }
-        });
-        
-        // Desenhar Poeira Estelar
-        for (let i = sparkles.length - 1; i >= 0; i--) {
-            const sp = sparkles[i];
-            sp.x += sp.speedX;
-            sp.y += sp.speedY;
-            sp.alpha -= sp.decay;
-            
-            if (sp.alpha <= 0) {
-                sparkles.splice(i, 1);
-                continue;
-            }
-            
-            ctx.fillStyle = sp.color === '#C7A27A' ? `rgba(199, 162, 122, ${sp.alpha})` : `rgba(236, 239, 245, ${sp.alpha})`;
-            ctx.beginPath();
-            ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
-            ctx.fill();
-            
-            if (sp.size > 2) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${sp.alpha * 0.5})`;
-                ctx.beginPath();
-                ctx.arc(sp.x, sp.y, sp.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
                 ctx.fill();
             }
+        } else {
+            // === FLOCOS DOURADOS (modo claro) ===
+            particles.forEach(flake => {
+                flake.x += flake.speedX;
+                flake.y += flake.speedY;
+
+                // Reposicionar quando sai do topo
+                if (flake.y < -20) {
+                    flake.y = height + 20;
+                    flake.x = Math.random() * width;
+                }
+
+                flake.twinklePhase += flake.twinkleSpeed;
+                const pulse = Math.sin(flake.twinklePhase) * 0.35 + 0.55;
+                const opacity = pulse * 0.7; // flocos sutis no modo claro
+
+                // Gradiente dourado suave
+                const gradient = ctx.createRadialGradient(
+                    flake.x, flake.y, 0,
+                    flake.x, flake.y, flake.size * 2.5
+                );
+                gradient.addColorStop(0, `rgba(${flake.hue}, 162, 122, ${opacity})`);
+                gradient.addColorStop(0.5, `rgba(${flake.hue}, 162, 122, ${opacity * 0.5})`);
+                gradient.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.size * 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ponto central mais brilhante
+                ctx.fillStyle = `rgba(255, 248, 220, ${opacity * 0.9})`;
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
         }
-        
+
         starCanvasAnimFrame = requestAnimationFrame(animate);
     }
-    
+
     animate();
 }
 

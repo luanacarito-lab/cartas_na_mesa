@@ -212,9 +212,23 @@
     window.location.href = "login.html";
   };
 
+  // Aguardar o cliente Supabase ficar disponível (máx 3s)
+  function waitForSupabase(maxMs) {
+    return new Promise((resolve) => {
+      if (window._supabaseClient !== undefined) { resolve(window._supabaseClient); return; }
+      const start = Date.now();
+      const check = setInterval(() => {
+        if (window._supabaseClient !== undefined || Date.now() - start > maxMs) {
+          clearInterval(check);
+          resolve(window._supabaseClient || null);
+        }
+      }, 80);
+    });
+  }
+
   async function checkAuth() {
     try {
-      const supabase = window._supabaseClient;
+      const supabase = await waitForSupabase(3000);
       const isOnline = await testConnection(supabase);
 
       let loggedUser = null;

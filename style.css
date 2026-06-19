@@ -255,7 +255,11 @@ body.mode-light .ambient-glow {
     filter: blur(100px);
 }
 
-/* Estrelas no Fundo (Cintilantes - Apenas Modo Escuro Noite/Entardecer) */
+/* ==========================================================================
+   SISTEMA DE PARTÍCULAS DE FUNDO (ESTRELAS MODO ESCURO / FLOCOS MODO CLARO)
+   ========================================================================== */
+
+/* Container de partículas - visível em TODOS os modos */
 .starry-sky {
     position: fixed;
     top: 0;
@@ -268,11 +272,17 @@ body.mode-light .ambient-glow {
     transition: opacity var(--transition-slow);
 }
 
-body.theme-night.mode-dark .starry-sky,
-body.theme-sunset.mode-dark .starry-sky {
-    opacity: 0.4;
+/* --- MODO ESCURO: Estrelas brilhantes em todas as variações --- */
+body.mode-dark .starry-sky {
+    opacity: 1;
 }
 
+/* --- MODO CLARO: Flocos dourados delicados --- */
+body.mode-light .starry-sky {
+    opacity: 1;
+}
+
+/* Estrelas brancas (modo escuro) */
 .star {
     position: absolute;
     background-color: #FFF;
@@ -280,9 +290,29 @@ body.theme-sunset.mode-dark .starry-sky {
     animation: pulse-star 3s infinite ease-in-out;
 }
 
+/* Flocos dourados (modo claro) */
+.light-flake {
+    position: absolute;
+    border-radius: 50%;
+    animation: drift-flake linear infinite;
+    pointer-events: none;
+}
+
 @keyframes pulse-star {
-    0%, 100% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%, 100% { opacity: 0.15; transform: scale(0.7); }
+    50% { opacity: 0.95; transform: scale(1.3); }
+}
+
+@keyframes drift-flake {
+    0%   { transform: translateY(0px) translateX(0px) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.6; }
+    100% { transform: translateY(-60px) translateX(20px) rotate(360deg); opacity: 0; }
+}
+
+/* Desativar partículas no modo de acessibilidade reduzida */
+body.accessibility-reduce-motion .starry-sky {
+    opacity: 0 !important;
 }
 
 /* ==========================================================================
@@ -314,7 +344,7 @@ body.theme-sunset.mode-dark .starry-sky {
     border-color: rgba(199, 162, 122, 0.4);
 }
 
-/* Botões Estilo Vidro */
+/* Botões Estilo Vidro com Moldura Delicada */
 .glass-button {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--card-border);
@@ -328,12 +358,55 @@ body.theme-sunset.mode-dark .starry-sky {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+    transition: background var(--transition-fast), transform var(--transition-fast),
+                border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Moldura interna decorativa (brilho nas arestas) */
+.glass-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, rgba(199,162,122,0.3) 0%, transparent 50%, rgba(110,90,171,0.2) 100%) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
 }
 
 .glass-button:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: var(--gold-color);
+    box-shadow: 0 0 14px rgba(199, 162, 122, 0.18), inset 0 1px 0 rgba(255,255,255,0.07);
+    transform: translateY(-1px);
+}
+
+.glass-button:hover::before {
+    opacity: 1;
+}
+
+.glass-button:active {
+    transform: translateY(0);
+}
+
+/* Modo claro: botões com borda mais visível */
+body.mode-light .glass-button {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(199, 162, 122, 0.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+body.mode-light .glass-button:hover {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: var(--gold-color);
+    box-shadow: 0 4px 14px rgba(199,162,122,0.22), inset 0 1px 0 rgba(255,255,255,0.9);
 }
 
 /* ==========================================================================
