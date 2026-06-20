@@ -11,6 +11,7 @@
   
   <!-- Base Style (mockup themes, stars sky background, colors) -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/theme-widget.css" />
   <!-- Chat Styling (premium details, visual silence, highlighted cards) -->
   <link rel="stylesheet" href="assets/css/chat.css" />
   
@@ -35,18 +36,19 @@
           if (state.themeChoice === 'auto') {
             var hours = new Date().getHours();
             if (hours >= 6 && hours < 12) { period = 'morning'; lighting = 'light'; }
-            else if (hours >= 12 && hours < 18) { period = 'afternoon'; lighting = 'light'; }
+            else if (hours >= 12 && hours < 17) { period = 'afternoon'; lighting = 'light'; }
+            else if (hours >= 17 && hours < 20) { period = 'sunset'; lighting = 'medium'; }
             else { period = 'night'; lighting = 'dark'; }
           } else if (state.themeChoice) {
-            if (['morning', 'afternoon', 'night'].indexOf(state.themeChoice) !== -1) {
+            if (['morning', 'afternoon', 'sunset', 'night'].indexOf(state.themeChoice) !== -1) {
               period = state.themeChoice;
-              lighting = (state.themeChoice === 'night') ? 'dark' : 'light';
+              lighting = state.lightingMode || 'dark';
             } else if (state.themeChoice === 'light') {
               lighting = 'light';
-              if (period === 'night' || period === 'sunset') period = 'morning';
+            } else if (state.themeChoice === 'medium') {
+              lighting = 'medium';
             } else if (state.themeChoice === 'dark') {
               lighting = 'dark';
-              if (period === 'morning' || period === 'afternoon') period = 'night';
             }
           }
           document.body.className = 'theme-' + period + ' mode-' + lighting;

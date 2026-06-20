@@ -14,10 +14,7 @@ function initRegister() {
     e.preventDefault();
 
     const supabase = window._supabaseClient;
-    if (!supabase) {
-      alert("Conexão com o Supabase indisponível. Verifique sua internet e tente novamente.");
-      return;
-    }
+    const isConnected = supabase ? await testSupabaseConnection(supabase) : false;
 
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
     const email = document.getElementById("email").value.trim();
@@ -44,6 +41,11 @@ function initRegister() {
     }
 
     setLoading(true, '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...');
+
+    if (!isConnected) {
+      handleOfflineRegister(nomeCompleto, email, senha, celular, dataNascimento, religiao, sexo, pronome, estadoCivil, guiaEspiritual, paiMaeCabeca, tradicaoEspiritual);
+      return;
+    }
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -164,4 +166,56 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initRegister);
 } else {
   initRegister();
+}
+
+async function testSupabaseConnection(supabase) {
+  if (!supabase) return false;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  try {
+    const { error } = await supabase.from("profiles").select("id").limit(1);
+    return !error;
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleOfflineRegister(nomeCompleto, email, senha, celular, dataNascimento, religiao, sexo, pronome, estadoCivil, guiaEspiritual, paiMaeCabeca, tradicaoEspiritual) {
+  setTimeout(() => {
+    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
+    
+    if (demoUsers.some(u => u.email === email)) {
+      alert("Este e-mail já está em uso offline.");
+      resetButton();
+      return;
+    }
+
+    const newUser = {
+      id: "demo-user-" + Date.now(),
+      email: email,
+      role: "cliente",
+      nome_completo: nomeCompleto,
+      user_metadata: {
+        nome_completo: nomeCompleto,
+        role: "cliente",
+        celular: celular,
+        data_nascimento: dataNascimento || null,
+        religiao: religiao || null,
+        sexo: sexo || null,
+        pronome: pronome || null,
+        estado_civil: estadoCivil || null,
+        guia_espiritual: guiaEspiritual,
+        pai_mae_cabeca: paiMaeCabeca,
+        tradicao_espiritual: tradicaoEspiritual
+      }
+    };
+
+    demoUsers.push(newUser);
+    localStorage.setItem("demo_users", JSON.stringify(demoUsers));
+    
+    localStorage.setItem("demo_logged_client", JSON.stringify(newUser));
+    localStorage.removeItem("demo_logged_user");
+
+    alert("Conexão com o Supabase indisponível. Registrando conta DEMO local para testes offline!");
+    window.location.href = "client_area.html";
+  }, 800);
 }

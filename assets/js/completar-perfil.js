@@ -20,8 +20,15 @@ if (form) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    if (!supabase) {
-      alert("Conexão com o Supabase indisponível.");
+    const isConnected = supabase ? await testSupabaseConnection(supabase) : false;
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...';
+    }
+
+    if (!isConnected) {
+      handleOfflineComplete();
       return;
     }
 
@@ -210,5 +217,55 @@ function resetButton() {
   if (saveBtn) {
     saveBtn.disabled = false;
     saveBtn.innerHTML = '<i class="fas fa-magic"></i> Firmar Pacto & Salvar Perfil';
+  }
+}
+
+async function testSupabaseConnection(supabase) {
+  if (!supabase) return false;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  try {
+    const { error } = await supabase.from("profiles").select("id").limit(1);
+    return !error;
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleOfflineComplete() {
+  const tipoConta = document.getElementById("tipo_conta").value;
+  const nomeCompleto = document.getElementById("nome_completo").value.trim();
+  const telefone = document.getElementById("telefone").value.trim();
+  const fotoUrl = document.getElementById("foto_url").value.trim() || "assets/img/default-avatar.png";
+
+  const newUser = {
+    id: "demo-user-" + Date.now(),
+    email: "demo-user@templo.com",
+    role: tipoConta,
+    nome_completo: nomeCompleto,
+    user_metadata: {
+      nome_completo: nomeCompleto,
+      telefone: telefone,
+      role: tipoConta,
+      foto_url: fotoUrl
+    }
+  };
+
+  const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
+  demoUsers.push(newUser);
+  localStorage.setItem("demo_users", JSON.stringify(demoUsers));
+
+  if (tipoConta === "cliente") {
+    localStorage.setItem("demo_logged_client", JSON.stringify(newUser));
+    localStorage.removeItem("demo_logged_user");
+    alert("Inscrição de Consulente concluída offline!");
+    window.location.href = "client_area.html";
+  } else {
+    newUser.user_metadata.nome_profissional = document.getElementById("nome_profissional").value.trim() || nomeCompleto;
+    newUser.user_metadata.funcao = document.getElementById("funcao").value;
+    newUser.user_metadata.bio = document.getElementById("bio").value.trim() || "Oraculista sintonizada.";
+    localStorage.setItem("demo_logged_user", JSON.stringify(newUser));
+    localStorage.removeItem("demo_logged_client");
+    alert("Inscrição de Oraculista concluída offline!");
+    window.location.href = "dashboard.html";
   }
 }

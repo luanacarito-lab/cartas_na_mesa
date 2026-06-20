@@ -14,10 +14,7 @@ function initRegister() {
     e.preventDefault();
 
     const supabase = window._supabaseClient;
-    if (!supabase) {
-      alert("Conexão com o Supabase indisponível. Verifique sua internet e tente novamente.");
-      return;
-    }
+    const isConnected = supabase ? await testSupabaseConnection(supabase) : false;
 
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
     const nomeProfissional = document.getElementById("nome_profissional").value.trim();
@@ -60,6 +57,11 @@ function initRegister() {
     }
 
     setLoading(true, '<i class="fas fa-spinner fa-spin"></i> Canalizando Energias...');
+
+    if (!isConnected) {
+      handleOfflineRegister(nomeCompleto, nomeProfissional, email, senha, telefone, funcao, fotoUrl, bannerUrl, bio, especialidades, categorias);
+      return;
+    }
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -132,4 +134,55 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initRegister);
 } else {
   initRegister();
+}
+
+async function testSupabaseConnection(supabase) {
+  if (!supabase) return false;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  try {
+    const { error } = await supabase.from("profiles").select("id").limit(1);
+    return !error;
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleOfflineRegister(nomeCompleto, nomeProfissional, email, senha, telefone, funcao, fotoUrl, bannerUrl, bio, especialidades, categorias) {
+  setTimeout(() => {
+    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
+    
+    if (demoUsers.some(u => u.email === email)) {
+      alert("Este e-mail já está em uso offline.");
+      resetButton();
+      return;
+    }
+
+    const newUser = {
+      id: "demo-user-" + Date.now(),
+      email: email,
+      role: "cartomante",
+      nome_completo: nomeCompleto,
+      user_metadata: {
+        nome_completo: nomeCompleto,
+        nome_profissional: nomeProfissional,
+        telefone: telefone,
+        role: "cartomante",
+        funcao: funcao,
+        foto_url: fotoUrl,
+        banner_url: bannerUrl,
+        bio: bio,
+        especialidades: especialidades,
+        categorias: categorias
+      }
+    };
+
+    demoUsers.push(newUser);
+    localStorage.setItem("demo_users", JSON.stringify(demoUsers));
+    
+    localStorage.setItem("demo_logged_user", JSON.stringify(newUser));
+    localStorage.removeItem("demo_logged_client");
+
+    alert("Conexão com o Supabase indisponível. Registrando conta DEMO local para testes offline!");
+    window.location.href = "dashboard.html";
+  }, 800);
 }
