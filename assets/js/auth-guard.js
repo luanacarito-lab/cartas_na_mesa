@@ -28,13 +28,17 @@
   const authPages = ["login.html", "register_cliente.html", "register_cartomante.html"];
 
   // Testar conexão com o Supabase
+  // CORRIGIDO: usa getSession() que não depende de RLS, evitando falso modo offline
   async function testConnection(supabase) {
     if (!supabase) return false;
     if (typeof navigator !== "undefined" && !navigator.onLine) return false;
     try {
-      const { error } = await supabase.from("profiles").select("id").limit(1);
+      // getSession() não faz query no banco, apenas verifica o token local
+      // Se o supabase responde, estamos online
+      const { error } = await supabase.auth.getSession();
       return !error;
     } catch (e) {
+      console.warn("[AuthGuard] testConnection falhou:", e);
       return false;
     }
   }
@@ -46,29 +50,30 @@
     const role = metadata.role || "cliente";
 
     try {
-      // Verificar/criar registro na tabela profiles
-      const { data: profile } = await supabaseClient
+      // Verificar/criar registro na tabela profiles via upsert
+      const { data: profile, error: profileCheckErr } = await supabaseClient
         .from("profiles")
         .select("id, tipo_conta")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (!profile) {
-        console.log("[AuthGuard] Criando perfil...");
-        await supabaseClient.from("profiles").insert({
+        console.log("[AuthGuard] Criando perfil via syncUserProfile...");
+        const { error: upsertErr } = await supabaseClient.from("profiles").upsert({
           user_id: user.id,
-          nome: metadata.nome_profissional || metadata.nome_completo || "Usuário",
+          nome: metadata.nome_profissional || metadata.nome_completo || user.email.split("@")[0],
           email: user.email,
           tipo_conta: role,
           telefone: metadata.telefone || metadata.celular || "",
           avatar_url: metadata.foto_url || "assets/img/default-avatar.png",
           status: "ativo",
-        });
+        }, { onConflict: "user_id" });
+        if (upsertErr) console.error("[AuthGuard] Erro ao criar perfil:", upsertErr);
       } else if (profile.tipo_conta !== role && metadata.role) {
-        // Só atualiza se o metadata tem role explícito
+        // Só atualiza se o metadata tem role explícito e difere do banco
         await supabaseClient
           .from("profiles")
-          .update({ tipo_conta: role })
+          .update({ tipo_conta: role, atualizado_em: new Date().toISOString() })
           .eq("user_id", user.id);
       }
 
@@ -82,7 +87,7 @@
 
         if (!cartomante) {
           console.log("[AuthGuard] Criando registro em cartomantes...");
-          await supabaseClient.from("cartomantes").insert({
+          await supabaseClient.from("cartomantes").upsert({
             user_id: user.id,
             nome: metadata.nome_profissional || metadata.nome_completo || "Cartomante",
             email: user.email,
@@ -93,7 +98,7 @@
             banner_url:
               metadata.banner_url ||
               "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop",
-          });
+          }, { onConflict: "user_id" });
         }
 
         // Garantir perfil público
@@ -109,12 +114,13 @@
           const slug =
             nomeProf
               .toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
               .replace(/[^a-z0-9]+/g, "-")
               .replace(/(^-|-$)+/g, "") +
             "-" +
             Math.floor(1000 + Math.random() * 9000);
 
-          await supabaseClient.from("perfis_publicos").insert({
+          await supabaseClient.from("perfis_publicos").upsert({
             cartomante_id: user.id,
             slug: slug,
             foto_url: metadata.foto_url || "assets/img/default-avatar.png",
@@ -130,7 +136,7 @@
             cor_primaria: "#C7A27A",
             cor_secundaria: "#6E5AAB",
             publicado: true,
-          });
+          }, { onConflict: "cartomante_id" });
         }
 
         // Garantir configurações de chat
@@ -142,7 +148,7 @@
 
         if (!config) {
           console.log("[AuthGuard] Criando configurações de chat...");
-          await supabaseClient.from("configuracoes_chat").insert({
+          await supabaseClient.from("configuracoes_chat").upsert({
             cartomante_id: user.id,
             limite_diario: 50,
             limite_por_cliente: 10,
@@ -156,7 +162,7 @@
             max_perguntas_diarias: 5,
             tempo_minimo_entre_clientes: 15,
             horarios_descanso: [],
-          });
+          }, { onConflict: "cartomante_id" });
         }
 
         return "cartomante";
@@ -170,9 +176,9 @@
 
         if (!client) {
           console.log("[AuthGuard] Criando registro em clientes...");
-          await supabaseClient.from("clientes").insert({
+          await supabaseClient.from("clientes").upsert({
             user_id: user.id,
-            nome_completo: metadata.nome_completo || "Consulente",
+            nome_completo: metadata.nome_completo || user.email.split("@")[0],
             email: user.email,
             celular: metadata.celular || "",
             data_nascimento: metadata.data_nascimento || null,
@@ -184,7 +190,7 @@
             pai_mae_cabeca: metadata.pai_mae_cabeca || null,
             tradicao_espiritual: metadata.tradicao_espiritual || null,
             foto_url: "assets/img/default-avatar.png",
-          });
+          }, { onConflict: "user_id" });
         }
 
         return "cliente";

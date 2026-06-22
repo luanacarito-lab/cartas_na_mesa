@@ -1,5 +1,6 @@
 // register_cartomante.js - Cadastro de Cartomantes e Inicialização de Perfil
 // Usa window._supabaseClient (singleton criado em supabase-client.js)
+// CORRIGIDO: mensagens de erro traduzidas, validações melhoradas
 // ---------------------------------------------------------------------------------
 
 let registerBtn = null;
@@ -12,16 +13,17 @@ function initRegister() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    hideRegError();
 
     const supabase = window._supabaseClient;
     if (!supabase) {
-      alert("Conexão com o Supabase indisponível. Verifique sua internet e tente novamente.");
+      showRegError("Conexão com o servidor indisponível. Verifique sua internet e tente novamente.");
       return;
     }
 
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
     const nomeProfissional = document.getElementById("nome_profissional").value.trim();
-    const email = document.getElementById("email").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
     const telefone = document.getElementById("telefone").value.trim();
     const senha = document.getElementById("senha").value;
     const confirmaSenha = document.getElementById("confirma_senha").value;
@@ -44,18 +46,39 @@ function initRegister() {
       document.querySelectorAll('input[name="categorias"]:checked')
     ).map((cb) => cb.value);
 
-    if (senha !== confirmaSenha) {
-      alert("As chaves secretas (senhas) não são idênticas.");
+    // Validações com mensagens claras
+    if (!nomeCompleto) {
+      showRegError("Preencha seu nome completo.");
+      return;
+    }
+
+    if (!nomeProfissional) {
+      showRegError("Preencha seu nome profissional.");
+      return;
+    }
+
+    if (!email) {
+      showRegError("Preencha seu e-mail.");
       return;
     }
 
     if (senha.length < 6) {
-      alert("A senha precisa ter no mínimo 6 caracteres.");
+      showRegError("A senha precisa ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (senha !== confirmaSenha) {
+      showRegError("As senhas não conferem. Digite novamente.");
+      return;
+    }
+
+    if (!funcao) {
+      showRegError("Selecione seu oráculo principal (função).");
       return;
     }
 
     if (categorias.length === 0) {
-      alert("Por favor, selecione ao menos uma categoria de atendimento.");
+      showRegError("Selecione ao menos uma categoria de atendimento.");
       return;
     }
 
@@ -82,40 +105,104 @@ function initRegister() {
       });
 
       if (authError) {
-        alert("Erro no cadastro: " + authError.message);
+        showRegError(translateRegError(authError.message));
         resetButton();
         return;
       }
 
       const user = authData.user;
       if (!user) {
-        alert("Ocorreu um erro ao recuperar o usuário criado.");
+        showRegError("Ocorreu um erro ao criar sua conta. Tente novamente.");
         resetButton();
         return;
       }
 
       // Confirmação de e-mail ativa → sessão nula
       if (!authData.session) {
-        alert(
-          "Cadastro de Cartomante realizado! Enviamos um e-mail de ativação para sua caixa de entrada. Por favor, confirme seu e-mail para acessar o painel."
-        );
-        window.location.href = "login.html?pending_confirmation=true";
+        showRegSuccess("Cadastro realizado! Verifique seu e-mail e clique no link de ativação para acessar o painel.");
+        setTimeout(() => {
+          window.location.href = "login.html?pending_confirmation=true";
+        }, 3000);
         return;
       }
 
       // Confirmação desativada → sessão imediata
+      // O trigger já criou os registros, mas syncUserProfile garante integridade
       if (window.syncUserProfile) {
         await window.syncUserProfile(user, supabase);
       }
 
-      alert("Cadastro de Cartomante realizado com sucesso!");
-      window.location.href = "dashboard.html";
+      showRegSuccess("Cadastro de Cartomante realizado com sucesso! Redirecionando...");
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 1500);
+
     } catch (err) {
-      console.error("Erro geral de cadastro:", err);
-      alert("Ocorreu um erro no processamento.");
+      console.error("[RegisterCartomante] Erro geral de cadastro:", err);
+      showRegError("Ocorreu um erro inesperado. Tente novamente em instantes.");
       resetButton();
     }
   });
+}
+
+function translateRegError(msg) {
+  if (!msg) return "Erro desconhecido.";
+  const lower = msg.toLowerCase();
+  if (lower.includes("user already registered") || lower.includes("already been registered"))
+    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
+  if (lower.includes("invalid email"))
+    return "E-mail inválido. Verifique o endereço digitado.";
+  if (lower.includes("password") && lower.includes("short"))
+    return "A senha precisa ter no mínimo 6 caracteres.";
+  if (lower.includes("email") && lower.includes("taken"))
+    return "Este e-mail já está em uso. Tente outro endereço.";
+  if (lower.includes("rate limit") || lower.includes("too many"))
+    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  if (lower.includes("network") || lower.includes("fetch"))
+    return "Erro de conexão. Verifique sua internet.";
+  return "Erro ao criar conta: " + msg;
+}
+
+function showRegError(msg) {
+  let box = document.getElementById("regErrorBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "regErrorBox";
+    box.style.cssText = `
+      display:flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:8px; margin-bottom:16px;
+      background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.35);
+      color:#ff8888; font-size:0.875rem;
+    `;
+    const form = document.getElementById("registerCartomanteForm");
+    if (form) form.insertAdjacentElement("beforebegin", box);
+  }
+  box.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${msg}</span>`;
+  box.style.display = "flex";
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function showRegSuccess(msg) {
+  let box = document.getElementById("regSuccessBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "regSuccessBox";
+    box.style.cssText = `
+      display:flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:8px; margin-bottom:16px;
+      background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.35);
+      color:#86efac; font-size:0.875rem;
+    `;
+    const form = document.getElementById("registerCartomanteForm");
+    if (form) form.insertAdjacentElement("beforebegin", box);
+  }
+  box.innerHTML = `<i class="fas fa-check-circle"></i> <span>${msg}</span>`;
+  box.style.display = "flex";
+}
+
+function hideRegError() {
+  const box = document.getElementById("regErrorBox");
+  if (box) box.style.display = "none";
 }
 
 function setLoading(loading, html) {

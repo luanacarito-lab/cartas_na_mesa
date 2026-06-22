@@ -1,79 +1,140 @@
 // assets/js/completar-perfil.js - Lógica de preenchimento de ficha espiritual inicial
+// CORRIGIDO: usa window._supabaseClient (singleton) em vez de criar nova instância
 // ---------------------------------------------------------------------------------
-
-const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "";
-const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "";
-
-let supabase = null;
-if (typeof window.supabase !== "undefined" && SUPABASE_URL) {
-  try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch (e) {
-    console.warn("Erro ao inicializar Supabase no completar-perfil.js", e);
-  }
-}
 
 const form = document.getElementById("completarPerfilForm");
 const saveBtn = document.getElementById("saveProfileBtn");
 
+// Aguarda o cliente Supabase estar disponível (máx 4s)
+function waitForSupabaseCP(maxMs) {
+  return new Promise((resolve) => {
+    if (window._supabaseClient !== undefined) { resolve(window._supabaseClient); return; }
+    const start = Date.now();
+    const check = setInterval(() => {
+      if (window._supabaseClient !== undefined || Date.now() - start > maxMs) {
+        clearInterval(check);
+        resolve(window._supabaseClient || null);
+      }
+    }, 80);
+  });
+}
+
+function showCPError(msg) {
+  let box = document.getElementById("cpErrorBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "cpErrorBox";
+    box.style.cssText = `
+      display:flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:8px; margin-bottom:16px;
+      background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.35);
+      color:#ff8888; font-size:0.875rem;
+    `;
+    if (form) form.insertAdjacentElement("beforebegin", box);
+  }
+  box.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${msg}</span>`;
+  box.style.display = "flex";
+}
+
+function hideCPError() {
+  const box = document.getElementById("cpErrorBox");
+  if (box) box.style.display = "none";
+}
+
+function translateCPError(msg) {
+  if (!msg) return "Erro desconhecido.";
+  if (msg.includes("duplicate key") || msg.includes("already exists") || msg.includes("unique"))
+    return "Já existe um perfil cadastrado com esses dados.";
+  if (msg.includes("violates foreign key"))
+    return "Usuário não encontrado no sistema de autenticação.";
+  if (msg.includes("not null"))
+    return "Preencha todos os campos obrigatórios.";
+  if (msg.includes("permission denied") || msg.includes("RLS"))
+    return "Sem permissão para salvar o perfil. Tente sair e entrar novamente.";
+  return msg;
+}
+
+function resetCPButton() {
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-magic"></i> Firmar Pacto & Salvar Perfil';
+  }
+}
+
 if (form) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
-    if (!supabase) {
-      alert("Conexão com o Supabase indisponível.");
-      return;
-    }
+    hideCPError();
 
     if (saveBtn) {
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...';
     }
 
+    // Usar o singleton — NÃO criar nova instância
+    const supabase = await waitForSupabaseCP(4000);
+
+    if (!supabase) {
+      showCPError("Conexão com o servidor indisponível. Verifique sua internet e tente novamente.");
+      resetCPButton();
+      return;
+    }
+
     try {
-      // 1. Obter usuário logado no Auth
+      // 1. Obter usuário logado no Auth via singleton
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        alert("Nenhum usuário autenticado encontrado. Redirecionando para login.");
-        window.location.href = "login.html";
+        showCPError("Nenhum usuário autenticado encontrado. Redirecionando para login...");
+        setTimeout(() => { window.location.href = "login.html"; }, 2000);
         return;
       }
 
-      const tipoConta = document.getElementById("tipo_conta").value;
-      const nomeCompleto = document.getElementById("nome_completo").value.trim();
-      const telefone = document.getElementById("telefone").value.trim();
-      const fotoUrl = document.getElementById("foto_url").value.trim() || "assets/img/default-avatar.png";
+      const tipoConta = document.getElementById("tipo_conta")?.value;
+      const nomeCompleto = document.getElementById("nome_completo")?.value.trim();
+      const telefone = document.getElementById("telefone")?.value.trim() || "";
+      const fotoUrl = document.getElementById("foto_url")?.value.trim() || "assets/img/default-avatar.png";
 
-      // 2. Inserir ou atualizar na tabela 'profiles'
+      if (!tipoConta) {
+        showCPError("Selecione o tipo de conta: Cliente ou Cartomante.");
+        resetCPButton();
+        return;
+      }
+
+      if (!nomeCompleto) {
+        showCPError("Preencha seu nome completo.");
+        resetCPButton();
+        return;
+      }
+
+      // 2. Upsert na tabela 'profiles' (insert ou update se já existir)
       const { error: profileError } = await supabase
         .from("profiles")
-        .insert({
+        .upsert({
           user_id: user.id,
           nome: nomeCompleto,
           email: user.email,
           tipo_conta: tipoConta,
           telefone: telefone,
           avatar_url: fotoUrl,
-          status: "ativo"
-        })
-        .select()
-        .maybeSingle();
+          status: "ativo",
+          atualizado_em: new Date().toISOString()
+        }, { onConflict: "user_id" });
 
       if (profileError) {
-        console.error("Erro ao criar perfil em profiles:", profileError);
-        alert("Erro ao criar identidade de perfil: " + profileError.message);
-        resetButton();
+        console.error("[CompletarPerfil] Erro ao salvar perfil:", profileError);
+        showCPError("Erro ao salvar perfil: " + translateCPError(profileError.message));
+        resetCPButton();
         return;
       }
 
-      // 3. Criar registros filhos conforme o tipo
+      // 3. Criar registros específicos por tipo de conta
       if (tipoConta === "cliente") {
-        const dataNascimento = document.getElementById("data_nascimento").value;
-        const religiao = document.getElementById("religiao").value;
+        const dataNascimento = document.getElementById("data_nascimento")?.value || null;
+        const religiao = document.getElementById("religiao")?.value || null;
 
         const { error: clienteError } = await supabase
           .from("clientes")
-          .insert({
+          .upsert({
             user_id: user.id,
             nome_completo: nomeCompleto,
             email: user.email,
@@ -81,41 +142,32 @@ if (form) {
             data_nascimento: dataNascimento || null,
             religiao: religiao || null,
             foto_url: fotoUrl
-          });
+          }, { onConflict: "user_id" });
 
         if (clienteError) {
-          console.error("Erro ao criar registro em clientes:", clienteError);
+          console.error("[CompletarPerfil] Erro ao criar registro em clientes:", clienteError);
+          // Não bloquear — o perfil principal já foi salvo
         }
 
-        // Atualizar metadados no Supabase Auth para consistência
+        // Atualizar metadados no Auth
         await supabase.auth.updateUser({
-          data: {
-            nome_completo: nomeCompleto,
-            role: "cliente"
-          }
+          data: { nome_completo: nomeCompleto, role: "cliente" }
         });
 
-        alert("Seu perfil de Consulente foi sintonizado com sucesso!");
         window.location.href = "client_area.html";
 
       } else if (tipoConta === "cartomante") {
-        const nomeProfissional = document.getElementById("nome_profissional").value.trim();
-        const funcao = document.getElementById("funcao").value;
-        const bio = document.getElementById("bio").value.trim() || "Oraculista sintonizada.";
-        const specsInput = document.getElementById("especialidades").value.trim();
+        const nomeProfissional = document.getElementById("nome_profissional")?.value.trim() || nomeCompleto;
+        const funcao = document.getElementById("funcao")?.value || "Cartomante";
+        const bio = document.getElementById("bio")?.value.trim() || "Oraculista sintonizada.";
+        const specsInput = document.getElementById("especialidades")?.value.trim() || "";
         const especialidades = specsInput.split(",").map(s => s.trim()).filter(s => s.length > 0);
         const categorias = Array.from(document.querySelectorAll('input[name="categorias"]:checked')).map(cb => cb.value);
 
-        if (categorias.length === 0) {
-          alert("Por favor, selecione ao menos uma categoria de atendimento.");
-          resetButton();
-          return;
-        }
-
-        // Inserir em 'cartomantes'
+        // Upsert em 'cartomantes'
         const { error: cartomanteError } = await supabase
           .from("cartomantes")
-          .insert({
+          .upsert({
             user_id: user.id,
             nome: nomeProfissional,
             email: user.email,
@@ -124,23 +176,23 @@ if (form) {
             bio: bio,
             foto_url: fotoUrl,
             banner_url: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop"
-          });
+          }, { onConflict: "user_id" });
 
         if (cartomanteError) {
-          console.error("Erro ao criar registro na tabela cartomantes:", cartomanteError);
+          console.error("[CompletarPerfil] Erro ao criar cartomante:", cartomanteError);
         }
 
-        // Gerar slug do perfil público
+        // Upsert em 'perfis_publicos'
         const randomSuffix = Math.floor(1000 + Math.random() * 9000);
         const slug = nomeProfissional
           .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)+/g, "") + "-" + randomSuffix;
 
-        // Inserir em 'perfis_publicos'
         const { error: perfilError } = await supabase
           .from("perfis_publicos")
-          .insert({
+          .upsert({
             cartomante_id: user.id,
             slug: slug,
             foto_url: fotoUrl,
@@ -148,25 +200,22 @@ if (form) {
             bio: bio,
             especialidades: especialidades,
             certificados: [],
-            redes_sociais: {
-              instagram: "",
-              categorias: categorias
-            },
+            redes_sociais: { instagram: "", categorias: categorias },
             idiomas: ["Português"],
             modalidade: "online",
             cor_primaria: "#C7A27A",
             cor_secundaria: "#6E5AAB",
             publicado: true
-          });
+          }, { onConflict: "cartomante_id" });
 
         if (perfilError) {
-          console.error("Erro ao criar perfil público:", perfilError);
+          console.error("[CompletarPerfil] Erro ao criar perfil público:", perfilError);
         }
 
-        // Inserir em 'configuracoes_chat'
+        // Upsert em 'configuracoes_chat'
         const { error: configError } = await supabase
           .from("configuracoes_chat")
-          .insert({
+          .upsert({
             cartomante_id: user.id,
             limite_diario: 50,
             limite_por_cliente: 10,
@@ -179,36 +228,24 @@ if (form) {
             max_perguntas_diarias: 5,
             tempo_minimo_entre_clientes: 15,
             horarios_descanso: []
-          });
+          }, { onConflict: "cartomante_id" });
 
         if (configError) {
-          console.error("Erro ao criar configurações de chat:", configError);
+          console.error("[CompletarPerfil] Erro ao criar configurações de chat:", configError);
         }
 
-        // Atualizar metadados no Supabase Auth para consistência
+        // Atualizar metadados no Auth
         await supabase.auth.updateUser({
-          data: {
-            nome_completo: nomeCompleto,
-            nome_profissional: nomeProfissional,
-            role: "cartomante"
-          }
+          data: { nome_completo: nomeCompleto, nome_profissional: nomeProfissional, role: "cartomante" }
         });
 
-        alert("Seu perfil de Oraculista foi ativado e sintonizado com sucesso!");
         window.location.href = "dashboard.html";
       }
 
     } catch (err) {
-      console.error("Erro geral de preenchimento de perfil:", err);
-      alert("Erro ao processar as informações cadastrais.");
-      resetButton();
+      console.error("[CompletarPerfil] Erro geral:", err);
+      showCPError("Erro ao processar as informações cadastrais. Tente novamente.");
+      resetCPButton();
     }
   });
-}
-
-function resetButton() {
-  if (saveBtn) {
-    saveBtn.disabled = false;
-    saveBtn.innerHTML = '<i class="fas fa-magic"></i> Firmar Pacto & Salvar Perfil';
-  }
 }

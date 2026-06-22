@@ -174,11 +174,12 @@ async function redirectByRole(tipoConta, user, supabase) {
 }
 
 // --- Helpers ---
+// CORRIGIDO: usa getSession() em vez de SELECT que pode ser bloqueado por RLS
 async function testSupabaseConnection(supabase) {
   if (!supabase) return false;
   if (typeof navigator !== "undefined" && !navigator.onLine) return false;
   try {
-    const { error } = await supabase.from("profiles").select("id").limit(1);
+    const { error } = await supabase.auth.getSession();
     return !error;
   } catch (e) {
     return false;
@@ -231,12 +232,23 @@ function setLoading(btn, loading) {
 }
 
 function translateAuthError(msg) {
-  if (msg.includes("Invalid login credentials")) return "Senha ou e-mail incorretos. Verifique e tente novamente.";
-  if (msg.includes("Email not confirmed") || msg.includes("Email confirmation required"))
-    return "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
-  if (msg.includes("Too many requests")) return "Muitas tentativas. Aguarde alguns minutos.";
-  if (msg.includes("User not found")) return "Nenhuma conta encontrada com este e-mail.";
-  return "Senha ou e-mail incorretos.";
+  if (!msg) return "Erro ao entrar. Tente novamente.";
+  const lower = msg.toLowerCase();
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials"))
+    return "E-mail ou senha incorretos. Verifique e tente novamente.";
+  if (lower.includes("email not confirmed") || lower.includes("email confirmation required"))
+    return "E-mail ainda não confirmado. Verifique sua caixa de entrada e clique no link de ativação.";
+  if (lower.includes("too many requests") || lower.includes("rate limit"))
+    return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+  if (lower.includes("user not found"))
+    return "Nenhuma conta encontrada com este e-mail. Verifique o endereço ou cadastre-se.";
+  if (lower.includes("network") || lower.includes("fetch"))
+    return "Erro de conexão. Verifique sua internet e tente novamente.";
+  if (lower.includes("user already registered"))
+    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
+  if (lower.includes("password") && lower.includes("short"))
+    return "Senha muito curta. Use pelo menos 6 caracteres.";
+  return "Não foi possível entrar. Verifique seus dados e tente novamente.";
 }
 
 function checkPendingConfirmation() {
