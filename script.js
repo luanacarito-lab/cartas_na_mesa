@@ -5,8 +5,8 @@
 
 // Estados do Sistema
 let state = {
-    themeChoice: 'auto', // 'auto' | 'morning' | 'afternoon' | 'night' | 'light' | 'dark'
-    lightingMode: 'dark', // 'light' | 'dark'
+    themeChoice: 'auto', // 'auto' | 'morning' | 'afternoon' | 'sunset' | 'night' | 'light' | 'medium' | 'dark'
+    lightingMode: 'dark', // 'light' | 'medium' | 'dark'
     timeMode: 'auto',     // 'auto' | 'manual'
     currentPeriod: 'night', // 'morning' | 'afternoon' | 'sunset' | 'night'
     accessibility: {
@@ -66,7 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. Inicializar o menu mobile responsivo
     initResponsiveMobileMenu();
     
-    // 6. Inicializar notificações globais
+    // 6. Criar widget flutuante de tema
+    createThemeWidget();
+    
+    // 7. Inicializar notificações globais
     initGlobalNotifications();
     
     // 7. Iniciar timer para atualizar o horário em tempo real (se automático estiver ativo)
@@ -78,7 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. SISTEMA DE PARTÍCULAS (ESTRELAS MODO ESCURO / FLOCOS DOURADOS MODO CLARO)
+   1. SISTEMA DE PARTÍCULAS INTERATIVAS (MAGNÉTICO + CONSTELAÇÕES)
+   Inspirado no Antigravity IDE — partículas seguem o cursor com gravidade suave
    ========================================================================== */
 let starCanvasAnimFrame = null;
 let particleMode = null; // 'stars' | 'flakes'
@@ -113,42 +117,58 @@ function generateStars() {
     let sparkles = [];
     let mouse = { x: null, y: null, active: false };
     let isDark = document.body.classList.contains('mode-dark');
+    let isMedium = document.body.classList.contains('mode-medium');
+    let isLight = document.body.classList.contains('mode-light');
+    const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const CONNECTION_DIST = isMobile ? 80 : 120;
+    const MOUSE_RADIUS = isMobile ? 100 : 180;
+
+    function getMode() {
+        isDark = document.body.classList.contains('mode-dark');
+        isMedium = document.body.classList.contains('mode-medium');
+        isLight = document.body.classList.contains('mode-light');
+    }
 
     function rebuildParticles() {
-        isDark = document.body.classList.contains('mode-dark');
+        getMode();
         particles = [];
 
-        if (isDark) {
-            // Modo escuro: 280 estrelas (mais que antes)
-            const starCount = 280;
-            for (let i = 0; i < starCount; i++) {
+        // Quantidade adaptada ao tamanho da tela e performance
+        const area = width * height;
+        const density = isMobile ? 0.00006 : 0.0001;
+        let count = Math.min(Math.floor(area * density), isMobile ? 120 : 220);
+
+        if (isLight) {
+            // Modo claro: flocos dourados mais sutis
+            for (let i = 0; i < count; i++) {
                 particles.push({
-                    type: 'star',
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    size: Math.random() * 2.2 + 0.4,
-                    speedX: (Math.random() - 0.5) * 0.08,
-                    speedY: (Math.random() - 0.5) * 0.08,
+                    baseX: Math.random() * width,
+                    baseY: Math.random() * height,
+                    size: Math.random() * 2.0 + 0.5,
+                    speedX: (Math.random() - 0.5) * 0.15,
+                    speedY: (Math.random() - 0.5) * 0.15,
                     twinklePhase: Math.random() * Math.PI * 2,
-                    twinkleSpeed: 0.008 + Math.random() * 0.025,
-                    gold: Math.random() < 0.12 // 12% são estrelas douradas
+                    twinkleSpeed: 0.01 + Math.random() * 0.02,
+                    gold: true,
+                    hue: [199, 180, 160, 210, 220][Math.floor(Math.random() * 5)]
                 });
             }
         } else {
-            // Modo claro: 160 flocos dourados flutuantes
-            const flakeCount = 160;
-            for (let i = 0; i < flakeCount; i++) {
+            // Modo escuro e médio: estrelas brancas/douradas
+            for (let i = 0; i < count; i++) {
                 particles.push({
-                    type: 'flake',
                     x: Math.random() * width,
-                    y: Math.random() * height + height, // começa abaixo
-                    size: Math.random() * 2.8 + 0.6,
-                    speedX: (Math.random() - 0.5) * 0.3,
-                    speedY: -(Math.random() * 0.4 + 0.15), // sobe levemente
+                    y: Math.random() * height,
+                    baseX: Math.random() * width,
+                    baseY: Math.random() * height,
+                    size: Math.random() * 2.2 + 0.4,
+                    speedX: (Math.random() - 0.5) * 0.1,
+                    speedY: (Math.random() - 0.5) * 0.1,
                     twinklePhase: Math.random() * Math.PI * 2,
-                    twinkleSpeed: 0.015 + Math.random() * 0.02,
-                    // Variações: ouro, champanhe, pérola
-                    hue: [199, 162, 122, 220, 215, 245][Math.floor(Math.random() * 6)]
+                    twinkleSpeed: 0.008 + Math.random() * 0.025,
+                    gold: Math.random() < 0.15
                 });
             }
         }
@@ -158,24 +178,32 @@ function generateStars() {
 
     // Recriar ao mudar de tema
     const themeObserver = new MutationObserver(() => {
-        const nowDark = document.body.classList.contains('mode-dark');
-        if (nowDark !== isDark) rebuildParticles();
+        const wasDark = isDark;
+        const wasMedium = isMedium;
+        const wasLight = isLight;
+        getMode();
+        if (wasDark !== isDark || wasMedium !== isMedium || wasLight !== isLight) {
+            rebuildParticles();
+        }
     });
     themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
+    // Mouse tracking
     window.addEventListener('mousemove', (e) => {
         mouse.x = e.clientX;
         mouse.y = e.clientY;
         mouse.active = true;
 
-        if (isDark && state.accessibility && !state.accessibility.reduceMotion && Math.random() < 0.25) {
+        // Poeira estelar no trajeto do cursor
+        if (state.accessibility && !state.accessibility.reduceMotion && Math.random() < 0.3) {
             sparkles.push({
-                x: mouse.x, y: mouse.y,
-                size: Math.random() * 2.2 + 0.8,
-                speedX: (Math.random() - 0.5) * 1.8,
-                speedY: (Math.random() - 0.5) * 1.8,
-                alpha: 1.0,
-                decay: 0.018 + Math.random() * 0.02,
+                x: mouse.x + (Math.random() - 0.5) * 8,
+                y: mouse.y + (Math.random() - 0.5) * 8,
+                size: Math.random() * 2.0 + 0.6,
+                speedX: (Math.random() - 0.5) * 1.5,
+                speedY: (Math.random() - 0.5) * 1.5,
+                alpha: 0.9,
+                decay: 0.02 + Math.random() * 0.02,
                 gold: Math.random() < 0.6
             });
         }
@@ -183,111 +211,150 @@ function generateStars() {
 
     window.addEventListener('mouseleave', () => { mouse.active = false; });
 
+    // Touch support — toque dispersa partículas
+    if (isMobile) {
+        let touchTimer = null;
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+                mouse.active = true;
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+                mouse.active = true;
+            }
+        });
+        window.addEventListener('touchend', () => {
+            // Manter ativo por 1s após toque para efeito de dispersão suave
+            clearTimeout(touchTimer);
+            touchTimer = setTimeout(() => { mouse.active = false; }, 1000);
+        });
+    }
+
     function animate() {
         ctx.clearRect(0, 0, width, height);
+        getMode();
 
-        if (isDark) {
-            // === ESTRELAS (modo escuro) ===
-            particles.forEach(star => {
-                star.x += star.speedX;
-                star.y += star.speedY;
+        const globalOpacity = isLight ? 0.45 : (isMedium ? 0.75 : 1.0);
 
-                // Interação com mouse
-                if (mouse.active && mouse.x !== null) {
-                    const dx = mouse.x - star.x;
-                    const dy = mouse.y - star.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 160) {
-                        const force = (160 - dist) / 160;
-                        star.x += (dx / dist) * force * 0.7 + (-dy / dist) * force * 0.4;
-                        star.y += (dy / dist) * force * 0.7 + (dx / dist) * force * 0.4;
-                    }
+        // === MOVER E DESENHAR PARTÍCULAS ===
+        particles.forEach(p => {
+            // Movimento base
+            p.x += p.speedX;
+            p.y += p.speedY;
+
+            // Atração gravitacional ao mouse
+            if (mouse.active && mouse.x !== null) {
+                const dx = mouse.x - p.x;
+                const dy = mouse.y - p.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < MOUSE_RADIUS) {
+                    const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                    const attractForce = force * 0.6;
+                    // Atração + leve órbita
+                    p.x += (dx / dist) * attractForce + (-dy / dist) * force * 0.15;
+                    p.y += (dy / dist) * attractForce + (dx / dist) * force * 0.15;
                 }
+            } else if (!isMobile) {
+                // Retorno suave à posição base quando mouse não ativo
+                p.x += (p.baseX - p.x) * 0.003;
+                p.y += (p.baseY - p.y) * 0.003;
+            }
 
-                if (star.x < 0) star.x = width;
-                if (star.x > width) star.x = 0;
-                if (star.y < 0) star.y = height;
-                if (star.y > height) star.y = 0;
+            // Wrap around
+            if (p.x < -20) p.x = width + 20;
+            if (p.x > width + 20) p.x = -20;
+            if (p.y < -20) p.y = height + 20;
+            if (p.y > height + 20) p.y = -20;
 
-                star.twinklePhase += star.twinkleSpeed;
-                const opacity = Math.sin(star.twinklePhase) * 0.42 + 0.55;
+            // Twinkle
+            p.twinklePhase += p.twinkleSpeed;
+            const twinkle = Math.sin(p.twinklePhase) * 0.35 + 0.6;
+            const opacity = twinkle * globalOpacity;
 
-                if (star.gold) {
+            if (isLight) {
+                // Flocos dourados sutis
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2.5);
+                gradient.addColorStop(0, `rgba(${p.hue}, 162, 122, ${opacity * 0.7})`);
+                gradient.addColorStop(0.5, `rgba(${p.hue}, 162, 122, ${opacity * 0.3})`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                // Ponto central
+                ctx.fillStyle = `rgba(255, 248, 220, ${opacity * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Estrelas (escuro/médio)
+                if (p.gold) {
                     ctx.fillStyle = `rgba(199, 162, 122, ${opacity})`;
                 } else {
                     ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                 }
                 ctx.beginPath();
-                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Cruz de brilho nas estrelas maiores
-                if (star.size > 1.6 && opacity > 0.7) {
-                    const crossColor = star.gold
-                        ? `rgba(199, 162, 122, ${opacity * 0.5})`
-                        : `rgba(255, 255, 255, ${opacity * 0.35})`;
+                // Cruz brilhante nas maiores
+                if (p.size > 1.6 && twinkle > 0.75) {
+                    const crossColor = p.gold
+                        ? `rgba(199, 162, 122, ${opacity * 0.4})`
+                        : `rgba(255, 255, 255, ${opacity * 0.3})`;
                     ctx.strokeStyle = crossColor;
                     ctx.lineWidth = 0.5;
                     ctx.beginPath();
-                    ctx.moveTo(star.x - star.size * 3.5, star.y);
-                    ctx.lineTo(star.x + star.size * 3.5, star.y);
-                    ctx.moveTo(star.x, star.y - star.size * 3.5);
-                    ctx.lineTo(star.x, star.y + star.size * 3.5);
+                    ctx.moveTo(p.x - p.size * 3, p.y);
+                    ctx.lineTo(p.x + p.size * 3, p.y);
+                    ctx.moveTo(p.x, p.y - p.size * 3);
+                    ctx.lineTo(p.x, p.y + p.size * 3);
                     ctx.stroke();
                 }
-            });
-
-            // Poeira estelar do mouse
-            for (let i = sparkles.length - 1; i >= 0; i--) {
-                const sp = sparkles[i];
-                sp.x += sp.speedX;
-                sp.y += sp.speedY;
-                sp.alpha -= sp.decay;
-                if (sp.alpha <= 0) { sparkles.splice(i, 1); continue; }
-
-                ctx.fillStyle = sp.gold
-                    ? `rgba(199, 162, 122, ${sp.alpha})`
-                    : `rgba(236, 239, 245, ${sp.alpha})`;
-                ctx.beginPath();
-                ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
-                ctx.fill();
             }
-        } else {
-            // === FLOCOS DOURADOS (modo claro) ===
-            particles.forEach(flake => {
-                flake.x += flake.speedX;
-                flake.y += flake.speedY;
+        });
 
-                // Reposicionar quando sai do topo
-                if (flake.y < -20) {
-                    flake.y = height + 20;
-                    flake.x = Math.random() * width;
+        // === LINHAS DE CONSTELAÇÃO entre partículas próximas ===
+        if (!isLight) {
+            const lineOpacity = isMedium ? 0.06 : 0.08;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < CONNECTION_DIST) {
+                        const alpha = (1 - dist / CONNECTION_DIST) * lineOpacity * globalOpacity;
+                        ctx.strokeStyle = `rgba(199, 162, 122, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
                 }
+            }
+        }
 
-                flake.twinklePhase += flake.twinkleSpeed;
-                const pulse = Math.sin(flake.twinklePhase) * 0.35 + 0.55;
-                const opacity = pulse * 0.7; // flocos sutis no modo claro
+        // === POEIRA ESTELAR (sparkles do mouse) ===
+        for (let i = sparkles.length - 1; i >= 0; i--) {
+            const sp = sparkles[i];
+            sp.x += sp.speedX;
+            sp.y += sp.speedY;
+            sp.alpha -= sp.decay;
+            if (sp.alpha <= 0) { sparkles.splice(i, 1); continue; }
 
-                // Gradiente dourado suave
-                const gradient = ctx.createRadialGradient(
-                    flake.x, flake.y, 0,
-                    flake.x, flake.y, flake.size * 2.5
-                );
-                gradient.addColorStop(0, `rgba(${flake.hue}, 162, 122, ${opacity})`);
-                gradient.addColorStop(0.5, `rgba(${flake.hue}, 162, 122, ${opacity * 0.5})`);
-                gradient.addColorStop(1, 'transparent');
-
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(flake.x, flake.y, flake.size * 2.5, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Ponto central mais brilhante
-                ctx.fillStyle = `rgba(255, 248, 220, ${opacity * 0.9})`;
-                ctx.beginPath();
-                ctx.arc(flake.x, flake.y, flake.size * 0.5, 0, Math.PI * 2);
-                ctx.fill();
-            });
+            ctx.fillStyle = sp.gold
+                ? `rgba(199, 162, 122, ${sp.alpha * globalOpacity})`
+                : `rgba(236, 239, 245, ${sp.alpha * globalOpacity})`;
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         starCanvasAnimFrame = requestAnimationFrame(animate);
@@ -324,32 +391,34 @@ function applyTheme() {
         if (hours >= 6 && hours < 12) {
             state.currentPeriod = 'morning';
             state.lightingMode = 'light';
-        } else if (hours >= 12 && hours < 18) {
+        } else if (hours >= 12 && hours < 17) {
             state.currentPeriod = 'afternoon';
             state.lightingMode = 'light';
+        } else if (hours >= 17 && hours < 20) {
+            state.currentPeriod = 'sunset';
+            state.lightingMode = 'medium';
         } else {
             state.currentPeriod = 'night';
             state.lightingMode = 'dark';
         }
     } else if (state.themeChoice === 'morning') {
         state.currentPeriod = 'morning';
-        state.lightingMode = 'light';
+        if (!['light','medium','dark'].includes(state.lightingMode)) state.lightingMode = 'light';
     } else if (state.themeChoice === 'afternoon') {
         state.currentPeriod = 'afternoon';
-        state.lightingMode = 'light';
+        if (!['light','medium','dark'].includes(state.lightingMode)) state.lightingMode = 'light';
+    } else if (state.themeChoice === 'sunset') {
+        state.currentPeriod = 'sunset';
+        if (!['light','medium','dark'].includes(state.lightingMode)) state.lightingMode = 'medium';
     } else if (state.themeChoice === 'night') {
         state.currentPeriod = 'night';
-        state.lightingMode = 'dark';
+        if (!['light','medium','dark'].includes(state.lightingMode)) state.lightingMode = 'dark';
     } else if (state.themeChoice === 'light') {
         state.lightingMode = 'light';
-        if (state.currentPeriod === 'night' || state.currentPeriod === 'sunset') {
-            state.currentPeriod = 'morning';
-        }
+    } else if (state.themeChoice === 'medium') {
+        state.lightingMode = 'medium';
     } else if (state.themeChoice === 'dark') {
         state.lightingMode = 'dark';
-        if (state.currentPeriod === 'morning' || state.currentPeriod === 'afternoon') {
-            state.currentPeriod = 'night';
-        }
     }
     
     applyStateToDOM();
@@ -398,7 +467,7 @@ function applyStateToDOM() {
     
     // Remover classes antigas de tema de período
     body.classList.remove('theme-morning', 'theme-afternoon', 'theme-sunset', 'theme-night');
-    body.classList.remove('mode-light', 'mode-dark');
+    body.classList.remove('mode-light', 'mode-medium', 'mode-dark');
     
     // Adicionar as classes de estado atuais
     body.classList.add(`theme-${state.currentPeriod}`);
@@ -690,6 +759,126 @@ function toggleAccessibilityFeature(feature) {
 function changeThemeChoice(choice) {
     state.themeChoice = choice;
     applyTheme();
+}
+
+// Mudar apenas o período (mantém luminosidade)
+function setThemePeriod(period) {
+    state.themeChoice = period;
+    state.currentPeriod = period;
+    applyTheme();
+}
+
+// Mudar apenas a luminosidade (mantém período)
+function setThemeLighting(mode) {
+    state.lightingMode = mode;
+    // Se themeChoice era 'auto' ou um modo de luz, atualizar para período atual
+    if (['auto','light','medium','dark'].includes(state.themeChoice)) {
+        state.themeChoice = state.currentPeriod;
+    }
+    applyStateToDOM();
+}
+
+/* ==========================================================================
+   WIDGET FLUTUANTE DE TEMA (SELETOR DE FASE)
+   Injetado em TODAS as páginas automaticamente
+   ========================================================================== */
+function createThemeWidget() {
+    // Não criar duplicata
+    if (document.getElementById('themeFab')) return;
+    
+    const fab = document.createElement('div');
+    fab.className = 'theme-fab';
+    fab.id = 'themeFab';
+    fab.innerHTML = `
+        <div class="theme-fab-panel" id="themeFabPanel">
+            <div class="theme-fab-label">Período</div>
+            <div class="theme-fab-options" id="themeFabPeriodOptions">
+                <button class="theme-fab-btn" data-period="auto" onclick="setThemePeriodFromWidget('auto')">⚡ Auto</button>
+                <button class="theme-fab-btn" data-period="morning" onclick="setThemePeriodFromWidget('morning')">🌅 Manhã</button>
+                <button class="theme-fab-btn" data-period="afternoon" onclick="setThemePeriodFromWidget('afternoon')">☀️ Tarde</button>
+                <button class="theme-fab-btn" data-period="sunset" onclick="setThemePeriodFromWidget('sunset')">🌆 Entardecer</button>
+                <button class="theme-fab-btn" data-period="night" onclick="setThemePeriodFromWidget('night')">🌙 Noite</button>
+            </div>
+            <div class="theme-fab-divider"></div>
+            <div class="theme-fab-label">Luminosidade</div>
+            <div class="theme-fab-options" id="themeFabLightOptions">
+                <button class="theme-fab-btn" data-light="light" onclick="setThemeLightingFromWidget('light')">☀️ Claro</button>
+                <button class="theme-fab-btn" data-light="medium" onclick="setThemeLightingFromWidget('medium')">🌓 Médio</button>
+                <button class="theme-fab-btn" data-light="dark" onclick="setThemeLightingFromWidget('dark')">🌑 Escuro</button>
+            </div>
+        </div>
+        <button class="theme-fab-toggle" id="themeFabToggle" aria-label="Selecionar tema" title="Selecionar Fase e Luminosidade">
+            🌙
+        </button>
+    `;
+    document.body.appendChild(fab);
+    
+    // Toggle painel
+    const toggle = document.getElementById('themeFabToggle');
+    const panel = document.getElementById('themeFabPanel');
+    
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+        updateWidgetActiveStates();
+    });
+    
+    // Fechar ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (!fab.contains(e.target)) {
+            panel.classList.remove('open');
+        }
+    });
+    
+    updateWidgetActiveStates();
+}
+
+function updateWidgetActiveStates() {
+    // Atualizar botões de período
+    document.querySelectorAll('#themeFabPeriodOptions .theme-fab-btn').forEach(btn => {
+        const period = btn.dataset.period;
+        if (period === 'auto') {
+            btn.classList.toggle('active', state.themeChoice === 'auto');
+        } else {
+            btn.classList.toggle('active', state.currentPeriod === period && state.themeChoice !== 'auto');
+        }
+    });
+    
+    // Atualizar botões de luminosidade
+    document.querySelectorAll('#themeFabLightOptions .theme-fab-btn').forEach(btn => {
+        btn.classList.toggle('active', state.lightingMode === btn.dataset.light);
+    });
+    
+    // Atualizar ícone do FAB
+    const toggle = document.getElementById('themeFabToggle');
+    if (toggle) {
+        const icons = { morning: '🌅', afternoon: '☀️', sunset: '🌆', night: '🌙' };
+        toggle.textContent = icons[state.currentPeriod] || '🌙';
+    }
+}
+
+function setThemePeriodFromWidget(period) {
+    if (period === 'auto') {
+        state.themeChoice = 'auto';
+    } else {
+        state.themeChoice = period;
+        state.currentPeriod = period;
+    }
+    applyTheme();
+    updateWidgetActiveStates();
+}
+
+function setThemeLightingFromWidget(mode) {
+    state.lightingMode = mode;
+    if (state.themeChoice === 'auto') {
+        state.themeChoice = state.currentPeriod;
+    }
+    // Se themeChoice era um modo de luminosidade puro, atualizar
+    if (['light','medium','dark'].includes(state.themeChoice)) {
+        state.themeChoice = state.currentPeriod;
+    }
+    applyStateToDOM();
+    updateWidgetActiveStates();
 }
 
 /* ==========================================================================

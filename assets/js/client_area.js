@@ -180,7 +180,7 @@ const profileForm = document.getElementById("clientProfileForm");
 if (profileForm) {
   profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!supabase || !loggedClient) return;
+    if (!loggedClient) return;
 
     const saveBtn = document.getElementById("saveProfileBtn");
     if (saveBtn) {
@@ -206,6 +206,31 @@ if (profileForm) {
       updated_at: new Date().toISOString()
     };
 
+    const isConnected = supabase ? await testSupabaseConnection() : false;
+
+    if (!isConnected) {
+      loggedClient = { ...loggedClient, ...updatedData };
+      localStorage.setItem("demo_logged_client", JSON.stringify(loggedClient));
+      
+      const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
+      const uIndex = demoUsers.findIndex(u => u.email === loggedClient.email);
+      if (uIndex !== -1) {
+        demoUsers[uIndex].nome_completo = updatedData.nome_completo;
+        demoUsers[uIndex].user_metadata = { ...demoUsers[uIndex].user_metadata, ...updatedData };
+        localStorage.setItem("demo_users", JSON.stringify(demoUsers));
+      }
+
+      alert("Ficha espiritual atualizada offline com sucesso!");
+      const nameBadge = document.getElementById("clientNameBadge");
+      if (nameBadge) nameBadge.textContent = loggedClient.nome_completo;
+      
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Atualizar Minha Ficha';
+      }
+      return;
+    }
+
     const { error } = await supabase
       .from("clientes")
       .update(updatedData)
@@ -220,7 +245,6 @@ if (profileForm) {
       if (nameBadge) nameBadge.textContent = loggedClient.nome_completo;
 
       try {
-        // Obter cartomantes vinculadas para salvar histórico e notificações
         const { data: vinculos } = await supabase
           .from("cartomante_clientes")
           .select("cartomante_id, cartomantes(id, user_id)")
@@ -231,7 +255,6 @@ if (profileForm) {
             const cId = v.cartomantes?.id || v.cartomante_id;
             const uId = v.cartomantes?.user_id;
 
-            // Registrar no Histórico de Ações
             await supabase.from("historico_acoes").insert([{
               cartomante_id: cId,
               cliente_id: loggedClient.id,
@@ -239,7 +262,6 @@ if (profileForm) {
               detalhes: `O consulente ${updatedData.nome_completo} atualizou sua ficha cadastral/espiritual.`
             }]);
 
-            // Enviar Notificação para o user_id da Cartomante
             if (uId) {
               await supabase.from("notificacoes").insert([{
                 user_id: uId,
@@ -266,7 +288,13 @@ if (profileForm) {
 // TAB 1: INÍCIO (DASHBOARD ACOLHEDOR DO CLIENTE)
 // --------------------------------------------------
 async function loadInicioTab() {
-  if (!supabase || !loggedClient) return;
+  if (!loggedClient) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    loadDemoInicioTab();
+    return;
+  }
 
   // 1. Carregar Conversas Recentes (limit 3)
   const { data: convs, error: convErr } = await supabase
@@ -571,7 +599,13 @@ if (searchInput) {
 // TAB 3: CHAT / HISTÓRICO DE CONVERSAS
 // --------------------------------------------------
 async function loadChatTab() {
-  if (!supabase || !loggedClient) return;
+  if (!loggedClient) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    loadDemoChatTab();
+    return;
+  }
 
   const { data: convs, error } = await supabase
     .from("conversas")
@@ -622,7 +656,13 @@ async function loadChatTab() {
 // TAB 4: PERGUNTAS AO BARALHO (CENTRAL)
 // --------------------------------------------------
 async function loadPerguntasTab() {
-  if (!supabase || !loggedClient) return;
+  if (!loggedClient) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    loadDemoPerguntasTab();
+    return;
+  }
 
   const { data: questions, error } = await supabase
     .from("perguntas_baralho")
@@ -782,7 +822,13 @@ async function loadAtendimentosTab() {
 // TAB 6: ARQUIVOS RECEBIDOS (GALERIA)
 // --------------------------------------------------
 async function loadArquivosTab() {
-  if (!supabase || !loggedClient) return;
+  if (!loggedClient) return;
+
+  const isConnected = supabase ? await testSupabaseConnection() : false;
+  if (!isConnected) {
+    loadDemoArquivosTab();
+    return;
+  }
 
   // Buscar todas as conversas do cliente
   const { data: convs } = await supabase
@@ -895,11 +941,119 @@ window.startConversa = async function(cartomanteUserId) {
   }
 };
 
-// Init
-window.addEventListener("load", async () => {
-  initBookingSystem();
-  await checkAuthAndLoadProfile();
-});
+// Check auth on load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await checkAuthAndLoadProfile();
+  });
+} else {
+  (async () => {
+    await checkAuthAndLoadProfile();
+  })();
+}
+
+function loadDemoInicioTab() {
+  const chatsDiv = document.getElementById("overviewChats");
+  if (chatsDiv) {
+    chatsDiv.innerHTML = `
+      <a href="client_chat.html?cid=demo-chat-1" class="chat-list-item">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-color);"/>
+          <div>
+            <div style="font-weight:600; font-size:0.9rem; color:var(--gold-color);">Luana Carito</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Clique para continuar a consulta (Demo)</div>
+          </div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+      </a>
+    `;
+  }
+
+  const qDiv = document.getElementById("overviewQuestions");
+  if (qDiv) {
+    qDiv.innerHTML = `
+      <a href="client_chat.html?cid=demo-chat-1" class="chat-list-item">
+        <div>
+          <div style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">Qual o meu caminho amoroso nos próximos meses?</div>
+          <div style="font-size:0.72rem; color:#2ecc71; font-weight:500;"><i class="fas fa-circle" style="font-size:0.5rem; margin-right:5px;"></i> Sintonizando</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:0.8rem;"></i>
+      </a>
+    `;
+  }
+
+  const agendDiv = document.getElementById("overviewAgendamento");
+  if (agendDiv) {
+    agendDiv.innerHTML = `
+      <div class="chat-list-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+        <div style="font-size:0.85rem; font-weight:600; color:var(--gold-color);"><i class="far fa-calendar-check" style="margin-right:8px;"></i> Amanhã às 14:00</div>
+        <div style="font-size:0.75rem; color:var(--text-secondary);">Consulta agendada com <strong>Luana Carito</strong> (Demo)</div>
+      </div>
+    `;
+  }
+}
+
+function loadDemoChatTab() {
+  const container = document.getElementById("chatHistoryList");
+  if (container) {
+    container.innerHTML = `
+      <a href="client_chat.html?cid=demo-chat-1" class="chat-list-item">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-color);"/>
+          <div>
+            <div style="font-weight:600; font-size:0.95rem; color:var(--gold-color);">Luana Carito</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Sacerdotisa / Oraculista</div>
+          </div>
+        </div>
+        <span class="glass-button" style="font-size:0.75rem; padding:6px 12px; border-color:var(--gold-color);">Conversar <i class="fas fa-arrow-right" style="margin-left:5px;"></i></span>
+      </a>
+      <a href="client_chat.html?cid=demo-chat-2" class="chat-list-item">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-color);"/>
+          <div>
+            <div style="font-weight:600; font-size:0.95rem; color:var(--gold-color);">Morgana das Runas</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Runóloga / Bruxa Wicca</div>
+          </div>
+        </div>
+        <span class="glass-button" style="font-size:0.75rem; padding:6px 12px; border-color:var(--gold-color);">Conversar <i class="fas fa-arrow-right" style="margin-left:5px;"></i></span>
+      </a>
+    `;
+  }
+}
+
+function loadDemoPerguntasTab() {
+  const container = document.getElementById("perguntasList");
+  if (container) {
+    container.innerHTML = `
+      <a href="client_chat.html?cid=demo-chat-1" class="chat-list-item">
+        <div style="flex:1;">
+          <div style="font-size:0.88rem; font-weight:600; color:var(--gold-color); margin-bottom:4px;">"Qual o meu caminho amoroso nos próximos meses?"</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Para: <strong>Luana Carito</strong> • Enviado hoje</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.72rem; color:#2ecc71; font-weight:600; text-transform:uppercase;">Paga / Sintonizando</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">R$ 45,00</div>
+        </div>
+      </a>
+    `;
+  }
+}
+
+function loadDemoArquivosTab() {
+  const container = document.getElementById("arquivosGallery");
+  if (container) {
+    container.innerHTML = `
+      <div class="file-gallery-card glass-panel">
+        <i class="fas fa-file-pdf file-gallery-icon"></i>
+        <div style="font-size:0.75rem; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; width:100%;" title="Mandala_Astral_Luana.pdf">Mandala_Astral_Luana.pdf</div>
+        <div style="font-size:0.65rem; color:var(--text-muted);">Hoje</div>
+        <a href="#" onclick="alert('Acesso ao arquivo demo local.'); return false;" class="glass-button" style="font-size:0.68rem; padding:4px; margin-top:5px; justify-content:center; border-color:var(--gold-color);">
+          <i class="fas fa-download"></i> Acessar
+        </a>
+      </div>
+    `;
+  }
+}
 
 // --- LÓGICA DO AGENDADOR COOPERATIVO (ESTILO NUTRILUAR) ---
 let bookingDate = new Date();

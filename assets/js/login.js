@@ -79,7 +79,26 @@ function waitForSupabase(maxMs) {
 // --- Login Offline / Demo ---
 function handleOfflineLogin(email, loginBtn) {
   setTimeout(() => {
+    // 1. Verificar usuários demo cadastrados localmente
+    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
+    const matchedUser = demoUsers.find(u => u.email === email);
+
+    if (matchedUser) {
+      if (matchedUser.role === "cartomante") {
+        localStorage.setItem("demo_logged_user", JSON.stringify(matchedUser));
+        localStorage.removeItem("demo_logged_client");
+        window.location.href = "dashboard.html";
+      } else {
+        localStorage.setItem("demo_logged_client", JSON.stringify(matchedUser));
+        localStorage.removeItem("demo_logged_user");
+        window.location.href = "client_area.html";
+      }
+      return;
+    }
+
+    // 2. Fallbacks padrões
     const isCartomante = email === "admin@templo.com" || email === "cartomante@templo.com";
+    const isCliente = email === "cliente@templo.com" || email === "user@templo.com";
 
     if (isCartomante) {
       localStorage.setItem("demo_logged_user", JSON.stringify({
@@ -91,8 +110,17 @@ function handleOfflineLogin(email, loginBtn) {
       }));
       localStorage.removeItem("demo_logged_client");
       window.location.href = "dashboard.html";
+    } else if (isCliente) {
+      localStorage.setItem("demo_logged_client", JSON.stringify({
+        id: "demo-client-id",
+        email: email,
+        role: "cliente",
+        nome_completo: "Consulente de Teste"
+      }));
+      localStorage.removeItem("demo_logged_user");
+      window.location.href = "client_area.html";
     } else {
-      showError("Sem conexão com o servidor. Tente novamente em instantes.", loginBtn);
+      showError("Conta não encontrada offline. Tente admin@templo.com ou cliente@templo.com, ou crie uma nova conta.", loginBtn);
     }
   }, 600);
 }
