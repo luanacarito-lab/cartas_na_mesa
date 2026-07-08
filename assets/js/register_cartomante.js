@@ -1,7 +1,5 @@
-// register_cartomante.js - Cadastro de Cartomantes e Inicialização de Perfil
-// Usa window._supabaseClient (singleton criado em supabase-client.js)
-// CORRIGIDO: mensagens de erro traduzidas, validações melhoradas
-// ---------------------------------------------------------------------------------
+// register_cartomante.js - Cadastro de Cartomantes no Supabase Auth e Tabelas
+// Usa o cliente centralizado window.supabaseClient
 
 let registerBtn = null;
 
@@ -15,12 +13,14 @@ function initRegister() {
     e.preventDefault();
     hideRegError();
 
+    const supabase = window.supabaseClient;
+
     if (!supabase) {
-      showRegError("Conexão com o servidor indisponível. Verifique sua internet e tente novamente.");
+      showRegError("Serviço de autenticação temporariamente indisponível. Verifique suas credenciais de configuração.");
       return;
     }
-    const isConnected = await testSupabaseConnection(supabase);
 
+    // Coleta dos dados do formulário
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
     const nomeProfissional = document.getElementById("nome_profissional").value.trim();
     const email = document.getElementById("email").value.trim().toLowerCase();
@@ -28,13 +28,9 @@ function initRegister() {
     const senha = document.getElementById("senha").value;
     const confirmaSenha = document.getElementById("confirma_senha").value;
     const funcao = document.getElementById("funcao").value;
-    const fotoUrl =
-      document.getElementById("foto_url").value.trim() || "assets/img/default-avatar.png";
-    const bannerUrl =
-      document.getElementById("banner_url").value.trim() ||
-      "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop";
-    const bio =
-      document.getElementById("bio").value.trim() || "Nova oraculista sintonizada.";
+    const fotoUrl = document.getElementById("foto_url").value.trim() || "assets/img/default-avatar.png";
+    const bannerUrl = document.getElementById("banner_url").value.trim() || "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop";
+    const bio = document.getElementById("bio").value.trim() || "Nova oraculista sintonizada.";
 
     const specsInput = document.getElementById("especialidades").value.trim();
     const especialidades = specsInput
@@ -46,50 +42,46 @@ function initRegister() {
       document.querySelectorAll('input[name="categorias"]:checked')
     ).map((cb) => cb.value);
 
-    // Validações com mensagens claras
+    // Validações no frontend com mensagens claras
     if (!nomeCompleto) {
-      showRegError("Preencha seu nome completo.");
+      showRegError("Por favor, preencha seu nome completo.");
       return;
     }
 
     if (!nomeProfissional) {
-      showRegError("Preencha seu nome profissional.");
+      showRegError("Por favor, preencha seu nome profissional.");
       return;
     }
 
     if (!email) {
-      showRegError("Preencha seu e-mail.");
+      showRegError("Por favor, preencha seu e-mail.");
       return;
     }
 
     if (senha.length < 6) {
-      showRegError("A senha precisa ter no mínimo 6 caracteres.");
+      showRegError("Sua chave mística (senha) deve conter ao menos 6 caracteres.");
       return;
     }
 
     if (senha !== confirmaSenha) {
-      showRegError("As senhas não conferem. Digite novamente.");
+      showRegError("As chaves secretas não conferem. Digite novamente.");
       return;
     }
 
     if (!funcao) {
-      showRegError("Selecione seu oráculo principal (função).");
+      showRegError("Por favor, selecione seu oráculo principal (função).");
       return;
     }
 
     if (categorias.length === 0) {
-      showRegError("Selecione ao menos uma categoria de atendimento.");
+      showRegError("Por favor, selecione ao menos uma categoria de atendimento.");
       return;
     }
 
     setLoading(true, '<i class="fas fa-spinner fa-spin"></i> Canalizando Energias...');
 
-    if (!isConnected) {
-      handleOfflineRegister(nomeCompleto, nomeProfissional, email, senha, telefone, funcao, fotoUrl, bannerUrl, bio, especialidades, categorias);
-      return;
-    }
-
     try {
+      // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -122,50 +114,79 @@ function initRegister() {
         return;
       }
 
-      // Confirmação de e-mail ativa → sessão nula
+      // 2. Tratar confirmação de e-mail ativa
       if (!authData.session) {
-        showRegSuccess("Cadastro realizado! Verifique seu e-mail e clique no link de ativação para acessar o painel.");
+        showRegSuccess("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar o acesso.");
         setTimeout(() => {
           window.location.href = "login.html?pending_confirmation=true";
-        }, 3000);
+        }, 4000);
         return;
       }
 
-      // Confirmação desativada → sessão imediata
-      // O trigger já criou os registros, mas syncUserProfile garante integridade
-      if (window.syncUserProfile) {
-        await window.syncUserProfile(user, supabase);
+      // 3. Sincronizar perfis no banco de dados real
+      try {
+        if (window.syncUserProfile) {
+          await window.syncUserProfile(user, supabase);
+        } else {
+          // Fallback local se a função global de sync não estiver carregada
+          const { error: insProfErr } = await supabase.from("profiles").insert({
+            user_id: user.id,
+            nome: nomeProfissional,
+            email: email,
+            tipo_conta: "cartomante",
+            telefone: telefone,
+            status: "ativo"
+          });
+          if (insProfErr) throw insProfErr;
+
+          const { error: insCartErr } = await supabase.from("cartomantes").insert({
+            user_id: user.id,
+            nome: nomeProfissional,
+            email: email,
+            telefone: telefone,
+            funcao: funcao,
+            bio: bio,
+            foto_url: fotoUrl,
+            banner_url: bannerUrl
+          });
+          if (insCartErr) throw insCartErr;
+        }
+      } catch (profileError) {
+        console.error("[RegisterCartomante] Falha ao criar o perfil no banco para o usuário Auth:", profileError);
+        showRegError("Sua conta foi criada, mas houve falha ao criar o perfil. Faça login para completar o cadastro.");
+        resetButton();
+        return;
       }
 
-      showRegSuccess("Cadastro de Cartomante realizado com sucesso! Redirecionando...");
+      showRegSuccess("Cadastro de Cartomante realizado com sucesso! Entrando...");
       setTimeout(() => {
         window.location.href = "dashboard.html";
       }, 1500);
 
     } catch (err) {
-      console.error("[RegisterCartomante] Erro geral de cadastro:", err);
-      showRegError("Ocorreu um erro inesperado. Tente novamente em instantes.");
+      console.error("[RegisterCartomante] Erro crítico no cadastro:", err);
+      showRegError("Ocorreu um erro inesperado ao processar o cadastro no Supabase.");
       resetButton();
     }
   });
 }
 
 function translateRegError(msg) {
-  if (!msg) return "Erro desconhecido.";
+  if (!msg) return "Erro de comunicação com o Supabase.";
   const lower = msg.toLowerCase();
   if (lower.includes("user already registered") || lower.includes("already been registered"))
-    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
-  if (lower.includes("invalid email"))
+    return "Este e-mail já possui conta. Faça login ou recupere sua senha.";
+  if (lower.includes("invalid email") || lower.includes("email address"))
     return "E-mail inválido. Verifique o endereço digitado.";
-  if (lower.includes("password") && lower.includes("short"))
+  if (lower.includes("password") && (lower.includes("short") || lower.includes("weak")))
     return "A senha precisa ter no mínimo 6 caracteres.";
   if (lower.includes("email") && lower.includes("taken"))
-    return "Este e-mail já está em uso. Tente outro endereço.";
+    return "Este e-mail já está em uso por outro oraculista.";
   if (lower.includes("rate limit") || lower.includes("too many"))
-    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos antes de tentar novamente.";
   if (lower.includes("network") || lower.includes("fetch"))
-    return "Erro de conexão. Verifique sua internet.";
-  return "Erro ao criar conta: " + msg;
+    return "Falha de conexão de rede. Verifique seu sinal de internet.";
+  return "Erro no Supabase: " + msg;
 }
 
 function showRegError(msg) {
@@ -174,10 +195,10 @@ function showRegError(msg) {
     box = document.createElement("div");
     box.id = "regErrorBox";
     box.style.cssText = `
-      display:flex; align-items:center; gap:10px;
-      padding:12px 16px; border-radius:8px; margin-bottom:16px;
-      background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.35);
-      color:#ff8888; font-size:0.875rem;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.35);
+      color: #ff8888; font-size: 0.875rem; font-family: var(--font-modern);
     `;
     const form = document.getElementById("registerCartomanteForm");
     if (form) form.insertAdjacentElement("beforebegin", box);
@@ -193,10 +214,10 @@ function showRegSuccess(msg) {
     box = document.createElement("div");
     box.id = "regSuccessBox";
     box.style.cssText = `
-      display:flex; align-items:center; gap:10px;
-      padding:12px 16px; border-radius:8px; margin-bottom:16px;
-      background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.35);
-      color:#86efac; font-size:0.875rem;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #86efac; font-size: 0.875rem; font-family: var(--font-modern);
     `;
     const form = document.getElementById("registerCartomanteForm");
     if (form) form.insertAdjacentElement("beforebegin", box);
@@ -220,59 +241,9 @@ function resetButton() {
   setLoading(false, '<i class="fas fa-magic"></i> Despertar Perfil & Registrar');
 }
 
+// Inicialização
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initRegister);
 } else {
   initRegister();
-}
-
-async function testSupabaseConnection(supabase) {
-  if (!supabase) return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  try {
-    const { error } = await supabase.auth.getSession();
-    return !error;
-  } catch (e) {
-    return false;
-  }
-}
-
-function handleOfflineRegister(nomeCompleto, nomeProfissional, email, senha, telefone, funcao, fotoUrl, bannerUrl, bio, especialidades, categorias) {
-  setTimeout(() => {
-    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
-    
-    if (demoUsers.some(u => u.email === email)) {
-      alert("Este e-mail já está em uso offline.");
-      resetButton();
-      return;
-    }
-
-    const newUser = {
-      id: "demo-user-" + Date.now(),
-      email: email,
-      role: "cartomante",
-      nome_completo: nomeCompleto,
-      user_metadata: {
-        nome_completo: nomeCompleto,
-        nome_profissional: nomeProfissional,
-        telefone: telefone,
-        role: "cartomante",
-        funcao: funcao,
-        foto_url: fotoUrl,
-        banner_url: bannerUrl,
-        bio: bio,
-        especialidades: especialidades,
-        categorias: categorias
-      }
-    };
-
-    demoUsers.push(newUser);
-    localStorage.setItem("demo_users", JSON.stringify(demoUsers));
-    
-    localStorage.setItem("demo_logged_user", JSON.stringify(newUser));
-    localStorage.removeItem("demo_logged_client");
-
-    alert("Conexão com o Supabase indisponível. Registrando conta DEMO local para testes offline!");
-    window.location.href = "dashboard.html";
-  }, 800);
 }

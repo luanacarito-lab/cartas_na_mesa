@@ -4,20 +4,7 @@ const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PR
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Initialize Supabase client
-let supabase = null;
-try {
-  supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (e) {
-  console.warn("Erro ao inicializar Supabase no client_chat.js", e);
-}
-
-// Helper to create Supabase client via CDN
-function supabaseCreateClient(url, key) {
-  if (typeof window.supabase !== "undefined") {
-    return window.supabase.createClient(url, key);
-  }
-  return null;
-}
+let supabase = window.supabaseClient;
 
 // Global state
 let conversaId = null;
@@ -44,13 +31,7 @@ function getConversaId() {
 
 // Test connection helper
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("conversas").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  return await window.testSupabaseConnection();
 }
 
 // Get mock messages from localStorage or default

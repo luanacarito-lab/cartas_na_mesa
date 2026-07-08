@@ -88,16 +88,15 @@ async function testSignUp() {
     return;
   }
 
-  const user = signUpRes.data;
-  const session = user.session; // Nas versões REST puras do Supabase, o token de acesso pode vir em session ou user.access_token
+  const userObj = signUpRes.data.user;
+  const token = signUpRes.data.access_token;
 
-  console.log("Possui Sessão / Token de Acesso:", !!session || !!signUpRes.data.access_token);
-  const token = signUpRes.data.access_token || (session ? session.access_token : null);
+  console.log("Possui Sessão / Token de Acesso:", !!token);
 
   // 2. Tentar inserir na tabela clientes
-  if (user && user.id) {
+  if (userObj && userObj.id) {
     const clientRecord = {
-      user_id: user.id,
+      user_id: userObj.id,
       nome_completo: "Cliente Teste Automatizado",
       email: email,
       celular: "11999999999",
@@ -105,9 +104,13 @@ async function testSignUp() {
     };
 
     console.log(`\nTentando inserir registro na tabela 'clientes' com token: ${token ? 'Sim' : 'Não'}`);
-    const insertRes = await makeRESTRequest('/clientes', 'POST', clientRecord, token);
-    console.log("Insert Status:", insertRes.status);
-    console.log("Insert Data:", JSON.stringify(insertRes.data, null, 2));
+    try {
+      const insertRes = await makeRESTRequest('/clientes', 'POST', clientRecord, token);
+      console.log("Insert Status:", insertRes.status);
+      console.log("Insert Data:", JSON.stringify(insertRes.data, null, 2));
+    } catch (err) {
+      console.error("Erro na requisição REST de inserção:", err);
+    }
   }
 }
 

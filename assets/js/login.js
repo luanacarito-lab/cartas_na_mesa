@@ -1,134 +1,160 @@
-// assets/js/login.js - Lógica de Login e Roteamento
-// Usa window._supabaseClient (singleton criado em supabase-client.js)
+// assets/js/login.js - Lógica de Login, Roteamento e Acesso Demonstrativo
+// Usa window.supabaseClient (singleton centralizado)
 
 function initLogin() {
   const loginForm = document.getElementById("loginForm");
   const loginBtn = document.getElementById("loginBtn");
-  const errorBox = document.getElementById("loginError");
+  const demoClienteBtn = document.getElementById("demoClienteBtn");
+  const demoCartomanteBtn = document.getElementById("demoCartomanteBtn");
 
-  if (!loginForm) return;
+  // 1. Lógica do Formulário de Login Real
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+      const email = document.getElementById("login_email").value.trim().toLowerCase();
+      const password = document.getElementById("login_password").value;
 
-    const email = document.getElementById("login_email").value.trim().toLowerCase();
-    const password = document.getElementById("login_password").value;
-
-    if (!email || !password) {
-      showError("Por favor, preencha o e-mail e a senha.", loginBtn);
-      return;
-    }
-
-    clearError();
-    setLoading(loginBtn, true);
-
-    // Aguardar o cliente Supabase estar disponível (máx 3s)
-    const supabase = await waitForSupabase(3000);
-    const isConnected = supabase ? await testSupabaseConnection(supabase) : false;
-
-    // --- MODO OFFLINE / DEMO ---
-    if (!isConnected) {
-      handleOfflineLogin(email, loginBtn);
-      return;
-    }
-
-    // --- MODO ONLINE (Supabase) ---
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        showError(translateAuthError(error.message), loginBtn);
+      if (!email || !password) {
+        showError("Por favor, preencha o e-mail e a senha.", loginBtn);
         return;
       }
 
-      // Limpar estados locais anteriores
-      localStorage.removeItem("demo_logged_user");
-      localStorage.removeItem("demo_logged_client");
+      clearError();
+      setLoading(loginBtn, true);
 
-      // Sincronizar perfil (cria registro nas tabelas se necessário)
-      if (window.syncUserProfile) {
-        await window.syncUserProfile(data.user, supabase);
+      const supabase = await waitForSupabase(3000);
+      
+      if (!supabase) {
+        showError("Não foi possível conectar aos servidores. Verifique sua conexão.", loginBtn);
+        return;
       }
 
-      await handleRedirectAfterLogin(data.user, supabase);
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    } catch (err) {
-      console.error("Erro geral de login:", err);
-      showError("Erro ao processar sua entrada. Tente novamente.", loginBtn);
-    }
-  });
+        if (error) {
+          showError(translateAuthError(error.message), loginBtn);
+          return;
+        }
+
+        // Limpar qualquer sessão demo anterior para evitar conflitos
+        if (window.clearDemoSession) window.clearDemoSession();
+
+        // Sincronizar perfil no banco real se necessário (auto-recuperação pós-login)
+        try {
+          if (window.syncUserProfile) {
+            await window.syncUserProfile(data.user, supabase);
+          }
+        } catch (syncErr) {
+          console.error("Falha ao criar/sincronizar perfil pós-login:", syncErr);
+          showError("Sua conta está ativa, mas houve falha ao criar o perfil. Faça login novamente para completar o cadastro.", loginBtn);
+          return;
+        }
+
+        // Direcionar o usuário com base no banco de dados real
+        await handleRedirectAfterLogin(data.user, supabase);
+
+      } catch (err) {
+        console.error("Erro geral de login:", err);
+        showError("Não foi possível conectar ao Supabase. Verifique a configuração do projeto.", loginBtn);
+      }
+    });
+  }
+
+  // 2. Lógica do Modo de Demonstração (Consulente)
+  if (demoClienteBtn) {
+    demoClienteBtn.addEventListener("click", async () => {
+      // Limpar sessões anteriores
+      if (window.clearDemoSession) window.clearDemoSession();
+      await forceRealSignOut();
+
+      // Salvar mock de cliente
+      const demoClient = {
+        id: "demo-client-1",
+        nome_completo: "Consulente de Teste",
+        email: "cliente@templo.com",
+        celular: "(11) 99999-9999",
+        foto_url: "assets/img/default-avatar.png",
+        religiao: "Espiritualista",
+        sexo: "Feminino",
+        pronome: "Ela/Dela",
+        estado_civil: "Solteira",
+        guia_espiritual: "Caboclo das Sete Encruzilhadas",
+        pai_mae_cabeca: "Iemanjá e Oxóssi",
+        tradicao_espiritual: "Umbanda",
+        criado_em: new Date().toISOString()
+      };
+      localStorage.setItem("demo_logged_client", JSON.stringify(demoClient));
+
+      console.log("[Login] Modo Demo Consulente ativado.");
+      window.location.href = "client_area.html";
+    });
+  }
+
+  // 3. Lógica do Modo de Demonstração (Cartomante)
+  if (demoCartomanteBtn) {
+    demoCartomanteBtn.addEventListener("click", async () => {
+      // Limpar sessões anteriores
+      if (window.clearDemoSession) window.clearDemoSession();
+      await forceRealSignOut();
+
+      // Salvar mock de cartomante
+      const demoCartomante = {
+        id: "demo-cartomante-1",
+        email: "cartomante@templo.com",
+        nome_completo: "Luana Carito",
+        user_metadata: {
+          nome_completo: "Luana Carito",
+          nome_profissional: "Luana Carito",
+          role: "cartomante",
+          foto_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop",
+          banner_url: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=1200&auto=format&fit=crop",
+          bio: "Sacerdotisa dos caminhos, sintonizando sua frequência com a luz do oráculo para revelar segredos da alma."
+        }
+      };
+      localStorage.setItem("demo_logged_user", JSON.stringify(demoCartomante));
+
+      console.log("[Login] Modo Demo Cartomante ativado.");
+      window.location.href = "dashboard.html";
+    });
+  }
 }
 
-// Aguardar o cliente Supabase ficar disponível
+// Forçar SignOut no Supabase para garantir limpeza
+async function forceRealSignOut() {
+  const supabase = window.supabaseClient;
+  if (supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Erro ao fazer signOut do Supabase real:", e);
+    }
+  }
+}
+
+// Aguardar o cliente Supabase centralizado ficar disponível
 function waitForSupabase(maxMs) {
   return new Promise((resolve) => {
-    if (window._supabaseClient !== undefined) {
-      resolve(window._supabaseClient);
+    if (window.supabaseClient) {
+      resolve(window.supabaseClient);
       return;
     }
     const start = Date.now();
     const check = setInterval(() => {
-      if (window._supabaseClient !== undefined || Date.now() - start > maxMs) {
+      if (window.supabaseClient || Date.now() - start > maxMs) {
         clearInterval(check);
-        resolve(window._supabaseClient || null);
+        resolve(window.supabaseClient || null);
       }
     }, 100);
   });
-}
-
-// --- Login Offline / Demo ---
-function handleOfflineLogin(email, loginBtn) {
-  setTimeout(() => {
-    // 1. Verificar usuários demo cadastrados localmente
-    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
-    const matchedUser = demoUsers.find(u => u.email === email);
-
-    if (matchedUser) {
-      if (matchedUser.role === "cartomante") {
-        localStorage.setItem("demo_logged_user", JSON.stringify(matchedUser));
-        localStorage.removeItem("demo_logged_client");
-        window.location.href = "dashboard.html";
-      } else {
-        localStorage.setItem("demo_logged_client", JSON.stringify(matchedUser));
-        localStorage.removeItem("demo_logged_user");
-        window.location.href = "client_area.html";
-      }
-      return;
-    }
-
-    // 2. Fallbacks padrões
-    const isCartomante = email === "admin@templo.com" || email === "cartomante@templo.com";
-    const isCliente = email === "cliente@templo.com" || email === "user@templo.com";
-
-    if (isCartomante) {
-      localStorage.setItem("demo_logged_user", JSON.stringify({
-        id: "demo-admin-id",
-        email: email,
-        role: "cartomante",
-        nome_completo: "Taróloga Administradora",
-        user_metadata: { nome_completo: "Taróloga Administradora", nome_profissional: "Luana Carito" }
-      }));
-      localStorage.removeItem("demo_logged_client");
-      window.location.href = "dashboard.html";
-    } else if (isCliente) {
-      localStorage.setItem("demo_logged_client", JSON.stringify({
-        id: "demo-client-id",
-        email: email,
-        role: "cliente",
-        nome_completo: "Consulente de Teste"
-      }));
-      localStorage.removeItem("demo_logged_user");
-      window.location.href = "client_area.html";
-    } else {
-      showError("Conta não encontrada offline. Tente admin@templo.com ou cliente@templo.com, ou crie uma nova conta.", loginBtn);
-    }
-  }, 600);
 }
 
 // --- Redirecionamento Pós-Login Online ---
 async function handleRedirectAfterLogin(user, supabase) {
   if (!user || !supabase) return;
 
+  // Busca o tipo de conta direto na tabela de perfis
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("tipo_conta")
@@ -137,23 +163,13 @@ async function handleRedirectAfterLogin(user, supabase) {
 
   if (profileError) console.error("Erro ao buscar perfil:", profileError);
 
-  const tipoConta = profile?.tipo_conta;
+  let tipoConta = profile?.tipo_conta;
+
+  if (!tipoConta && user.user_metadata) {
+    tipoConta = user.user_metadata.role || user.user_metadata.tipo_conta;
+  }
 
   if (!tipoConta) {
-    if (user.user_metadata && user.user_metadata.role) {
-      if (window.syncUserProfile) {
-        await window.syncUserProfile(user, supabase);
-      }
-      const { data: profileRetry } = await supabase
-        .from("profiles")
-        .select("tipo_conta")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (profileRetry?.tipo_conta) {
-        return redirectByRole(profileRetry.tipo_conta, user, supabase);
-      }
-    }
     window.location.href = "completar-perfil.html";
     return;
   }
@@ -161,64 +177,66 @@ async function handleRedirectAfterLogin(user, supabase) {
   return redirectByRole(tipoConta, user, supabase);
 }
 
+// --- Roteador de Permissões ---
 async function redirectByRole(tipoConta, user, supabase) {
-  const isClient = tipoConta === "cliente";
+  const role = tipoConta.toLowerCase().trim();
 
-  const pendingIntentStr = sessionStorage.getItem("pending_intent");
-  if (pendingIntentStr && isClient) {
-    try {
-      const intent = JSON.parse(pendingIntentStr);
-      const { data: client } = await supabase
-        .from("clientes").select("id").eq("user_id", user.id).maybeSingle();
-      const clientDbId = client?.id;
+  if (role === "mestra" || role === "admin" || role === "gerente") {
+    window.location.href = "admin_dashboard.html";
+    return;
+  }
 
-      if (clientDbId) {
-        sessionStorage.removeItem("pending_intent");
-        await supabase.from("cartomante_clientes").insert({
-          cartomante_id: intent.cartomante_id, cliente_id: clientDbId, status: "ativo"
-        }).select().maybeSingle();
+  if (role === "cartomante") {
+    window.location.href = "dashboard.html";
+    return;
+  }
 
-        let { data: conversa } = await supabase.from("conversas").select("id")
-          .eq("cartomante_id", intent.cartomante_id).eq("cliente_id", clientDbId).maybeSingle();
+  if (role === "cliente") {
+    const pendingIntentStr = sessionStorage.getItem("pending_intent");
+    if (pendingIntentStr) {
+      try {
+        const intent = JSON.parse(pendingIntentStr);
+        const { data: client } = await supabase
+          .from("clientes").select("id").eq("user_id", user.id).maybeSingle();
+        const clientDbId = client?.id;
 
-        let cid = conversa?.id;
-        if (!cid) {
-          const { data: newConv } = await supabase.from("conversas")
-            .insert({ cartomante_id: intent.cartomante_id, cliente_id: clientDbId })
-            .select().single();
-          cid = newConv?.id;
+        if (clientDbId) {
+          sessionStorage.removeItem("pending_intent");
+          await supabase.from("cartomante_clientes").insert({
+            cartomante_id: intent.cartomante_id, cliente_id: clientDbId, status: "ativo"
+          }).select().maybeSingle();
+
+          let { data: conversa } = await supabase.from("conversas").select("id")
+            .eq("cartomante_id", intent.cartomante_id).eq("cliente_id", clientDbId).maybeSingle();
+
+          let cid = conversa?.id;
+          if (!cid) {
+            const { data: newConv } = await supabase.from("conversas")
+              .insert({ cartomante_id: intent.cartomante_id, cliente_id: clientDbId })
+              .select().single();
+            cid = newConv?.id;
+          }
+
+          const suffix = intent.action === "ask_baralho" ? `&action=ask_baralho` : "";
+          window.location.href = `client_chat.html?cid=${cid}${suffix}`;
+          return;
         }
-
-        const suffix = intent.action === "ask_baralho" ? `&action=ask_baralho` : "";
-        window.location.href = `client_chat.html?cid=${cid}${suffix}`;
-        return;
+      } catch (err) {
+        console.error("Erro ao resolver intenção pendente:", err);
       }
-    } catch (err) {
-      console.error("Erro ao resolver intenção pendente:", err);
     }
+    
+    window.location.href = "client_area.html";
+    return;
   }
 
-  window.location.href = tipoConta === "cartomante" ? "dashboard.html" : "client_area.html";
+  window.location.href = "index.html";
 }
 
-// --- Helpers ---
-// CORRIGIDO: usa getSession() em vez de SELECT que pode ser bloqueado por RLS
-async function testSupabaseConnection(supabase) {
-  if (!supabase) return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  try {
-    const { error } = await supabase.auth.getSession();
-    return !error;
-  } catch (e) {
-    return false;
-  }
-}
-
+// --- Helpers de Interface ---
 function showError(msg, loginBtn) {
-  // Mostrar erro inline (não alert)
   let box = document.getElementById("loginError");
   if (!box) {
-    // Criar elemento de erro se não existir
     box = document.createElement("div");
     box.id = "loginError";
     box.style.cssText = `
@@ -265,17 +283,11 @@ function translateAuthError(msg) {
   if (lower.includes("invalid login credentials") || lower.includes("invalid credentials"))
     return "E-mail ou senha incorretos. Verifique e tente novamente.";
   if (lower.includes("email not confirmed") || lower.includes("email confirmation required"))
-    return "E-mail ainda não confirmado. Verifique sua caixa de entrada e clique no link de ativação.";
+    return "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
   if (lower.includes("too many requests") || lower.includes("rate limit"))
-    return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+    return "Muitas tentativas. Aguarde alguns minutos.";
   if (lower.includes("user not found"))
-    return "Nenhuma conta encontrada com este e-mail. Verifique o endereço ou cadastre-se.";
-  if (lower.includes("network") || lower.includes("fetch"))
-    return "Erro de conexão. Verifique sua internet e tente novamente.";
-  if (lower.includes("user already registered"))
-    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
-  if (lower.includes("password") && lower.includes("short"))
-    return "Senha muito curta. Use pelo menos 6 caracteres.";
+    return "Nenhuma conta encontrada com este e-mail.";
   return "Não foi possível entrar. Verifique seus dados e tente novamente.";
 }
 

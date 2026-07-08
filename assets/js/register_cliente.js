@@ -1,7 +1,5 @@
 // register_cliente.js - Cadastro de Consulentes (Clientes) no Supabase Auth e Banco
-// Usa window._supabaseClient (singleton criado em supabase-client.js)
-// CORRIGIDO: mensagens de erro traduzidas, campos opcionais não bloqueiam, erros inline
-// ---------------------------------------------------------------------------------
+// Usa o cliente centralizado window.supabaseClient
 
 let registerBtn = null;
 
@@ -15,19 +13,20 @@ function initRegister() {
     e.preventDefault();
     hideRegClienteError();
 
+    const supabase = window.supabaseClient;
+
     if (!supabase) {
-      showRegClienteError("Conexão com o servidor indisponível. Verifique sua internet e tente novamente.");
+      showRegClienteError("Serviço de autenticação temporariamente indisponível. Verifique suas credenciais de configuração.");
       return;
     }
-    const isConnected = await testSupabaseConnection(supabase);
 
-    // Campos obrigatórios
+    // Campos obrigatórios do formulário
     const nomeCompleto = document.getElementById("nome_completo").value.trim();
     const email = document.getElementById("email").value.trim().toLowerCase();
     const senha = document.getElementById("senha").value;
     const confirmaSenha = document.getElementById("confirma_senha").value;
 
-    // Campos opcionais — sem required para não bloquear cadastro
+    // Campos opcionais
     const celular = document.getElementById("celular")?.value.trim() || "";
     const dataNascimento = document.getElementById("data_nascimento")?.value || null;
     const religiao = document.getElementById("religiao")?.value || null;
@@ -38,35 +37,31 @@ function initRegister() {
     const paiMaeCabeca = document.getElementById("pai_mae_cabeca")?.value.trim() || null;
     const tradicaoEspiritual = document.getElementById("tradicao_espiritual")?.value.trim() || null;
 
-    // Validações com mensagens claras
+    // Validações no frontend
     if (!nomeCompleto) {
-      showRegClienteError("Preencha seu nome completo.");
+      showRegClienteError("Por favor, informe seu nome completo.");
       return;
     }
 
     if (!email) {
-      showRegClienteError("Preencha seu e-mail.");
+      showRegClienteError("Por favor, preencha seu e-mail.");
       return;
     }
 
     if (senha.length < 6) {
-      showRegClienteError("A senha precisa ter no mínimo 6 caracteres.");
+      showRegClienteError("Sua chave mística (senha) deve conter ao menos 6 caracteres.");
       return;
     }
 
     if (senha !== confirmaSenha) {
-      showRegClienteError("As senhas não conferem. Digite novamente.");
+      showRegClienteError("As chaves secretas não conferem. Digite novamente.");
       return;
     }
 
     setLoading(true, '<i class="fas fa-spinner fa-spin"></i> Sintonizando Alma...');
 
-    if (!isConnected) {
-      handleOfflineRegister(nomeCompleto, email, senha, celular, dataNascimento, religiao, sexo, pronome, estadoCivil, guiaEspiritual, paiMaeCabeca, tradicaoEspiritual);
-      return;
-    }
-
     try {
+      // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -95,104 +90,89 @@ function initRegister() {
 
       const user = authData.user;
       if (!user) {
-        showRegClienteError("Erro ao criar conta. Tente novamente.");
+        showRegClienteError("Falha na criação do usuário. Tente novamente.");
         resetButton();
         return;
       }
 
-      // Confirmação de e-mail ativa → sessão nula
+      // 2. Tratar confirmação de e-mail ativa
       if (!authData.session) {
-        showRegClienteSuccess("Cadastro realizado! Verifique seu e-mail e clique no link de ativação para acessar o portal.");
+        showRegClienteSuccess("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar o acesso.");
         setTimeout(() => {
           window.location.href = "login.html?pending_confirmation=true";
-        }, 3000);
+        }, 4000);
         return;
       }
 
-      // Confirmação desativada → sessão imediata
-      // O trigger já criou os registros. syncUserProfile garante integridade.
-      if (window.syncUserProfile) {
-        await window.syncUserProfile(user, supabase);
-      }
+      // 3. Criação de perfil no banco (syncUserProfile centralizado no auth-guard.js)
+      try {
+        if (window.syncUserProfile) {
+          await window.syncUserProfile(user, supabase);
+        } else {
+          // Fallback local se a função global não carregar
+          const { error: insProfErr } = await supabase.from("profiles").insert({
+            user_id: user.id,
+            nome: nomeCompleto,
+            email: email,
+            tipo_conta: "cliente",
+            telefone: celular,
+            status: "ativo"
+          });
+          if (insProfErr) throw insProfErr;
 
-      // Verificar intenção pendente (vindo de perfil público de cartomante)
-      const { data: clientData } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const clientDbId = clientData?.id;
-      const pendingIntentStr = sessionStorage.getItem("pending_intent");
-
-      if (pendingIntentStr && clientDbId) {
-        try {
-          const intent = JSON.parse(pendingIntentStr);
-          sessionStorage.removeItem("pending_intent");
-
-          await supabase.from("cartomante_clientes").insert({
-            cartomante_id: intent.cartomante_id,
-            cliente_id: clientDbId,
-            status: "ativo",
-          }).select().maybeSingle();
-
-          let { data: conversa } = await supabase
-            .from("conversas")
-            .select("id")
-            .eq("cartomante_id", intent.cartomante_id)
-            .eq("cliente_id", clientDbId)
-            .maybeSingle();
-
-          let cid = conversa?.id;
-          if (!cid) {
-            const { data: newConv } = await supabase
-              .from("conversas")
-              .insert({ cartomante_id: intent.cartomante_id, cliente_id: clientDbId })
-              .select()
-              .single();
-            cid = newConv?.id;
-          }
-
-          showRegClienteSuccess("Cadastro realizado! Conectando com seu oraculista...");
-          const suffix = intent.action === "ask_baralho" ? `&action=ask_baralho` : "";
-          setTimeout(() => {
-            window.location.href = `client_chat.html?cid=${cid}${suffix}`;
-          }, 1500);
-          return;
-        } catch (err) {
-          console.error("[RegisterCliente] Erro ao resolver intenção pendente:", err);
+          const { error: insCliErr } = await supabase.from("clientes").insert({
+            user_id: user.id,
+            nome_completo: nomeCompleto,
+            email: email,
+            celular: celular,
+            data_nascimento: dataNascimento,
+            religiao: religiao,
+            sexo: sexo,
+            pronome: pronome,
+            estado_civil: estadoCivil,
+            guia_espiritual: guiaEspiritual,
+            pai_mae_cabeca: paiMaeCabeca,
+            tradicao_espiritual: tradicaoEspiritual,
+            foto_url: "assets/img/default-avatar.png"
+          });
+          if (insCliErr) throw insCliErr;
         }
+      } catch (profileError) {
+        console.error("[RegisterCliente] Falha ao criar o perfil no banco para o usuário Auth:", profileError);
+        showRegClienteError("Sua conta foi criada, mas houve falha ao criar o perfil. Faça login para completar o cadastro.");
+        resetButton();
+        return;
       }
 
-      showRegClienteSuccess("Cadastro realizado com sucesso! Bem-vinda ao portal.");
+      showRegClienteSuccess("Cadastro de Consulente realizado com sucesso! Entrando...");
       setTimeout(() => {
         window.location.href = "client_area.html";
       }, 1500);
 
     } catch (err) {
-      console.error("[RegisterCliente] Erro geral de cadastro:", err);
-      showRegClienteError("Ocorreu um erro inesperado. Tente novamente em instantes.");
+      console.error("[RegisterCliente] Erro crítico no cadastro:", err);
+      showRegClienteError("Ocorreu um erro inesperado ao processar o cadastro no Supabase.");
       resetButton();
     }
   });
 }
 
 function translateRegClienteError(msg) {
-  if (!msg) return "Erro desconhecido.";
+  if (!msg) return "Erro de comunicação com o Supabase.";
   const lower = msg.toLowerCase();
   if (lower.includes("user already registered") || lower.includes("already been registered"))
-    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
-  if (lower.includes("invalid email"))
+    return "Este e-mail já possui conta. Faça login ou recupere sua senha.";
+  if (lower.includes("invalid email") || lower.includes("email address"))
     return "E-mail inválido. Verifique o endereço digitado.";
-  if (lower.includes("password") && lower.includes("short"))
+  if (lower.includes("password") && (lower.includes("short") || lower.includes("weak")))
     return "A senha precisa ter no mínimo 6 caracteres.";
   if (lower.includes("email") && lower.includes("taken"))
-    return "Este e-mail já está em uso. Tente outro endereço.";
+    return "Este e-mail já está em uso por outro consulente.";
   if (lower.includes("rate limit") || lower.includes("too many"))
-    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos antes de tentar novamente.";
   if (lower.includes("network") || lower.includes("fetch"))
-    return "Erro de conexão. Verifique sua internet.";
-  return "Erro ao criar conta: " + msg;
+    return "Falha de conexão de rede. Verifique seu sinal de internet.";
+  return "Erro no Supabase: " + msg;
 }
 
 function showRegClienteError(msg) {
@@ -201,10 +181,10 @@ function showRegClienteError(msg) {
     box = document.createElement("div");
     box.id = "regClienteErrorBox";
     box.style.cssText = `
-      display:flex; align-items:center; gap:10px;
-      padding:12px 16px; border-radius:8px; margin-bottom:16px;
-      background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.35);
-      color:#ff8888; font-size:0.875rem;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.35);
+      color: #ff8888; font-size: 0.875rem; font-family: var(--font-modern);
     `;
     const form = document.getElementById("registerClienteForm");
     if (form) form.insertAdjacentElement("beforebegin", box);
@@ -220,10 +200,10 @@ function showRegClienteSuccess(msg) {
     box = document.createElement("div");
     box.id = "regClienteSuccessBox";
     box.style.cssText = `
-      display:flex; align-items:center; gap:10px;
-      padding:12px 16px; border-radius:8px; margin-bottom:16px;
-      background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.35);
-      color:#86efac; font-size:0.875rem;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #86efac; font-size: 0.875rem; font-family: var(--font-modern);
     `;
     const form = document.getElementById("registerClienteForm");
     if (form) form.insertAdjacentElement("beforebegin", box);
@@ -247,60 +227,9 @@ function resetButton() {
   setLoading(false, '<i class="fas fa-user-sparkles"></i> Firmar Cadastro & Entrar');
 }
 
+// Inicialização
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initRegister);
 } else {
   initRegister();
-}
-
-async function testSupabaseConnection(supabase) {
-  if (!supabase) return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  try {
-    const { error } = await supabase.auth.getSession();
-    return !error;
-  } catch (e) {
-    return false;
-  }
-}
-
-function handleOfflineRegister(nomeCompleto, email, senha, celular, dataNascimento, religiao, sexo, pronome, estadoCivil, guiaEspiritual, paiMaeCabeca, tradicaoEspiritual) {
-  setTimeout(() => {
-    const demoUsers = JSON.parse(localStorage.getItem("demo_users") || "[]");
-    
-    if (demoUsers.some(u => u.email === email)) {
-      alert("Este e-mail já está em uso offline.");
-      resetButton();
-      return;
-    }
-
-    const newUser = {
-      id: "demo-user-" + Date.now(),
-      email: email,
-      role: "cliente",
-      nome_completo: nomeCompleto,
-      user_metadata: {
-        nome_completo: nomeCompleto,
-        role: "cliente",
-        celular: celular,
-        data_nascimento: dataNascimento || null,
-        religiao: religiao || null,
-        sexo: sexo || null,
-        pronome: pronome || null,
-        estado_civil: estadoCivil || null,
-        guia_espiritual: guiaEspiritual,
-        pai_mae_cabeca: paiMaeCabeca,
-        tradicao_espiritual: tradicaoEspiritual
-      }
-    };
-
-    demoUsers.push(newUser);
-    localStorage.setItem("demo_users", JSON.stringify(demoUsers));
-    
-    localStorage.setItem("demo_logged_client", JSON.stringify(newUser));
-    localStorage.removeItem("demo_logged_user");
-
-    alert("Conexão com o Supabase indisponível. Registrando conta DEMO local para testes offline!");
-    window.location.href = "client_area.html";
-  }, 800);
 }

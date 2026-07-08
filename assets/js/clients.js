@@ -1,15 +1,7 @@
-// clients.js – core logic for the Clientes UI
-// ---------------------------------------------------
-const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
+// clients.js – Core logic for the Clientes UI (Real e Demo)
+// Usa o cliente centralizado window.supabaseClient
 
-// Initialize Supabase client
-let supabase = null;
-try {
-  supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (e) {
-  console.warn("Erro ao inicializar Supabase no clients.js", e);
-}
+let supabase = window.supabaseClient;
 
 // DOM elements
 const newClientBtn = document.getElementById("newClientBtn");
@@ -92,6 +84,11 @@ function fmtDate(dateStr) {
   return d.toLocaleDateString('pt-BR');
 }
 
+// Centralização de verificação
+async function testSupabaseConnection() {
+  return await window.testSupabaseConnection();
+}
+
 // Load current cartomante ID (auth user)
 async function getCurrentCartomanteId() {
   if (!supabase) return null;
@@ -99,8 +96,60 @@ async function getCurrentCartomanteId() {
   return user?.id;
 }
 
+// Mocks de Demonstração
+function getDemoClients({ search = "", tag = "", order = "recent" } = {}) {
+  const initial = [
+    {
+      id: "c1-uuid-helena",
+      nome_completo: "Helena de Souza",
+      foto_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop",
+      created_at: new Date(Date.now() - 3600000 * 240).toISOString(),
+      tags_clientes: [{ tag: "Amor", cor: "#ff9f1c" }, { tag: "Frequente", cor: "#6e5aab" }],
+      agenda_eventos: [{ inicio: new Date(Date.now() - 3600000 * 2).toISOString() }]
+    },
+    {
+      id: "c2-uuid-gabriel",
+      nome_completo: "Gabriel Medeiros",
+      foto_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop",
+      created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+      tags_clientes: [{ tag: "Trabalho", cor: "#2ec4b6" }],
+      agenda_eventos: [{ inicio: new Date(Date.now() - 3600000 * 48).toISOString() }]
+    },
+    {
+      id: "c3-uuid-valentina",
+      nome_completo: "Valentina Rocha",
+      foto_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop",
+      created_at: new Date(Date.now() - 3600000 * 140).toISOString(),
+      tags_clientes: [{ tag: "Espiritual", cor: "#e0924b" }, { tag: "Urgente", cor: "#ff4d4d" }],
+      agenda_eventos: [{ inicio: new Date(Date.now() - 3600000 * 140).toISOString() }]
+    }
+  ];
+
+  const local = JSON.parse(localStorage.getItem("demo_clients_db") || "[]");
+  let list = [...initial, ...local];
+
+  if (search) {
+    list = list.filter(c => c.nome_completo.toLowerCase().includes(search.toLowerCase()));
+  }
+  if (tag) {
+    list = list.filter(c => c.tags_clientes.some(t => t.tag.toLowerCase() === tag.toLowerCase()));
+  }
+  if (order === "oldest") {
+    list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  } else {
+    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return list;
+}
+
 // Fetch clients for the logged‑in cartomante
 async function fetchClients({ search = "", tag = "", order = "recent" } = {}) {
+  const isConnected = await testSupabaseConnection();
+
+  if (!isConnected) {
+    return getDemoClients({ search, tag, order });
+  }
+
   const cartomanteId = await getCurrentCartomanteId();
   if (!cartomanteId) return [];
 
@@ -122,7 +171,6 @@ async function fetchClients({ search = "", tag = "", order = "recent" } = {}) {
   }
   
   if (tag) {
-    // Para filtrar por tag, precisamos de tags_clientes como inner join
     query = supabase
       .from("clientes")
       .select(`
@@ -142,7 +190,6 @@ async function fetchClients({ search = "", tag = "", order = "recent" } = {}) {
     }
   }
 
-  // ordering
   switch (order) {
     case "oldest":
       query = query.order("created_at", { ascending: true });
@@ -172,10 +219,10 @@ function renderClients(clients) {
 
   clients.forEach(c => {
     const card = document.createElement("a");
+    // Se for modo demo, a ficha do cliente abre em modo fictício
     card.href = `profile_cliente.html?cid=${c.id}`;
     card.className = "client-card";
     
-    // Sort events to get the latest one
     let lastVisitStr = "—";
     if (c.agenda_eventos && c.agenda_eventos.length > 0) {
       const sortedEvents = [...c.agenda_eventos].sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
@@ -199,8 +246,30 @@ function renderClients(clients) {
 
 // Load tags to filter dropdown
 async function loadTagsDropdown() {
+  const isConnected = await testSupabaseConnection();
+  if (!tagFilterSelect) return;
+
+  if (!isConnected) {
+    const clients = getDemoClients();
+    const tags = [];
+    clients.forEach(c => {
+      if (c.tags_clientes) {
+        c.tags_clientes.forEach(t => tags.push(t.tag));
+      }
+    });
+    const uniqueTags = [...new Set(tags)];
+    tagFilterSelect.innerHTML = '<option value="">Todas as tags</option>';
+    uniqueTags.forEach(tag => {
+      const opt = document.createElement("option");
+      opt.value = tag;
+      opt.textContent = tag;
+      tagFilterSelect.appendChild(opt);
+    });
+    return;
+  }
+
   const cartomanteId = await getCurrentCartomanteId();
-  if (!cartomanteId || !tagFilterSelect) return;
+  if (!cartomanteId) return;
   
   const { data, error } = await supabase
     .from("tags_clientes")
@@ -250,6 +319,9 @@ async function loadAndRender() {
 
 // Real‑time subscription
 async function subscribeRealtime() {
+  const isConnected = await testSupabaseConnection();
+  if (!isConnected) return;
+
   const cartomanteId = await getCurrentCartomanteId();
   if (!cartomanteId || !supabase) return;
   
@@ -271,30 +343,58 @@ async function handleNewClient(event) {
   event.preventDefault();
   const form = event.target;
   
+  const isConnected = await testSupabaseConnection();
+
+  const data = {
+    nome_completo: form.nome_completo.value.trim(),
+    data_nascimento: form.data_nascimento.value || null,
+    celular: form.celular.value.trim(),
+    email: form.email.value.trim() || null,
+    religiao: form.religiao.value || null,
+    sexo: form.sexo.value || null,
+    pronome: form.pronome.value.trim() || null,
+    estado_civil: form.estado_civil.value.trim() || null,
+    guia_espiritual: form.guia_espiritual.value.trim() || null,
+    pai_mae_cabeca: form.pai_mae_cabeca.value.trim() || null,
+    tradicao_espiritual: form.tradicao_espiritual ? form.tradicao_espiritual.value.trim() : (form.tradição_espiritual ? form.tradição_espiritual.value.trim() : null),
+    observacoes_gerais: form.observacoes_gerais.value.trim() || null,
+    personalidade_percebida: form.personalidade_percebida.value.trim() || null,
+    padroes_recorrentes: form.padroes_recorrentes.value.trim() || null,
+    pontos_delicados: form.pontos_delicados.value.trim() || null,
+    resumo_historia: form.resumo_historia.value.trim() || null
+  };
+
+  if (!isConnected) {
+    // Cadastro de cliente em modo demo
+    const newDemoClient = {
+      id: "c-new-demo-" + Date.now(),
+      nome_completo: data.nome_completo,
+      foto_url: "assets/img/default-avatar.png",
+      created_at: new Date().toISOString(),
+      tags_clientes: tempTags.map(t => ({ tag: t.tag, cor: t.cor })),
+      agenda_eventos: []
+    };
+    
+    const localClients = JSON.parse(localStorage.getItem("demo_clients_db") || "[]");
+    localClients.push(newDemoClient);
+    localStorage.setItem("demo_clients_db", JSON.stringify(localClients));
+    
+    alert("Consulente demo criada e sintonizada localmente!");
+    form.reset();
+    tempTags = [];
+    renderTempTags();
+    const modal = document.getElementById("clientModal");
+    if (modal) modal.classList.add("hidden");
+    await loadAndRender();
+    await loadTagsDropdown();
+    return;
+  }
+
   const cartomanteId = await getCurrentCartomanteId();
   if (!cartomanteId) {
     alert("Você precisa estar logada para cadastrar clientes.");
     return;
   }
-
-  const data = {
-    nome_completo: form.nome_completo.value,
-    data_nascimento: form.data_nascimento.value || null,
-    celular: form.celular.value,
-    email: form.email.value || null,
-    religiao: form.religiao.value || null,
-    sexo: form.sexo.value || null,
-    pronome: form.pronome.value || null,
-    estado_civil: form.estado_civil.value || null,
-    guia_espiritual: form.guia_espiritual.value || null,
-    pai_mae_cabeca: form.pai_mae_cabeca.value || null,
-    tradicao_espiritual: form.tradicao_espiritual ? form.tradicao_espiritual.value : (form.tradição_espiritual ? form.tradição_espiritual.value : null),
-    observacoes_gerais: form.observacoes_gerais.value || null,
-    personalidade_percebida: form.personalidade_percebida.value || null,
-    padroes_recorrentes: form.padroes_recorrentes.value || null,
-    pontos_delicados: form.pontos_delicados.value || null,
-    resumo_historia: form.resumo_historia.value || null
-  };
 
   const { data: cliente, error } = await supabase
     .from("clientes")
@@ -308,7 +408,7 @@ async function handleNewClient(event) {
     return;
   }
 
-  // link client to cartomante
+  // Link client to cartomante
   const { error: linkError } = await supabase
     .from("cartomante_clientes")
     .insert({ cartomante_id: cartomanteId, cliente_id: cliente.id, status: "ativo" });
@@ -333,16 +433,13 @@ async function handleNewClient(event) {
 
   alert("Cliente criado com sucesso!");
   
-  // Clean form and temp tags
   form.reset();
   tempTags = [];
   renderTempTags();
   
-  // Close modal
   const modal = document.getElementById("clientModal");
   if (modal) modal.classList.add("hidden");
   
-  // Reload
   await loadAndRender();
   await loadTagsDropdown();
 }
@@ -355,11 +452,3 @@ window.addEventListener("load", async () => {
   const clientForm = document.getElementById("clientForm");
   if (clientForm) clientForm.addEventListener("submit", handleNewClient);
 });
-
-// Helper to create Supabase client via CDN
-function supabaseCreateClient(url, key) {
-  if (typeof window.supabase !== "undefined") {
-    return window.supabase.createClient(url, key);
-  }
-  return null;
-}

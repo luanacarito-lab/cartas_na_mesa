@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   user_id uuid NOT NULL UNIQUE,
   nome text,
   email text,
-  tipo_conta text CHECK (tipo_conta IN ('cliente', 'cartomante', 'admin')),
+  tipo_conta text CHECK (tipo_conta IN ('cliente', 'cartomante', 'admin', 'mestra', 'gerente')),
   telefone text,
   avatar_url text,
   status text NOT NULL DEFAULT 'ativo'::text,

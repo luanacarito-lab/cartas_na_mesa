@@ -6,16 +6,7 @@ const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PR
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Inicialização do Supabase Client
-let supabase = null;
-try {
-  if (typeof supabaseCreateClient === "function") {
-    supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase não disponível. Rodando Organizador em Modo Demonstrativo.");
-}
+let supabase = window.supabaseClient;
 
 // ==========================================================================
 // ESTADO INTERNO DO ORGANIZADOR
@@ -97,13 +88,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Verifica se a conexão com o Supabase está respondendo
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("anotacoes_pessoais").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  return await window.testSupabaseConnection();
 }
 
 // Carregar Anotações Demonstrativas

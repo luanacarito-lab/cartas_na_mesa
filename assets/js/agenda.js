@@ -6,16 +6,7 @@ const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PR
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Inicialização do Supabase Client
-let supabase = null;
-try {
-  if (typeof supabaseCreateClient === "function") {
-    supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase não disponível. Rodando Agenda em Modo Demonstrativo.");
-}
+let supabase = window.supabaseClient;
 
 // ==========================================================================
 // ESTADO INTERNO E MOCK DE CONTINGÊNCIA
@@ -140,13 +131,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     currentView = "week";
   }
 
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
-    await fetchRealEvents();
-    await populateClientsDropdownReal();
-  } else {
+  const isDemo = window.isDemoMode();
+
+  if (isDemo) {
+    console.log("[Agenda] Carregando dados no modo de demonstração.");
     loadDemonstrativeEvents();
     populateClientsDropdownMock();
+    updateDataOriginBadge("demo");
+  } else {
+    console.log("[Agenda] Carregando dados no modo real do Supabase.");
+    const isConnected = await testSupabaseConnection();
+    if (isConnected) {
+      try {
+        await fetchRealEvents();
+        await populateClientsDropdownReal();
+        updateDataOriginBadge("supabase");
+      } catch (err) {
+        console.error("[Agenda] Erro ao carregar eventos em modo real:", err);
+        showAgendaErrorMessage("Erro ao buscar dados da agenda no Supabase.");
+      }
+    } else {
+      console.warn("[Agenda] Conexão com Supabase falhou no modo real.");
+      showAgendaErrorMessage("Sem conexão com o Supabase. Verifique sua conexão e tente novamente.");
+    }
   }
 
   initViewTabs();
@@ -155,13 +162,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Verifica se a conexão com o Supabase está respondendo
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("clientes").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  if (window.isDemoMode()) return false;
+  return await window.testSupabaseConnection();
 }
 
 function loadDemonstrativeEvents() {
@@ -231,8 +233,17 @@ async function populateClientsDropdownReal() {
 async function fetchRealEvents() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      loadDemonstrativeEvents();
+    if (!user) return;
+
+    // Buscar ficha sequencial da cartomante
+    const { data: cartomante } = await supabase
+      .from("cartomantes")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!cartomante) {
+      console.warn("Ficha de cartomante não encontrada no banco.");
       return;
     }
 
@@ -251,7 +262,7 @@ async function fetchRealEvents() {
           nome_completo
         )
       `)
-      .eq("cartomante_id", user.id);
+      .eq("cartomante_id", cartomante.id);
 
     if (error) throw error;
 
@@ -269,8 +280,8 @@ async function fetchRealEvents() {
       }));
     }
   } catch (e) {
-    console.warn("Erro ao buscar eventos Supabase. Usando LocalStorage backup.", e);
-    loadDemonstrativeEvents();
+    console.error("Erro ao buscar eventos Supabase:", e);
+    throw e; // Propagar erro no modo real
   }
 }
 
@@ -705,11 +716,22 @@ window.handleAgendaSubmit = async function(event) {
   const startISO = new Date(`${dateStr}T${startStr}:00`).toISOString();
   const endISO = new Date(`${dateStr}T${endStr}:00`).toISOString();
 
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
+  const isDemo = window.isDemoMode();
+  if (!isDemo) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      const { data: cartomanteObj } = await supabase
+        .from("cartomantes")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!cartomanteObj) {
+        alert("Ficha de cartomante não encontrada. Preencha seu perfil.");
+        return;
+      }
 
       let clientObj = null;
       if (tipo === "atendimento") {
@@ -741,7 +763,7 @@ window.handleAgendaSubmit = async function(event) {
         const { error } = await supabase
           .from("agenda_eventos")
           .insert({
-            cartomante_id: user.id,
+            cartomante_id: cartomanteObj.id,
             tipo,
             cliente_id: clientObj ? clientObj.id : null,
             servico: tipo === "atendimento" ? servico : customTitle,
@@ -755,10 +777,10 @@ window.handleAgendaSubmit = async function(event) {
       await fetchRealEvents();
     } catch (e) {
       console.error("Erro ao sincronizar evento real com Supabase:", e);
-      saveLocalEvent(id, tipo, clienteNome, servico, customTitle, startISO, endISO, notas);
+      alert("Erro ao salvar o evento no Supabase: " + (e.message || "Erro de conexão"));
     }
   } else {
-    // Modo Offline local
+    // Modo Offline demo
     saveLocalEvent(id, tipo, clienteNome, servico, customTitle, startISO, endISO, notas);
   }
 
@@ -907,8 +929,8 @@ window.deleteEventFromDetails = async function() {
   
   if (!confirm("Deseja realmente cancelar este agendamento espiritual?")) return;
 
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
+  const isDemo = window.isDemoMode();
+  if (!isDemo) {
     try {
       const { error } = await supabase
         .from("agenda_eventos")
@@ -918,8 +940,7 @@ window.deleteEventFromDetails = async function() {
       await fetchRealEvents();
     } catch (e) {
       console.error("Erro ao cancelar no Supabase:", e);
-      agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "cancelado" } : evt);
-      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+      alert("Erro ao cancelar o evento no Supabase: " + (e.message || "Erro de conexão"));
     }
   } else {
     agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "cancelado" } : evt);
@@ -932,27 +953,35 @@ window.deleteEventFromDetails = async function() {
 
 window.acceptSolicitation = async function(id) {
   const evt = agendaEventos.find(x => x.id === id);
-  if (evt && evt.cliente_id) {
-    const isConnected = await testSupabaseConnection();
-    let currentCartomanteId = "cartomante-luana";
-    if (isConnected) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) currentCartomanteId = user.id;
-      } catch(e){}
-    }
-    const hasGlobalPendency = await checkClientGlobalPendency(evt.cliente_id, currentCartomanteId);
-    if (hasGlobalPendency) {
-      if (!confirm("Este cliente possui pendência financeira ativa com outro cartomante. Deseja continuar mesmo assim?")) {
-        alert("No momento, este atendimento não pôde ser iniciado. Verifique suas pendências ou tente novamente mais tarde.");
-        await rejectSolicitation(id, true);
-        return;
+  const isDemo = window.isDemoMode();
+
+  if (evt && evt.cliente_id && !isDemo) {
+    let currentCartomanteId = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: cartomante } = await supabase
+          .from("cartomantes")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cartomante) currentCartomanteId = cartomante.id;
+      }
+    } catch(e){}
+    
+    if (currentCartomanteId) {
+      const hasGlobalPendency = await checkClientGlobalPendency(evt.cliente_id, currentCartomanteId);
+      if (hasGlobalPendency) {
+        if (!confirm("Este cliente possui pendência financeira ativa com outro cartomante. Deseja continuar mesmo assim?")) {
+          alert("No momento, este atendimento não pôde ser iniciado. Verifique suas pendências ou tente novamente mais tarde.");
+          await rejectSolicitation(id, true);
+          return;
+        }
       }
     }
   }
 
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
+  if (!isDemo) {
     try {
       const { error } = await supabase
         .from("agenda_eventos")
@@ -962,8 +991,7 @@ window.acceptSolicitation = async function(id) {
       await fetchRealEvents();
     } catch (e) {
       console.error("Erro ao aceitar solicitação no Supabase:", e);
-      agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "confirmado" } : evt);
-      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+      alert("Erro ao aceitar solicitação no Supabase: " + (e.message || "Erro de conexão"));
     }
   } else {
     agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "confirmado" } : evt);
@@ -976,8 +1004,8 @@ window.acceptSolicitation = async function(id) {
 
 window.rejectSolicitation = async function(id, autoReject = false) {
   if (!autoReject && !confirm("Deseja recusar esta solicitação de atendimento?")) return;
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
+  const isDemo = window.isDemoMode();
+  if (!isDemo) {
     try {
       const { error } = await supabase
         .from("agenda_eventos")
@@ -987,8 +1015,7 @@ window.rejectSolicitation = async function(id, autoReject = false) {
       await fetchRealEvents();
     } catch (e) {
       console.error("Erro ao recusar no Supabase:", e);
-      agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "recusado" } : evt);
-      localStorage.setItem("cartomante_agenda_eventos", JSON.stringify(agendaEventos));
+      alert("Erro ao recusar no Supabase: " + (e.message || "Erro de conexão"));
     }
   } else {
     agendaEventos = agendaEventos.map(evt => evt.id === id ? { ...evt, status: "recusado" } : evt);
@@ -998,3 +1025,71 @@ window.rejectSolicitation = async function(id, autoReject = false) {
   closeAgendaDetailsModal();
   renderCalendar();
 };
+
+// Funções Auxiliares de Visualização Discreta
+function updateDataOriginBadge(origin) {
+  const isDebug = new URLSearchParams(window.location.search).has("debug");
+  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  
+  if (!window.isDemoMode() && !isDebug && !isLocalhost) {
+    return;
+  }
+
+  const oldBadge = document.getElementById("data-origin-badge");
+  if (oldBadge) oldBadge.remove();
+
+  const badge = document.createElement("span");
+  badge.id = "data-origin-badge";
+  
+  let text = "";
+  let bgColor = "";
+  if (origin === "supabase") {
+    text = "🔮 Fonte: Supabase (Real)";
+    bgColor = "rgba(46, 204, 113, 0.15)";
+    badge.style.color = "#2ecc71";
+    badge.style.border = "1px solid rgba(46, 204, 113, 0.3)";
+  } else if (origin === "demo") {
+    text = "🔮 Fonte: Modo Demo";
+    bgColor = "rgba(110, 90, 171, 0.15)";
+    badge.style.color = "#9f8cf2";
+    badge.style.border = "1px solid rgba(110, 90, 171, 0.3)";
+  }
+
+  badge.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-modern, 'Inter', sans-serif);
+    background: ${bgColor};
+    margin-left: 15px;
+    vertical-align: middle;
+  `;
+  badge.innerText = text;
+
+  const header = document.querySelector(".page-header");
+  if (header) {
+    const titleDiv = header.querySelector("div");
+    if (titleDiv) {
+      const h1 = titleDiv.querySelector("h1");
+      if (h1) {
+        h1.appendChild(badge);
+      }
+    }
+  }
+}
+
+function showAgendaErrorMessage(msg) {
+  const container = document.getElementById("calendarContainer") || document.querySelector(".calendar-wrapper");
+  if (container) {
+    container.innerHTML = `
+      <div class="glass-panel" style="padding: 40px; text-align: center; color: #ff8888; border-color: rgba(255, 100, 100, 0.3); margin: 20px 0;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+        <h3 style="font-family: var(--font-classic); font-style: italic; margin-bottom: 10px;">Falha de Conexão Espiritual</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">${msg}</p>
+      </div>
+    `;
+  }
+}

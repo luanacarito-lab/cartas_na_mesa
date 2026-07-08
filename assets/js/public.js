@@ -6,16 +6,7 @@ const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PR
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Inicialização do Supabase Client
-let supabase = null;
-try {
-  if (typeof supabaseCreateClient === "function") {
-    supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase não disponível no public.js.");
-}
+let supabase = window.supabaseClient;
 
 // Estado
 let activeCartomante = null;
@@ -46,13 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("perfis_publicos").select("slug").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  return await window.testSupabaseConnection();
 }
 
 // Verificar sessão e permissões
@@ -771,15 +756,7 @@ let bookingDate = new Date();
 let selectedBookingDate = null;
 let selectedBookingHour = null;
 
-async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("perfis_publicos").select("slug").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
-}
+// testSupabaseConnection delegada acima.
 
 function initBookingSystem() {
   const btnClose = document.getElementById("closeBookingModal");
@@ -904,7 +881,7 @@ async function loadBookingHours(date) {
   if (isConnected && activeCartomante) {
     try {
       const { data: eventos } = await supabase
-        .from("agenda_eventos")
+        .from("disponibilidade_cartomantes")
         .select("inicio")
         .eq("cartomante_id", activeCartomante.id)
         .gte("inicio", startOfDay.toISOString())

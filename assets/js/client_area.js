@@ -1,23 +1,7 @@
 // client_area.js - Controle principal da Área do Consulente (Cliente) com Abas Expandidas
 // ----------------------------------------------------------------------------------
-const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
-
 // Initialize Supabase client
-let supabase = null;
-try {
-  supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (e) {
-  console.warn("Erro ao inicializar Supabase no client_area.js", e);
-}
-
-// Helper to create Supabase client via CDN
-function supabaseCreateClient(url, key) {
-  if (typeof window.supabase !== "undefined") {
-    return window.supabase.createClient(url, key);
-  }
-  return null;
-}
+let supabase = window.supabaseClient;
 
 // Global state
 let loggedClient = null;
@@ -410,13 +394,7 @@ async function loadInicioTab() {
 // TAB 2: CARTOMANTES (BUSCA E CATÁLOGO)
 // --------------------------------------------------
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("clientes").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  return await window.testSupabaseConnection();
 }
 
 async function fetchCartomantes() {
@@ -1192,7 +1170,7 @@ async function loadBookingHours(date) {
   if (isConnected && bookingCartomanteId) {
     try {
       const { data: eventos } = await supabase
-        .from("agenda_eventos")
+        .from("disponibilidade_cartomantes")
         .select("inicio")
         .eq("cartomante_id", bookingCartomanteId)
         .gte("inicio", startOfDay.toISOString())
@@ -1289,10 +1267,10 @@ async function confirmBookingAction() {
         .insert({
           cartomante_id: bookingCartomanteId,
           cliente_id: client.id,
-          titulo: `Consulta com ${client.nome_completo}`,
+          servico: `Consulta com ${client.nome_completo}`,
           inicio: bookingDateTime.toISOString(),
           fim: new Date(bookingDateTime.getTime() + 60 * 60 * 1000).toISOString(),
-          descricao: notes
+          notas: notes
         });
 
       if (error) {

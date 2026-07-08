@@ -1,19 +1,7 @@
 // dashboard.js – Atualização dinâmica e integração do Painel Principal
 // --------------------------------------------------------------------------
-const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PROJECT_REF.supabase.co";
-const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
-
 // Inicialização do Supabase Client
-let supabase = null;
-try {
-  if (typeof supabaseCreateClient === "function") {
-    supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase não configurado. Dashboard rodando em Modo Demonstrativo Local.", e);
-}
+let supabase = window.supabaseClient;
 
 // Dados Mockados para Fallback
 const MOCK_DASHBOARD_DATA = {
@@ -39,9 +27,9 @@ let loggedUser = null;
 
 // INICIALIZAÇÃO DA PÁGINA
 document.addEventListener("DOMContentLoaded", async () => {
-  const isConnected = await testSupabaseConnection();
+  const isConnected = await window.testSupabaseConnection();
 
-  if (isConnected) {
+  if (isConnected && supabase) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       loggedUser = user;
@@ -60,13 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Verifica se a conexão com o Supabase está respondendo
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("conversas").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  return await window.testSupabaseConnection();
 }
 
 // Carregar Dados Demonstrativos Mockados

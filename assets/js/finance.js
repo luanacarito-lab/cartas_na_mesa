@@ -6,16 +6,7 @@ const SUPABASE_URL = (window.ENV && window.ENV.SUPABASE_URL) || "https://YOUR_PR
 const SUPABASE_ANON_KEY = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "YOUR_PUBLIC_ANON_KEY";
 
 // Inicialização do Supabase Client
-let supabase = null;
-try {
-  if (typeof supabaseCreateClient === "function") {
-    supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else if (typeof window.supabase !== "undefined") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.warn("Supabase não disponível. Rodando Financeiro em Modo Demonstrativo.");
-}
+let supabase = window.supabaseClient;
 
 // ==========================================================================
 // ESTADO FINANCEIRO INTERNO E MOCK DE CONTINGÊNCIA
@@ -149,13 +140,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Carregar dados de movimentações e pedidos
-  const isConnected = await testSupabaseConnection();
-  if (isConnected) {
-    await fetchRealFinances();
-    await fetchRealPedidos();
-  } else {
+  const isDemo = window.isDemoMode();
+  if (isDemo) {
+    console.log("[Finance] Carregando dados no modo de demonstração.");
     loadDemonstrativeFinances();
     loadDemonstrativePedidos();
+    updateDataOriginBadge("demo");
+  } else {
+    console.log("[Finance] Carregando dados no modo real do Supabase.");
+    const isConnected = await testSupabaseConnection();
+    if (isConnected) {
+      try {
+        await fetchRealFinances();
+        await fetchRealPedidos();
+        updateDataOriginBadge("supabase");
+      } catch (err) {
+        console.error("[Finance] Erro ao carregar finanças reais:", err);
+        showFinanceErrorMessage("Erro ao buscar dados financeiros no Supabase.");
+      }
+    } else {
+      console.warn("[Finance] Sem conexão com Supabase no modo real.");
+      showFinanceErrorMessage("Sem conexão com o Supabase. Verifique sua conexão e tente novamente.");
+    }
   }
 
   // Redirecionamento de aba baseado nos parâmetros da URL (ex: cliques em notificações)
@@ -172,13 +178,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Verifica se a conexão com o Supabase está respondendo
 async function testSupabaseConnection() {
-  if (!supabase || SUPABASE_URL.includes("YOUR_PROJECT_REF")) return false;
-  try {
-    const { data, error } = await supabase.from("financeiro").select("id").limit(1);
-    return error ? false : true;
-  } catch (e) {
-    return false;
-  }
+  if (window.isDemoMode()) return false;
+  return await window.testSupabaseConnection();
 }
 
 // Carregar Configurações de Segurança
@@ -831,7 +832,9 @@ async function handleTransactionSubmit(event) {
     data_registro: new Date(data).toISOString()
   };
 
-  if (isConnected) {
+  const isDemo = window.isDemoMode();
+
+  if (!isDemo) {
     if (id) {
       // Editar Supabase
       const { error } = await supabase
@@ -839,19 +842,27 @@ async function handleTransactionSubmit(event) {
         .update(txData)
         .eq("id", id);
       
-      if (error) console.error("Erro ao editar no Supabase:", error);
+      if (error) {
+        console.error("Erro ao editar no Supabase:", error);
+        alert("Erro ao editar transação no Supabase: " + error.message);
+        return;
+      }
     } else {
       // Criar Supabase
       const { error } = await supabase
         .from("financeiro")
         .insert([txData]);
 
-      if (error) console.error("Erro ao inserir no Supabase:", error);
+      if (error) {
+        console.error("Erro ao inserir no Supabase:", error);
+        alert("Erro ao inserir transação no Supabase: " + error.message);
+        return;
+      }
     }
     
     await fetchRealFinances();
   } else {
-    // Editar/Criar local
+    // Editar/Criar local demo
     if (id) {
       const idx = financeiroData.findIndex(tx => tx.id === id);
       if (idx !== -1) {
@@ -891,9 +902,9 @@ async function deleteTransaction(txId) {
   const confirmDel = confirm("Deseja realmente apagar esta movimentação financeira de forma definitiva?");
   if (!confirmDel) return;
 
-  const isConnected = await testSupabaseConnection();
+  const isDemo = window.isDemoMode();
 
-  if (isConnected) {
+  if (!isDemo) {
     const { error } = await supabase
       .from("financeiro")
       .delete()
@@ -901,17 +912,85 @@ async function deleteTransaction(txId) {
 
     if (error) {
       console.error("Erro ao deletar no Supabase:", error);
+      alert("Erro ao deletar transação no Supabase: " + error.message);
       return;
     }
     await fetchRealFinances();
   } else {
-    // Local
+    // Local demo
     financeiroData = financeiroData.filter(tx => tx.id !== txId);
     localStorage.setItem("cartomante_finances_db", JSON.stringify(financeiroData));
     populateClientsDropdown();
     applyFilters();
   }
 }
+
+// Funções Auxiliares de Visualização Discreta
+function updateDataOriginBadge(origin) {
+  const isDebug = new URLSearchParams(window.location.search).has("debug");
+  const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  
+  if (!window.isDemoMode() && !isDebug && !isLocalhost) {
+    return;
+  }
+
+  const oldBadge = document.getElementById("data-origin-badge");
+  if (oldBadge) oldBadge.remove();
+
+  const badge = document.createElement("span");
+  badge.id = "data-origin-badge";
+  
+  let text = "";
+  let bgColor = "";
+  if (origin === "supabase") {
+    text = "🔮 Fonte: Supabase (Real)";
+    bgColor = "rgba(46, 204, 113, 0.15)";
+    badge.style.color = "#2ecc71";
+    badge.style.border = "1px solid rgba(46, 204, 113, 0.3)";
+  } else if (origin === "demo") {
+    text = "🔮 Fonte: Modo Demo";
+    bgColor = "rgba(110, 90, 171, 0.15)";
+    badge.style.color = "#9f8cf2";
+    badge.style.border = "1px solid rgba(110, 90, 171, 0.3)";
+  }
+
+  badge.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-modern, 'Inter', sans-serif);
+    background: ${bgColor};
+    margin-left: 15px;
+    vertical-align: middle;
+  `;
+  badge.innerText = text;
+
+  const header = document.querySelector(".page-header");
+  if (header) {
+    const titleDiv = header.querySelector("div");
+    if (titleDiv) {
+      const h1 = titleDiv.querySelector("h1");
+      if (h1) {
+        h1.appendChild(badge);
+      }
+    }
+  }
+}
+
+function showFinanceErrorMessage(msg) {
+  const container = document.getElementById("financeContainer") || document.querySelector(".finance-grid") || document.querySelector(".mystic-container");
+  if (container) {
+    container.innerHTML = `
+      <div class="glass-panel" style="padding: 40px; text-align: center; color: #ff8888; border-color: rgba(255, 100, 100, 0.3); margin: 20px 0; width: 100%;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+        <h3 style="font-family: var(--font-classic); font-style: italic; margin-bottom: 10px;">Falha de Conexão Financeira</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">${msg}</p>
+      </div>
+    `;
+  }
 
 // Editar Movimentação (Preenche formulário no modal)
 function editTransaction(txId) {
