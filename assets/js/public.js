@@ -1039,6 +1039,7 @@ async function confirmBookingAction() {
     } finally {
       btnConfirm.disabled = false;
       btnConfirm.innerHTML = '<i class="fas fa-magic"></i> Selar Agendamento';
+    }
   }
 }
 

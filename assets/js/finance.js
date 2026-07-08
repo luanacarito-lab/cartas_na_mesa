@@ -991,6 +991,7 @@ function showFinanceErrorMessage(msg) {
       </div>
     `;
   }
+}
 
 // Editar Movimentação (Preenche formulário no modal)
 function editTransaction(txId) {

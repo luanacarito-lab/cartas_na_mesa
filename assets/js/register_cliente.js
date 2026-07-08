@@ -13,10 +13,20 @@ function initRegister() {
     e.preventDefault();
     hideRegClienteError();
 
-    const supabase = window.supabaseClient;
+    let supabase = window.supabaseClient;
 
     if (!supabase) {
-      showRegClienteError("Serviço de autenticação temporariamente indisponível. Verifique suas credenciais de configuração.");
+      setButtonLoading("Conectando ao plano espiritual...");
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        supabase = window.supabaseClient;
+        if (supabase) break;
+      }
+    }
+
+    if (!supabase) {
+      showRegClienteError("Não foi possível iniciar o serviço de autenticação. Tente novamente em instantes.");
+      resetButton();
       return;
     }
 
@@ -104,42 +114,65 @@ function initRegister() {
         return;
       }
 
-      // 3. Criação de perfil no banco (syncUserProfile centralizado no auth-guard.js)
+      // 3. Verificar se as tabelas de aplicação foram populadas de fato pela trigger do banco
       try {
-        if (window.syncUserProfile) {
-          await window.syncUserProfile(user, supabase);
-        } else {
-          // Fallback local se a função global não carregar
-          const { error: insProfErr } = await supabase.from("profiles").insert({
-            user_id: user.id,
-            nome: nomeCompleto,
-            email: email,
-            tipo_conta: "cliente",
-            telefone: celular,
-            status: "ativo"
-          });
-          if (insProfErr) throw insProfErr;
+        await new Promise(r => setTimeout(r, 500)); // Pequena pausa para a trigger processar
 
-          const { error: insCliErr } = await supabase.from("clientes").insert({
-            user_id: user.id,
-            nome_completo: nomeCompleto,
-            email: email,
-            celular: celular,
-            data_nascimento: dataNascimento,
-            religiao: religiao,
-            sexo: sexo,
-            pronome: pronome,
-            estado_civil: estadoCivil,
-            guia_espiritual: guiaEspiritual,
-            pai_mae_cabeca: paiMaeCabeca,
-            tradicao_espiritual: tradicaoEspiritual,
-            foto_url: "assets/img/default-avatar.png"
-          });
-          if (insCliErr) throw insCliErr;
+        const { data: profile, error: profErr } = await supabase
+          .from("profiles")
+          .select("tipo_conta")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profErr || !profile) {
+          console.warn("[RegisterCliente] Profile não encontrado via trigger. Sincronizando manualmente...");
+          if (window.syncUserProfile) {
+            await window.syncUserProfile(user, supabase);
+          } else {
+            await supabase.from("profiles").upsert({
+              user_id: user.id,
+              nome: nomeCompleto,
+              email: email,
+              tipo_conta: "cliente",
+              telefone: celular,
+              status: "ativo"
+            }, { onConflict: "user_id" });
+
+            await supabase.from("clientes").upsert({
+              user_id: user.id,
+              nome_completo: nomeCompleto,
+              email: email,
+              celular: celular,
+              data_nascimento: dataNascimento,
+              religiao: religiao,
+              sexo: sexo,
+              pronome: pronome,
+              estado_civil: estadoCivil,
+              guia_espiritual: guiaEspiritual,
+              pai_mae_cabeca: paiMaeCabeca,
+              tradicao_espiritual: tradicaoEspiritual,
+              foto_url: "assets/img/default-avatar.png"
+            }, { onConflict: "user_id" });
+          }
+        } else {
+          // A trigger criou com sucesso! Fazemos um UPDATE das colunas adicionais do formulário
+          await supabase
+            .from("clientes")
+            .update({
+              data_nascimento: dataNascimento,
+              religiao: religiao,
+              sexo: sexo,
+              pronome: pronome,
+              estado_civil: estadoCivil,
+              guia_espiritual: guiaEspiritual,
+              pai_mae_cabeca: paiMaeCabeca,
+              tradicao_espiritual: tradicaoEspiritual
+            })
+            .eq("user_id", user.id);
         }
       } catch (profileError) {
-        console.error("[RegisterCliente] Falha ao criar o perfil no banco para o usuário Auth:", profileError);
-        showRegClienteError("Sua conta foi criada, mas houve falha ao criar o perfil. Faça login para completar o cadastro.");
+        console.error("[RegisterCliente] Falha ao criar ou validar perfil:", profileError);
+        showRegClienteError("Sua conta foi criada, mas houve falha ao sincronizar o perfil. Faça login para continuar.");
         resetButton();
         return;
       }

@@ -13,10 +13,20 @@ function initRegister() {
     e.preventDefault();
     hideRegError();
 
-    const supabase = window.supabaseClient;
+    let supabase = window.supabaseClient;
 
     if (!supabase) {
-      showRegError("Serviço de autenticação temporariamente indisponível. Verifique suas credenciais de configuração.");
+      setButtonLoading("Conectando ao plano espiritual...");
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        supabase = window.supabaseClient;
+        if (supabase) break;
+      }
+    }
+
+    if (!supabase) {
+      showRegError("Não foi possível iniciar o serviço de autenticação. Tente novamente em instantes.");
+      resetButton();
       return;
     }
 
@@ -125,35 +135,55 @@ function initRegister() {
 
       // 3. Sincronizar perfis no banco de dados real
       try {
-        if (window.syncUserProfile) {
-          await window.syncUserProfile(user, supabase);
-        } else {
-          // Fallback local se a função global de sync não estiver carregada
-          const { error: insProfErr } = await supabase.from("profiles").insert({
-            user_id: user.id,
-            nome: nomeProfissional,
-            email: email,
-            tipo_conta: "cartomante",
-            telefone: telefone,
-            status: "ativo"
-          });
-          if (insProfErr) throw insProfErr;
+        await new Promise(r => setTimeout(r, 500)); // Pequena pausa para a trigger processar
 
-          const { error: insCartErr } = await supabase.from("cartomantes").insert({
-            user_id: user.id,
-            nome: nomeProfissional,
-            email: email,
-            telefone: telefone,
-            funcao: funcao,
-            bio: bio,
-            foto_url: fotoUrl,
-            banner_url: bannerUrl
-          });
-          if (insCartErr) throw insCartErr;
+        const { data: profile, error: profErr } = await supabase
+          .from("profiles")
+          .select("tipo_conta")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profErr || !profile) {
+          console.warn("[RegisterCartomante] Profile não encontrado via trigger. Sincronizando manualmente...");
+          if (window.syncUserProfile) {
+            await window.syncUserProfile(user, supabase);
+          } else {
+            await supabase.from("profiles").upsert({
+              user_id: user.id,
+              nome: nomeProfissional,
+              email: email,
+              tipo_conta: "cartomante",
+              telefone: telefone,
+              status: "ativo"
+            }, { onConflict: "user_id" });
+
+            await supabase.from("cartomantes").upsert({
+              user_id: user.id,
+              nome: nomeProfissional,
+              email: email,
+              telefone: telefone,
+              funcao: funcao,
+              bio: bio,
+              foto_url: fotoUrl,
+              banner_url: bannerUrl
+            }, { onConflict: "user_id" });
+          }
+        } else {
+          // A trigger criou com sucesso! Fazemos um UPDATE das colunas opcionais adicionais do formulário
+          await supabase
+            .from("cartomantes")
+            .update({
+              telefone: telefone,
+              funcao: funcao,
+              bio: bio,
+              foto_url: fotoUrl,
+              banner_url: bannerUrl
+            })
+            .eq("user_id", user.id);
         }
       } catch (profileError) {
-        console.error("[RegisterCartomante] Falha ao criar o perfil no banco para o usuário Auth:", profileError);
-        showRegError("Sua conta foi criada, mas houve falha ao criar o perfil. Faça login para completar o cadastro.");
+        console.error("[RegisterCartomante] Falha ao criar ou validar perfil:", profileError);
+        showRegError("Sua conta foi criada, mas houve falha ao sincronizar o perfil. Faça login para continuar.");
         resetButton();
         return;
       }
