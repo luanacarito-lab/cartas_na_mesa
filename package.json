@@ -2,6 +2,6 @@
   "name": "cartas-na-mesa",
   "version": "1.0.0",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); fs.writeFileSync('config.js', 'window.ENV = { SUPABASE_URL: \\\"' + (process.env.SUPABASE_URL || 'https://oglsyumzlvzrudzdonrh.supabase.co') + '\\\", SUPABASE_ANON_KEY: \\\"' + (process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nbHN5dW16bHZ6cnVkemRvbnJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDE3MTUsImV4cCI6MjA5NTExNzcxNX0.K7wUgkcjDLoB43tD4s31FuMmIsR9PEjQODgeDEOXGZQ') + '\\\" };');\""
+    "build": "node build.js"
   }
 }
