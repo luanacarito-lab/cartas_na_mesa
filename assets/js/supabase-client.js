@@ -4,20 +4,43 @@
 (function () {
   if (window.supabaseClient) return; // Já foi inicializado
 
-  function initClient() {
-    if (window.supabaseClient) return true;
+  let resolveInit;
+  let rejectInit;
+  window.supabaseClientPromise = new Promise((resolve, reject) => {
+    resolveInit = resolve;
+    rejectInit = reject;
+  });
 
+  window.supabaseClientError = null;
+
+  function initClient() {
+    if (window.supabaseClient) {
+      resolveInit(window.supabaseClient);
+      return true;
+    }
+
+    const envExists = typeof window.ENV !== "undefined";
     const url = (window.ENV && window.ENV.SUPABASE_URL) || "";
     const key = (window.ENV && window.ENV.SUPABASE_ANON_KEY) || "";
 
-    if (!url || !key || url.includes("YOUR_PROJECT_REF") || url.includes("YOUR_PUBLIC_ANON_KEY")) {
-      console.warn("[SupabaseClient] Credenciais ausentes ou inválidas. Modo real inativo.");
+    if (!envExists) {
+      const err = new Error("Configuração ausente (arquivo config.js não carregado).");
+      window.supabaseClientError = err.message;
       window.supabaseClient = null;
+      rejectInit(err);
+      return true;
+    }
+
+    if (!url || !key || url.includes("YOUR_PROJECT_REF") || url.includes("YOUR_PUBLIC_ANON_KEY")) {
+      const err = new Error("Credenciais do Supabase ausentes ou inválidas no config.js.");
+      window.supabaseClientError = err.message;
+      window.supabaseClient = null;
+      rejectInit(err);
       return true; 
     }
 
     if (typeof window.supabase === "undefined" || typeof window.supabase.createClient !== "function") {
-      return false; // Biblioteca ainda não carregada
+      return false; // Biblioteca CDN ainda não carregada
     }
 
     try {
@@ -28,10 +51,14 @@
         }
       });
       console.log("[SupabaseClient] Cliente inicializado com sucesso.");
+      resolveInit(window.supabaseClient);
       return true;
     } catch (e) {
       console.error("[SupabaseClient] Falha ao criar cliente:", e);
+      const err = new Error("Erro na criação do cliente Supabase: " + e.message);
+      window.supabaseClientError = err.message;
       window.supabaseClient = null;
+      rejectInit(err);
       return true;
     }
   }
@@ -40,7 +67,13 @@
   if (!initClient()) {
     document.addEventListener("DOMContentLoaded", function () {
       if (!initClient()) {
-        setTimeout(initClient, 500);
+        setTimeout(() => {
+          if (!initClient()) {
+            const err = new Error("Biblioteca Supabase CDN não carregada (timeout).");
+            window.supabaseClientError = err.message;
+            rejectInit(err);
+          }
+        }, 3000);
       }
     });
   }
@@ -63,3 +96,4 @@
     }
   };
 })();
+

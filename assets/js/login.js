@@ -23,10 +23,23 @@ function initLogin() {
       clearError();
       setLoading(loginBtn, true);
 
-      const supabase = await waitForSupabase(3000);
+      let supabase = null;
+      try {
+        if (window.supabaseClientPromise) {
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout de inicialização do Supabase")), 4000)
+          );
+          supabase = await Promise.race([window.supabaseClientPromise, timeoutPromise]);
+        } else {
+          supabase = await waitForSupabase(4000);
+        }
+      } catch (err) {
+        console.error("Falha ao obter cliente Supabase:", err);
+      }
       
       if (!supabase) {
-        showError("Não foi possível conectar aos servidores. Verifique sua conexão.", loginBtn);
+        const diagErr = window.supabaseClientError || "Não foi possível carregar a biblioteca de autenticação.";
+        showError(`Erro de inicialização: ${diagErr}`, loginBtn);
         return;
       }
 
@@ -57,7 +70,11 @@ function initLogin() {
 
       } catch (err) {
         console.error("Erro geral de login:", err);
-        showError("Não foi possível conectar ao Supabase. Verifique a configuração do projeto.", loginBtn);
+        if (err.message && (err.message.includes("fetch") || err.message.includes("NetworkError") || err.message.includes("Failed to fetch"))) {
+          showError("Não foi possível conectar ao servidor. Verifique sua conexão com a internet.", loginBtn);
+        } else {
+          showError(`Erro ao entrar: ${err.message || "Tente novamente."}`, loginBtn);
+        }
       }
     });
   }
@@ -133,7 +150,7 @@ async function forceRealSignOut() {
   }
 }
 
-// Aguardar o cliente Supabase centralizado ficar disponível
+// Aguardar o cliente Supabase centralizado ficar disponível (Fallback)
 function waitForSupabase(maxMs) {
   return new Promise((resolve) => {
     if (window.supabaseClient) {
